@@ -1,1 +1,131 @@
-\item \textbf asd
+\item \model{Nemotron-3}
+
+\paragraph*{مقدمه و پارادایم داده‌های پس‌آموزش (\en{Post-Training Paradigm})}
+فاز پس‌آموزش (\en{Post-training}) در خانواده مدل‌های \model{Nemotron-3} (شامل نسخه‌های \en{Nano}، \en{Super} و \en{Ultra}) بر پایه یک معماری پیوندی متشکل از لایه‌های تنک \en{MoE} و بلوک‌های حالت خطی \en{Mamba-2} به همراه تعداد اندکی لایه توجه بازطراحی شده است \cite{waleffe2024mamba, dao2024transformers}. تمرکز بنیادین در گردآوری و طراحی داده‌های پس‌آموزش، ارتقای ظرفیت مدل در سه حوزه کلیدی است:
+\begin{itemize}
+    \item استدلال عمیق چندمرحله‌ای (\en{Multi-Step Reasoning}) در ریاضیات و کدنویسی رقابتی.
+    \item عاملیت هوشمند و تعامل پیشرفته با ابزارها (\en{Agentic Multi-Step Tool Use}).
+    \item مدیریت بلادرنگ و دانه‌بندی‌شده بودجه استدلال در زمان استنتاج (\en{Reasoning Budget Control}).
+\end{itemize}
+برخلاف خطوط لوله متداول که فاز پس‌آموزش را به صورت پله‌ای و مجزا برای هر توانمندی اجرا می‌کنند، در \model{Nemotron-3} بهینه‌سازی هم‌زمان در محیط‌های چندگانه (\en{Multi-Environment Simultaneous RL}) اتخاذ شده است تا از پدیده تخریب قابلیت‌ها (\en{Capability Degradation}) و هک پاداش (\en{Reward Hacking}) پیشگیری شود \cite{deepseek2025v3a, nvidia2025nemotron2}.
+
+\paragraph*{داده‌های سنتزی و بافت فوق‌طولانی در تنظیم دقیق (\en{Long-Context SFT Data})}
+به منظور آماده‌سازی مدل برای سناریوهای تحلیل اسناد حجیم و گفتگوی طولانی، داده‌های مرحله تنظیم دقیق نظارت‌شده (\en{SFT}) با ویژگی‌های ساختاری زیر تدوین شده‌اند:
+\begin{itemize}
+    \item \textbf{طول پنجره داده‌های نظارت‌شده:} داده‌های فاز \en{SFT} در مدل \model{Nemotron-3-Nano} در پنجره بافت $256\text{K}$ توکن پیکربندی شده‌اند.
+    \item \textbf{عدم وابستگی به \en{RoPE}:} از آنجا که لایه‌های \en{Mamba-2} اطلاعات مکانی توکن‌ها را به شیوه ضمنی و پیوسته در بردار حالت ثبت می‌کنند، در لایه‌های توجه از تعبیه مکانی دورانی (\en{RoPE}) استفاده نشده است؛ از این رو داده‌های بافت طولانی با چالش برون‌یابی توزیع زاویه‌ای مواجه نمی‌شوند \cite{puvvada2025swan}.
+    \item \textbf{تولید داده‌های سنتزی هدفمند (\en{Synthetic Data Generation}):} پیکره داده‌ها در مراحل آموزش پیوسته و تنظیم دقیق به سه دسته داده سنتزی مجهز شده است:
+    \begin{enumerate}
+        \item \textbf{بازیابی دوربرد (\en{Long-Range Retrieval}):} جانمایی گزاره‌های کلیدی در فواصل مکانی بسیار دور برای سنجش پایداری توجه.
+        \item \textbf{استدلال چندجهشی (\en{Multi-Hop Reasoning}):} مسائلی که پاسخ نهایی آن‌ها منوط به زنجیره‌سازی منطقی داده‌های مستقر در بخش‌های نامتقارن متن است.
+        \item \textbf{تجمیع چندسندی (\en{Multi-Document Aggregation}):} متون ترکیبی برگرفته از گزارش‌های گوناگون جهت تولید برآیند و خلاصه‌سازی تحلیلی.
+    \end{enumerate}
+\end{itemize}
+
+\paragraph*{پویایی داده‌های محیطی در یادگیری تقویتی (\en{Multi-Environment RL Data})}
+در مرحله یادگیری تقویتی، داده‌ها صرفاً به پرومپت‌های ایستا محدود نبوده، بلکه از طریق تعامل پویا با ۸ محیط یادگیری فعال به مدل بازخورد داده می‌شود:
+\begin{itemize}
+    \item \textbf{المپیاد و استدلال ریاضی (\en{AIME25}):} تولید و پایش زنجیره‌های طولانی استدلال کلامی و نمادین ریاضی بدون راهنمایی مستقیم.
+    \item \textbf{استدلال علوم پایه سطح تخصص (\en{GPQA} و \en{SciCode}):} مسائل دشوار در فیزیک، شیمی و محاسبات علمی ترکیبی با پیاده‌سازی الگوریتمی.
+    \item \textbf{کدنویسی زنده و مهندسی نرم‌افزار (\en{LiveCodeBench} و \en{SWE-Bench}):} داده‌های مبتنی بر تعامل با خط فرمان و حل مسائل مخازن واقعی نرم‌افزار.
+    \item \textbf{پیروی دقیق از دستورالعمل‌ها (\en{IFBench}):} دستورات دارای قیود منفی و چارچوب‌های سخت‌گیرانه شکلی.
+    \item \textbf{ابزارورزی و عاملیت چندگانه (\en{$T^2$-Bench}):} ایجاد ردپای تعامل مدل با \en{API}ها و مفسرهای کد.
+    \item \textbf{تحلیل متنی جامع (\en{AALCR} و \en{MMLU-Pro}):} آزمون‌های چندگزینه‌ای دشوار با گزینه‌های فریبنده به منظور جلوگیری از سوگیری سطحی.
+    \item \textbf{محیط بافت طولانی در \en{RL}:} تزریق ورودی‌های تعاملی تا سقف $32\text{K}$ توکن در حین تولید نمونه‌های یادگیری تقویتی.
+\end{itemize}
+
+\paragraph*{فرمول‌بندی الگوریتمی و نمونه‌برداری بااهمیت ماسک‌شده}
+فرایند بهینه‌سازی سیاست با استفاده از داده‌های جمع‌آوری‌شده توسط نسخه ناهمگام الگوریتم \en{GRPO} \cite{shao2024deepseekmath} انجام می‌پذیرد. برای مقابله با انحراف توزیع نمونه‌ها بین سیاست جمع‌آوری‌کننده داده و سیاست در حال آموزش، تابع هدف با سازوکار نمونه‌برداری بااهمیت ماسک‌شده (\en{Masked Importance Sampling}) فرمول‌بندی شده است:
+\begin{equation}
+    \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{\substack{q \sim \mathcal{D}_{\text{prompts}} \\ \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}}} \left[ \frac{1}{G} \sum_{i=1}^G \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \mathcal{M}_{i, t} \, \mathcal{L}_{i, t}^{\text{clip}}(\theta) - \beta \, \mathbb{D}_{\text{KL}}\left(\pi_\theta \parallel \pi_{\text{ref}}\right) \right]
+\end{equation}
+که در آن ترم کران‌دار به صورت زیر تعریف می‌شود:
+\begin{equation}
+    \mathcal{L}_{i, t}^{\text{clip}}(\theta) = \min \left( r_{i, t}(\theta) \hat{A}_i, \, \text{clip}\left(r_{i, t}(\theta), 1 - \epsilon, 1 + \epsilon\right) \hat{A}_i \right)
+\end{equation}
+نسبت وزنی اهمیت توکن برابر است با:
+\begin{equation}
+    r_{i, t}(\theta) = \frac{\pi_\theta(o_{i, t} \mid q, o_{i, <t})}{\pi_{\theta_{\text{old}}}(o_{i, t} \mid q, o_{i, <t})}
+\end{equation}
+عملگر ماسک‌گذاری داده‌های پرت به منظور تضمین ثبات شیب بر مبنای حدود مجاز $[c_{\min}, c_{\max}]$ تعریف می‌گردد:
+\begin{equation}
+    \mathcal{M}_{i, t} = \mathbb{I}\left( c_{\min} \le r_{i, t}(\theta) \le c_{\max} \right)
+\end{equation}
+و مزیت نسبی درون‌گروهی بدون نیاز به شبکه نقاد مجزا از طریق نرمال‌سازی پاداش‌های گروهی به دست می‌آید:
+\begin{equation}
+    \hat{A}_i = \frac{R_i - \mu_{\{R_1, \dots, R_G\}}}{\sigma_{\{R_1, \dots, R_G\}} + \epsilon_{\text{stab}}}
+\end{equation}
+
+\paragraph*{مهندسی داده در کنترل دانه‌بندی‌شده بودجه تفکر (\en{Reasoning Budget Control})}
+در خلال پس‌آموزش، مدل برای پذیرش نشانه توقف تفکر میانی آموزش داده شده است. در صورت تعریف سقف توکن توسط کاربر، توکن کنترلی به توالی استدلال نیمه‌کاره تزریق می‌شود:
+\begin{equation}
+    \mathcal{S}_{\text{input}} = [\,\text{Prompt}, \, \text{Partial\_Thinking\_Trace}, \, \texttt{</think>}\,]
+\end{equation}
+این ساختار داده به مدل می‌آموزد که بلافاصله پس از مشاهده توکن پایانی، فرایند تعمق را قطع کرده و پاسخ نهایی را بر مبنای استدلال‌های تا آن لحظه تدوین نماید.
+
+\paragraph*{تحلیل احتمال منفی لگاریتمی (\en{NLL}) و برون‌یابی بافت}
+ارزیابی احتمال منفی لگاریتمی انباشته (\en{Cumulative Average NLL}) بر روی مخازن کدهای پیوسته با طول بیش از یک میلیون توکن نشان‌دهنده انطباق بر رابطه قانون توان (\en{Power Law}) است:
+\begin{equation}
+    \text{NLL}(s) \propto s^{-\alpha}, \quad R^2 = 0.883
+\end{equation}
+میزان ضریب تعیین $R^2 = 0.883$ اثبات می‌کند که با افزایش طول کانتکست تا سقف $1\text{M}$ توکن، میزان خطای پیش‌بینی به شکل پیوسته و معنادار کاهش می‌یابد.
+
+\paragraph*{ارزیابی‌های تجربی مدل پس‌آموزش‌دیده (\en{Post-Trained Evaluations})}
+عملکرد مدل نهایی \model{Nemotron-3-Nano-30B-A3B} در مقایسه با مدل‌های هم‌رده در جدول زیر خلاصه شده است. این نتایج حاکی از برتری قاطع در ابزارورزی ($49.0\%$ در \en{$T^2$-Bench})، استدلال ریاضی با ابزار ($99.2\%$ در \en{AIME25}) و گذردهی استنتاج ($3.3\times$ سریع‌تر در توالی‌های طولانی) است.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه عملکرد بنچمارک‌های پس‌آموزش و گذردهی استنتاج در مدل‌های استدلالی}
+\label{tab:nemotron3_post_train_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{شاخص / تسک} & \textbf{بنچمارک (متریک)} & \textbf{حالت اجرایی} & \textbf{\model{Nemotron-3-Nano-30B-A3B}} & \textbf{\en{Qwen3-30B-A3B-Thinking}} & \textbf{\en{GPT-OSS-20B-A4B}} \\
+\midrule
+\multirow{2}{*}{\textbf{مشخصات}} & پارامترهای فعال / کل & - & 3B / 30B & 3B / 30B & 4B / 20B \\
+& نرخ گذردهی نسبی & \en{8k ISL / 16k OSL} & \textbf{3.3$\times$} & 1.0$\times$ & 1.5$\times$ \\
+\midrule
+\multirow{2}{*}{\textbf{ریاضیات} (\en{Math})} 
+& \en{AIME25} & بدون ابزار & 89.1\% & 85.0\% & \textbf{91.7\%} \\
+& \en{AIME25} & به همراه ابزار (\en{+tools}) & \textbf{99.2\%} & - & 98.7\% \\
+\midrule
+\multirow{2}{*}{\textbf{کدنویسی} (\en{Coding})} 
+& \en{LCB v6} & \en{Pass@1} & \textbf{68.2\%} & 66.0\% & 61.0\% \\
+& \en{SWE-Bench} & حل خطای مخزن & \textbf{38.8\%} & 22.0\% & 34.0\% \\
+\midrule
+\textbf{گفتگو} (\en{Chat}) & \en{Arena-Hard-v2} & امتیاز میانگین & \textbf{67.7\%} & 57.8\% & 48.5\% \\
+\midrule
+\textbf{دستورپذیری} (\en{Inst. Following}) & \en{IFBench} & اجرای دقیق قیود & \textbf{71.5\%} & 51.0\% & 65.0\% \\
+\midrule
+\textbf{ابزارورزی} (\en{Tool Use}) & \en{$T^2$-Bench} & فراخوانی توابع & \textbf{49.0\%} & 47.7\% & 47.5\% \\
+\midrule
+\textbf{بافت طولانی} (\en{Long Context}) & \en{RULER @ 1M} & بازیابی در ۱ میلیون توکن & \textbf{86.3\%} & 77.5\% & \en{N/A} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+جدول زیر پایداری مدل پایه را در برون‌یابی طول بافت تا مرز یک میلیون توکن بر اساس بنچمارک \en{RULER} در مقایسه با نسخه پیشین متراکم نشان می‌دهد:
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه مقاومت در برابر برون‌یابی طول بافت (\en{RULER Score}) در مدل‌های پایه با آموزش تا سقف $512\text{K}$}
+\label{tab:nemotron3_ruler_extrapolation}
+\resizebox{0.85\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{مدل} & \textbf{128k} & \textbf{256k} & \textbf{512k} & \textbf{1M (برون‌یابی)} \\
+\midrule
+\model{Nemotron-Nano-12B-v2-Base} (ترکیبی متراکم) & \textbf{85.13\%} & \textbf{79.85\%} & \textbf{75.12\%} & 23.43\% \\
+\model{Nemotron-3-Nano-30B-A3B-Base} (ترکیبی تنک \en{MoE}) & 74.48\% & 71.67\% & 66.02\% & \textbf{54.19\%} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{زیرساخت متن‌باز و دسترس‌پذیری دادگان (\en{Open Software Stack})}
+فرایند پس‌آموزش و کلیه ابزارهای تولید داده به صورت آزاد و تحت مجوز \en{Apache 2.0} منتشر شده‌اند:
+\begin{itemize}
+    \item \textbf{کتابخانه \en{NeMo-RL}:} زیرساخت توزیع‌شده و بهینه برای اجرای آموزش هم‌زمان \en{GRPO} در مقیاس‌های بزرگ.
+    \item \textbf{محیط تعاملی \en{NeMo-Gym}:} جعبه‌ابزار استاندارد شبیه‌سازی محیط‌های عامل‌محور، اجرای کد و تولید مسیرهای بازخورد تعاملی.
+\end{itemize}

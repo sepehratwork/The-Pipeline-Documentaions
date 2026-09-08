@@ -893,6 +893,23 @@ Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, et~al.
 \newblock The llama 3 herd of models.
 \newblock {\em arXiv preprint arXiv:2407.21783}, 2024.
 
+\bibitem{waleffe2024mamba}
+Roger Waleffe, Wonmin Byeon, Duncan Riach, Brandon Norick, Vijay Korthikanti,
+  Tri Dao, Albert Gu, et~al.
+\newblock An empirical study of mamba-based language models.
+\newblock {\em arXiv preprint arXiv:2406.07887}, 2024.
+
+\bibitem{deepseek2025v3a}
+{DeepSeek-AI}.
+\newblock Deepseek-v3 technical report.
+\newblock {\em arXiv preprint arXiv:2412.19437}, 2025.
+
+\bibitem{nvidia2025nemotron2}
+{NVIDIA}.
+\newblock Nvidia nemotron nano 2: An accurate and efficient hybrid
+  mamba-transformer reasoning model.
+\newblock {\em arXiv preprint arXiv:2508.14444}, 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.

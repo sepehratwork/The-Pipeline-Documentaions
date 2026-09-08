@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026/Arch Linux) (preloaded format=xelatex 2026.6.29)  7 SEP 2026 20:15
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026/Arch Linux) (preloaded format=xelatex 2026.6.29)  8 SEP 2026 17:17
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1746,9 +1746,75 @@ Overfull \hbox (17.52234pt too wide) in paragraph at lines 60--61
 استفاده از جفت‌داده‌های[]
  []
 
-) (./models/Training/Data/Post-Training/nemotron_3.tex)
-(./models/Training/Data/Post-Training/qwen_3.tex)
-(./models/Training/Data/Post-Training/olmo_3.tex) [51]
+) (./models/Training/Data/Post-Training/nemotron_3.tex
+Overfull \hbox (3.6625pt too wide) in paragraph at lines 4--5
+[][] [][][]\TU/Vazirmatn(0)/b/n/12 مقدمه و پارادایم داده‌های پس‌آموزش ([]\TU/Li
+berationSerif(0)/b/n/12 Post-Training Paradigm[]\TU/Vazirmatn(0)/b/n/12 )[][][]
+ \TU/Vazirmatn(0)/m/it/12 فاز پس‌آموزش ([]\TU/LiberationSerif(0)/m/n/12 Post-tr
+aining[]\TU/Vazirmatn(0)/m/it/12 )[]
+ []
+
+[51]
+Overfull \hbox (1.4609pt too wide) in paragraph at lines 8--9
+[][]\TU/Vazirmatn(0)/m/it/12 مدیریت بلادرنگ و دانه‌بندی‌شده بودجه استدلال در زم
+ان استنتاج ([]\TU/LiberationSerif(0)/m/n/12 Reasoning Budget Control[]\TU/Vazir
+matn(0)/m/it/12 ). []
+ []
+
+
+Overfull \hbox (14.55019pt too wide) in paragraph at lines 13--14
+[][] [][][]\TU/Vazirmatn(0)/b/n/12 داده‌های سنتزی و بافت فوق‌طولانی در تنظیم دق
+یق ([]\TU/LiberationSerif(0)/b/n/12 Long-Context SFT Data[]\TU/Vazirmatn(0)/b/n
+/12 )[][][] \TU/Vazirmatn(0)/m/it/12 به منظور آماده‌سازی[]
+ []
+
+
+Overfull \hbox (1.19724pt too wide) in paragraph at lines 17--18
+[][]\TU/Vazirmatn(0)/b/n/12 تولید داده‌های سنتزی هدفمند ([]\TU/LiberationSerif(
+0)/b/n/12 Synthetic Data Generation[]\TU/Vazirmatn(0)/b/n/12 ): \TU/Vazirmatn(0
+)/m/it/12 پیکره داده‌ها در مراحل آموزش[]
+ []
+
+[52]
+Overfull \hbox (12.91403pt too wide) in paragraph at lines 31--32
+[][]\TU/Vazirmatn(0)/b/n/12 پیروی دقیق از دستورالعمل‌ها ([]\TU/LiberationSerif(
+0)/b/n/12 IFBench[]\TU/Vazirmatn(0)/b/n/12 ): \TU/Vazirmatn(0)/m/it/12 دستورات 
+دارای قیود منفی و چارچوب‌های سخت‌گیرانه[]
+ []
+
+
+Overfull \hbox (1.14828pt too wide) in paragraph at lines 34--35
+[][]\TU/Vazirmatn(0)/b/n/12 محیط بافت طولانی در []\TU/LiberationSerif(0)/b/n/12
+ RL[]\TU/Vazirmatn(0)/b/n/12 : \TU/Vazirmatn(0)/m/it/12 تزریق ورودی‌های تعاملی 
+تا سقف $\OT1/cmr/m/n/12 32[]$ \TU/Vazirmatn(0)/m/it/12 توکن در حین تولید نمونه‌
+های[]
+ []
+
+
+Overfull \hbox (18.48477pt too wide) in paragraph at lines 60--61
+[][] [][][]\TU/Vazirmatn(0)/b/n/12 مهندسی داده در کنترل دانه‌بندی‌شده بودجه تفک
+ر ([]\TU/LiberationSerif(0)/b/n/12 Reasoning Budget Control[]\TU/Vazirmatn(0)/b
+/n/12 )[][][] \TU/Vazirmatn(0)/m/it/12 در خلال پس‌آموزش،[]
+ []
+
+[53]
+Overfull \hbox (21.72696pt too wide) in paragraph at lines 74--75
+[][] [][][]\TU/Vazirmatn(0)/b/n/12 ارزیابی‌های تجربی مدل پس‌آموزش‌دیده ([]\TU/L
+iberationSerif(0)/b/n/12 Post-Trained Evaluations[]\TU/Vazirmatn(0)/b/n/12 )[][
+][] \TU/Vazirmatn(0)/m/it/12 عملکرد مدل نهایی []\TU/LiberationSerif(0)/b/n/12 N
+emotron-[][]
+ []
+
+
+Overfull \hbox (20.89734pt too wide) in paragraph at lines 129--130
+[][]\TU/Vazirmatn(0)/b/n/12 کتابخانه []\TU/LiberationSerif(0)/b/n/12 NeMo-RL[]\
+TU/Vazirmatn(0)/b/n/12 : \TU/Vazirmatn(0)/m/it/12 زیرساخت توزیع‌شده و بهینه برا
+ی اجرای آموزش هم‌زمان []\TU/LiberationSerif(0)/m/n/12 GRPO[] \TU/Vazirmatn(0)/m
+/it/12 در مقیاس‌های[]
+ []
+
+) (./models/Training/Data/Post-Training/qwen_3.tex)
+(./models/Training/Data/Post-Training/olmo_3.tex) [54]
 (./models/Training/Method/Pre-Training/deepseek_v4.tex)
 (./models/Training/Method/Pre-Training/glm_5.tex)
 (./models/Training/Method/Pre-Training/kimi_k3.tex)
@@ -1763,7 +1829,7 @@ Overfull \hbox (17.52234pt too wide) in paragraph at lines 60--61
 (./models/Training/Method/Post-Training/kimi_k3.tex)
 (./models/Training/Method/Post-Training/magistral.tex)
 (./models/Training/Method/Post-Training/minimax_m2.tex)
-(./models/Training/Method/Post-Training/mobilellm_pro.tex [52])
+(./models/Training/Method/Post-Training/mobilellm_pro.tex)
 (./models/Training/Method/Post-Training/nemotron_3.tex)
 (./models/Training/Method/Post-Training/qwen_3.tex)
 (./models/Training/Method/Post-Training/olmo_3.tex))
@@ -1772,7 +1838,7 @@ Overfull \hbox (17.52234pt too wide) in paragraph at lines 60--61
 (./models/Architecture/ActivationFunction/glm_5.tex)
 (./models/Architecture/ActivationFunction/kimi_k3.tex)
 (./models/Architecture/ActivationFunction/magistral.tex)
-(./models/Architecture/ActivationFunction/minimax_m2.tex)
+(./models/Architecture/ActivationFunction/minimax_m2.tex [55])
 (./models/Architecture/ActivationFunction/mobilellm_pro.tex)
 (./models/Architecture/ActivationFunction/nemotron_3.tex)
 (./models/Architecture/ActivationFunction/qwen_3.tex)
@@ -1787,13 +1853,13 @@ Overfull \hbox (17.52234pt too wide) in paragraph at lines 60--61
 (./models/Architecture/Tokenizer/qwen_3.tex)
 (./models/Architecture/Tokenizer/olmo_3.tex)
 (./models/Architecture/MLP/deepseek_v4.tex)
-(./models/Architecture/MLP/glm_5.tex) (./models/Architecture/MLP/kimi_k3.tex
-[53]) (./models/Architecture/MLP/magistral.tex)
+(./models/Architecture/MLP/glm_5.tex) (./models/Architecture/MLP/kimi_k3.tex)
+(./models/Architecture/MLP/magistral.tex)
 (./models/Architecture/MLP/minimax_m2.tex)
 (./models/Architecture/MLP/mobilellm_pro.tex)
 (./models/Architecture/MLP/nemotron_3.tex)
 (./models/Architecture/MLP/qwen_3.tex) (./models/Architecture/MLP/olmo_3.tex)
-(./models/Architecture/ActivationFunction/deepseek_v4.tex)
+[56] (./models/Architecture/ActivationFunction/deepseek_v4.tex)
 (./models/Architecture/ActivationFunction/glm_5.tex)
 (./models/Architecture/ActivationFunction/kimi_k3.tex)
 (./models/Architecture/ActivationFunction/magistral.tex)
@@ -1812,13 +1878,13 @@ Overfull \hbox (17.52234pt too wide) in paragraph at lines 60--61
 (./models/Architecture/Normalization/qwen_3.tex)
 (./models/Architecture/Normalization/olmo_3.tex)
 (./models/Architecture/Attention/deepseek_v4.tex)
-(./models/Architecture/Attention/glm_5.tex [54])
+(./models/Architecture/Attention/glm_5.tex)
 (./models/Architecture/Attention/kimi_k3.tex)
 (./models/Architecture/Attention/magistral.tex)
 (./models/Architecture/Attention/minimax_m2.tex)
 (./models/Architecture/Attention/mobilellm_pro.tex)
 (./models/Architecture/Attention/nemotron_3.tex)
-(./models/Architecture/Attention/qwen_3.tex)
+(./models/Architecture/Attention/qwen_3.tex [57])
 (./models/Architecture/Attention/olmo_3.tex)
 (./models/Architecture/Transformer/deepseek_v4.tex)
 (./models/Architecture/Transformer/glm_5.tex)
@@ -1836,12 +1902,12 @@ Overfull \hbox (17.52234pt too wide) in paragraph at lines 60--61
 (./models/Optimization/Algorithm/minimax_m2.tex)
 (./models/Optimization/Algorithm/mobilellm_pro.tex)
 (./models/Optimization/Algorithm/qwen_3.tex)
-(./models/Optimization/Algorithm/olmo_3.tex) [55]
+(./models/Optimization/Algorithm/olmo_3.tex)
 (./models/Optimization/LossFunction/deepseek_v4.tex)
 (./models/Optimization/LossFunction/glm_5.tex)
 (./models/Optimization/LossFunction/kimi_k3.tex)
 (./models/Optimization/LossFunction/magistral.tex)
-(./models/Optimization/LossFunction/minimax_m2.tex)
+(./models/Optimization/LossFunction/minimax_m2.tex [58])
 (./models/Optimization/LossFunction/mobilellm_pro.tex)
 (./models/Optimization/LossFunction/qwen_3.tex)
 (./models/Optimization/LossFunction/olmo_3.tex))
@@ -1859,7 +1925,7 @@ n/24.88 Hyperparameter Tuning[]\TU/Vazirmatn(0)/b/n/24.88 )| []
 (./models/HyperparameterTuning/mobilellm_pro.tex)
 (./models/HyperparameterTuning/qwen_3.tex)
 (./models/HyperparameterTuning/olmo_3.tex)) (./sections/05_scaling_laws.tex
-[56]
+[59]
 Overfull \hbox (10.62433pt too wide) in paragraph at lines 27--28
 []\TU/Vazirmatn(0)/m/it/12 مدل‌های []\TU/LiberationSerif(0)/m/n/12 MoE[] \TU/Va
 zirmatn(0)/m/it/12 به دلیل جداسازی تعداد کل پارامترها از هزینه محاسباتی ([]\TU/
@@ -1867,14 +1933,14 @@ LiberationSerif(0)/m/n/12 FLOPs[]\TU/Vazirmatn(0)/m/it/12 )، نیازمند ق�
 اس‌پذیری[]
  []
 
-[57]
-Overfull \hbox (4.83243pt too wide) in paragraph at lines 36--37
+[60]
+Overfull \hbox (7.67422pt too wide) in paragraph at lines 36--37
 [][]\TU/Vazirmatn(0)/b/n/12 بازیافت مدل‌ها ([]\TU/LiberationSerif(0)/b/n/12 Upc
 ycling[]\TU/Vazirmatn(0)/b/n/12 ): \TU/Vazirmatn(0)/m/it/12 لیو و همکاران [[]] 
 به بررسی تبدیل مدل‌های متراکم از پیش‌آموزش‌دیده[]
  []
 
-[58]) (./sections/06_evaluation.tex (./models/Evaluation/deepseek_v4.tex)
+[61]) (./sections/06_evaluation.tex (./models/Evaluation/deepseek_v4.tex)
 (./models/Evaluation/glm_5.tex) (./models/Evaluation/kimi_k3.tex)
 (./models/Evaluation/magistral.tex) (./models/Evaluation/minimax_m2.tex)
 (./models/Evaluation/mobilellm_pro.tex) (./models/Evaluation/qwen_3.tex)
@@ -1887,7 +1953,7 @@ Overfull \hbox (3.26604pt too wide) in paragraph at lines 5--6
 ‌های[]
  []
 
-[59]
+[62]
 Overfull \hbox (48.15475pt too wide) in paragraph at lines 8--9
 [][]\TU/Vazirmatn(0)/b/n/12 فضاهای عمل پیوسته ([]\TU/LiberationSerif(0)/b/n/12 
 Continuous Action Spaces[]\TU/Vazirmatn(0)/b/n/12 ): \TU/Vazirmatn(0)/m/it/12 ح
@@ -1913,7 +1979,7 @@ Overfull \hbox (22.25409pt too wide) in paragraph at lines 60--83
  [][][][][] 
  []
 
-[60] [61]
+[63] [64]
 Overfull \hbox (39.81645pt too wide) detected at line 138
 [][][]\OML/cmm/m/it/12 G\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^R\OT1/cmr/m/n/12 ) 
 = \U/msb/m/n/12 E[] [] \OT1/cmr/m/n/12 = \U/msb/m/n/12 E[] [] \OML/cmm/m/it/12 
@@ -1921,17 +1987,17 @@ Overfull \hbox (39.81645pt too wide) detected at line 138
  []
 
 
-Overfull \hbox (23.96915pt too wide) in paragraph at lines 142--144
+Overfull \hbox (24.76602pt too wide) in paragraph at lines 142--144
 []\TU/Vazirmatn(0)/m/it/12 کاکاده [[]] نشان داد که اگر تابع ارزش با تقریب‌زننده
  خطی سازگار ([]\TU/LiberationSerif(0)/m/n/12 Compatible Function Approximation[
 ]\TU/Vazirmatn(0)/m/it/12 )[]
  []
 
-[62]
+[65]
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
 put line 175.
 
-Overfull \hbox (14.89102pt too wide) in paragraph at lines 195--196
+Overfull \hbox (15.10196pt too wide) in paragraph at lines 195--196
 []\TU/Vazirmatn(0)/m/it/12 گایست، شرر و پیتکین [[]] با معرفی عملگرهای بلمن منظم
 ‌شده از طریق تبدیل لژاندر-فنچل ([]\TU/LiberationSerif(0)/m/n/12 Legendre-[][]
  []
@@ -1944,25 +2010,25 @@ Overfull \hbox (7.86758pt too wide) in paragraph at lines 203--205
 Serif(0)/m/n/12 Regret[]\TU/Vazirmatn(0)/m/it/12 )[]
  []
 
-[63]
+[66]
 Overfull \hbox (8.023pt too wide) in paragraph at lines 294--304
  [][][][] 
  []
 
-) (./models/ReinforcementLearning/PPO.tex [64]
+) (./models/ReinforcementLearning/PPO.tex [67]
 Overfull \hbox (19.52927pt too wide) in paragraph at lines 10--11
 [][]\TU/Vazirmatn(0)/b/n/12 روش‌های گرادیان خط‌مشی استاندارد ([]\TU/LiberationS
 erif(0)/b/n/12 Vanilla Policy Gradient[]\TU/Vazirmatn(0)/b/n/12 ): \TU/Vazirmat
 n(0)/m/it/12 روش‌هایی نظیر []\TU/LiberationSerif(0)/m/n/12 REINFORCE[][]
  []
 
-[65] [66]
+[68] [69]
 Overfull \hbox (56.33774pt too wide) in paragraph at lines 109--148
  [][][][][][] 
  []
 
-[67] [68]) (./models/ReinforcementLearning/GRPO.tex [69] [70] [71] [72]
-[73]
+[70] [71]) (./models/ReinforcementLearning/GRPO.tex [72] [73] [74] [75]
+[76]
 
 Package pgf Warning: Returning node center instead of a point on node border. D
 id you specify a point identical to the center of node ``sync''? on input line 
@@ -1973,20 +2039,20 @@ Overfull \hbox (113.37971pt too wide) in paragraph at lines 145--188
  [][][][][][] 
  []
 
-[74] [75]) (./models/ReinforcementLearning/GSPO.tex
+[77] [78]) (./models/ReinforcementLearning/GSPO.tex
 Overfull \hbox (2.43163pt too wide) in paragraph at lines 1--1
 []|[]\TU/Vazirmatn(0)/b/n/17.28 الگوریتم بهینه‌سازی توالی گروهی خط‌مشی ([]\TU/L
 iberationSerif(0)/b/n/17.28 Group Sequence[][] 
  []
 
-[76]
+[79]
 Overfull \hbox (2.1113pt too wide) in paragraph at lines 22--23
 []\TU/Vazirmatn(0)/m/it/12 ([]\TU/LiberationSerif(0)/m/n/12 Off-Policy Correcti
 on[]\TU/Vazirmatn(0)/m/it/12 ) و عملگر برش در سطح توکن‌های مجزا، فرمول‌بندی ناد
 رست و ناسازگاری[]
  []
 
-[77]
+[80]
 Overfull \hbox (9.36203pt too wide) in paragraph at lines 42--43
 [][]\TU/Vazirmatn(0)/m/it/12 نسبت اهمیت توالی $\OML/cmm/m/it/12 s[]\OT1/cmr/m/n
 /12 (\OML/cmm/m/it/12 ^^R\OT1/cmr/m/n/12 )$ \TU/Vazirmatn(0)/m/it/12 بر اساس مف
@@ -1994,24 +2060,24 @@ Overfull \hbox (9.36203pt too wide) in paragraph at lines 42--43
 h-Normalized[][]
  []
 
-[78]
+[81]
 Overfull \hbox (3.93292pt too wide) in paragraph at lines 103--105
 [][]\TU/LiberationSerif(0)/b/n/12 Qwen3-30B-A3B[] \TU/Vazirmatn(0)/m/it/12 با ۴
 ۸ لایه، پس از هر به‌روزرسانی گرادیان، تخصیص حدود ۱۰٪ از روترهای متخصصان[]
  []
 
-[79]
+[82]
 Overfull \hbox (160.23457pt too wide) in paragraph at lines 126--155
  [][][][][][] 
  []
 
-[80] [81]) (./models/ReinforcementLearning/DAPO.tex
+[83] [84]) (./models/ReinforcementLearning/DAPO.tex
 Overfull \hbox (6.76285pt too wide) in paragraph at lines 1--1
 []\TU/Vazirmatn(0)/b/n/17.28 ([]\TU/LiberationSerif(0)/b/n/17.28 Decoupled Clip
  and Dynamic Sampling Policy Optimiza-[][] 
  []
 
-[82] [83]
+[85] [86]
 Overfull \hbox (25.25891pt too wide) detected at line 29
 [][][]\OMS/cmsy/m/n/12 r[]\OML/cmm/m/it/12 J\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^
 ^R\OT1/cmr/m/n/12 ) = [] \OMS/cmsy/m/n/12 r[]\OML/cmm/m/it/12 P\OT1/cmr/m/n/12 
@@ -2038,13 +2104,13 @@ Overfull \hbox (64.88864pt too wide) detected at line 53
 ) = \U/msb/m/n/12 E[] []
  []
 
-[84] [85] [86] [87]) (./models/ReinforcementLearning/SAPO.tex
+[87] [88] [89] [90]) (./models/ReinforcementLearning/SAPO.tex
 Overfull \hbox (2.99974pt too wide) in paragraph at lines 1--1
 []|[]\TU/Vazirmatn(0)/b/n/17.28 الگوریتم بهینه‌سازی خط‌مشی تطبیقی نرم ([]\TU/Li
 berationSerif(0)/b/n/17.28 Soft Adaptive Pol-[][] 
  []
 
-[88]
+[91]
 Overfull \hbox (29.89925pt too wide) in paragraph at lines 18--19
 []\TU/Vazirmatn(0)/m/it/12 یک مدل زبانی خودبازگشت به عنوان خط‌مشی تصادفی $\OML/
 cmm/m/it/12 ^^Y[]$ \TU/Vazirmatn(0)/m/it/12 بر روی توالی توکن‌های پاسخ $\OML/cm
@@ -2052,7 +2118,7 @@ m/m/it/12 y \OT1/cmr/m/n/12 = (\OML/cmm/m/it/12 y[]; y[]; [] ; y[]\OT1/cmr/m/n/
 12 )$[]
  []
 
-[89] [90]
+[92] [93]
 Overfull \hbox (7.76164pt too wide) in paragraph at lines 125--125
 []|\TU/Vazirmatn(0)/b/n/14.4 چارچوب یکپارچه سوروگیت و اثبات همگرایی به دروازه ت
 والی (اتصال []\TU/LiberationSerif(0)/b/n/14.4 SAPO–GSPO[]\TU/Vazirmatn(0)/b/n/1
@@ -2068,7 +2134,7 @@ Overfull \hbox (6.33315pt too wide) in paragraph at lines 130--131
 [] \OT1/cmr/m/n/12 =$[]
  []
 
-[91]
+[94]
 Overfull \hbox (5.33012pt too wide) in paragraph at lines 174--175
 []$[][]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^R\OT1/cmr/m/n/12 )$ \TU/Vazirmatn(0)
 /m/it/12 در مدل‌های متراکم ([]\TU/LiberationSerif(0)/m/n/12 Dense[]\TU/Vazirmat
@@ -2077,13 +2143,13 @@ n(0)/m/it/12 ) نظیر []\TU/LiberationSerif(0)/m/n/12 Qwen3-4B[] \TU/Vazirmatn
 azirmatn(0)/m/it/12 و در مدل‌های ترکیبی از متخصصان[]
  []
 
-[92]
+[95]
 Overfull \hbox (64.49661pt too wide) in paragraph at lines 193--231
  [][][][][][] 
  []
 
-[93]
-Overfull \hbox (14.53758pt too wide) in paragraph at lines 291--300
+[96]
+Overfull \hbox (15.33446pt too wide) in paragraph at lines 291--300
  [][][][] 
  []
 
@@ -2099,7 +2165,7 @@ Overfull \hbox (2.19962pt too wide) in paragraph at lines 320--322
 ی مقیاس بزرگ روی سری مدل‌های چندوجهی[]
  []
 
-[94]) (./models/ReinforcementLearning/CISPO.tex
+[97]) (./models/ReinforcementLearning/CISPO.tex
 Overfull \hbox (38.48508pt too wide) in paragraph at lines 1--1
 []|[]\TU/Vazirmatn(0)/b/n/17.28 الگوریتم بهینه‌سازی خط‌مشی با ضریب اهمیت برش‌خو
 رده ([]\TU/LiberationSerif(0)/b/n/17.28 Clipped[][] 
@@ -2112,7 +2178,7 @@ Overfull \hbox (13.9238pt too wide) in paragraph at lines 11--12
 matn(0)/m/it/12 »،[]
  []
 
-[95] [96]
+[98] [99]
 Overfull \hbox (6.92038pt too wide) in paragraph at lines 53--54
 [][]\TU/Vazirmatn(0)/m/it/12 در فرمولاسیون []\TU/LiberationSerif(0)/b/n/12 GRPO
 [] \TU/Vazirmatn(0)/m/it/12 [[]]، برای هر پرسش $\OML/cmm/m/it/12 q$ \TU/Vazirma
@@ -2121,7 +2187,7 @@ msy/m/n/12 f\OML/cmm/m/it/12 o[]\OMS/cmsy/m/n/12 g[]$ \TU/Vazirmatn(0)/m/it/12
 تولید شده و مزیت درون‌گروهی[]
  []
 
-[97]
+[100]
 Overfull \hbox (0.62344pt too wide) in paragraph at lines 130--131
 []\TU/Vazirmatn(0)/m/it/12 مدل []\TU/LiberationSerif(0)/b/n/12 MiniMax-M1[] \TU
 /Vazirmatn(0)/m/it/12 از ساختار ترکیبی متشکل از ۷ بلوک []\TU/LiberationSerif(0)
@@ -2136,34 +2202,34 @@ AdamW[]\TU/Vazirmatn(0)/b/n/12 : \TU/Vazirmatn(0)/m/it/12 با توجه به ب�
 r/m/n/12 10[]$\TU/Vazirmatn(0)/m/it/12 )، پارامترهای[]
  []
 
-[98]
+[101]
 Overfull \hbox (221.83636pt too wide) in paragraph at lines 155--189
  [][][][][][] 
  []
 
-[99] [100]) (./models/ReinforcementLearning/RLVR.tex
-Overfull \hbox (3.41599pt too wide) in paragraph at lines 10--11
+[102] [103]) (./models/ReinforcementLearning/RLVR.tex
+Overfull \hbox (2.63083pt too wide) in paragraph at lines 10--11
 []\TU/Vazirmatn(0)/m/it/12 حل مسائل ریاضیات [[]، []]، اجرای کدهای برنامه‌نویسی 
 و آزمون‌های ساختاریافته دستورپذیری[]
  []
 
-[101] [102] [103]
+[104] [105] [106]
 Overfull \hbox (245.53867pt too wide) in paragraph at lines 115--150
  [][][][][][] 
  []
 
-[104]
+[107]
 Overfull \hbox (100.59425pt too wide) in paragraph at lines 210--226
  [][][][] 
  []
 
-[105]) (./models/ReinforcementLearning/RLVR_GRPO.tex
+[108]) (./models/ReinforcementLearning/RLVR_GRPO.tex
 Overfull \hbox (41.15698pt too wide) in paragraph at lines 1--1
 []|[]\TU/Vazirmatn(0)/b/n/17.28 الگوریتم یادگیری تقویتی با پاداش‌های قابل اعتبا
 رسنجی و بهینه‌سازی[] 
  []
 
-[106] [107]
+[109] [110]
 Overfull \hbox (14.9685pt too wide) in paragraph at lines 80--82
 [][]\TU/Vazirmatn(0)/b/n/12 ۷. نمونه‌برداری فعال پویا ([]\TU/LiberationSerif(0)
 /b/n/12 Active Dynamic Sampling[]\TU/Vazirmatn(0)/b/n/12 ): \TU/Vazirmatn(0)/m/
@@ -2176,19 +2242,19 @@ Overfull \hbox (85.62689pt too wide) detected at line 88
 = [] [] [] [] [] \OMS/cmsy/m/n/12 ^^A [] []
  []
 
-[108]
+[111]
 Overfull \hbox (8.43942pt too wide) in paragraph at lines 96--97
 [][]\TU/Vazirmatn(0)/b/n/12 پیروی دقیق از دستورالعمل ([]\TU/LiberationSerif(0)/
 b/n/12 Precise Instruction Following[]\TU/Vazirmatn(0)/b/n/12 ): \TU/Vazirmatn(
 0)/m/it/12 ارزیابی پایبندی به قیود ساختاری[]
  []
 
-[109]
+[112]
 Overfull \hbox (165.88301pt too wide) in paragraph at lines 133--165
  [][][][][][] 
  []
 
-[110]
+[113]
 Overfull \hbox (114.6157pt too wide) in paragraph at lines 223--233
  [][][][] 
  []
@@ -2198,7 +2264,7 @@ Overfull \hbox (106.29543pt too wide) in paragraph at lines 239--252
  [][][][] 
  []
 
-) [111] [112]) [113] (./main.bbl
+) [114] [115]) [116] (./main.bbl
 Missing character: There is no م (U+0645) in font Liberation Serif Bold/OT:scri
 pt=latn;language=dflt;mapping=tex-text;!
 Missing character: There is no ن (U+0646) in font Liberation Serif Bold/OT:scri
@@ -2215,7 +2281,7 @@ Underfull \hbox (badness 1478) in paragraph at lines 110--114
 i, Matthijs Douze, Hérve Jégou, and[]
  []
 
-[114] [115] [116] [117]
+[117] [118] [119] [120]
 Underfull \hbox (badness 1675) in paragraph at lines 403--408
 [][]\TU/LiberationSerif(0)/m/n/12 Aryo Pradipta Gema, Joshua Ong Jun Leang, Giw
 on Hong, Alessio Devoto, Alberto[]
@@ -2233,7 +2299,7 @@ Underfull \hbox (badness 1092) in paragraph at lines 410--415
 tanding Benchmark.  \TU/LiberationSerif(0)/m/it/12 arXiv preprint[]
  []
 
-[118] [119] [120]
+[121] [122] [123]
 Underfull \hbox (badness 1502) in paragraph at lines 742--746
 [][]\TU/LiberationSerif(0)/m/n/12 Songlin Yang and Yu Zhang.  Fla: A triton-bas
 ed library for hardware-efficient im-[]
@@ -2245,19 +2311,19 @@ Underfull \hbox (badness 10000) in paragraph at lines 742--746
 ][][]$[][][][][] [] [] [] [][][][][][] [] [][][] [] [][][][][][][][] []$[][]
  []
 
-[121] [122] [123] [124] [125]
-Underfull \hbox (badness 10000) in paragraph at lines 1185--1188
+[124] [125] [126] [127] [128]
+Underfull \hbox (badness 10000) in paragraph at lines 1202--1205
 [][]\TU/LiberationSerif(0)/m/n/12 OpenAI.  Learning to reason with llms.  [][][
 ]$[][][][][] [] [] [] [][][][][][] [] [][][] [] [][][][][] []$[][]
  []
 
-[126] [127] [128]
-Underfull \hbox (badness 2221) in paragraph at lines 1489--1492
+[129] [130] [131]
+Underfull \hbox (badness 2221) in paragraph at lines 1506--1509
 [][]\TU/LiberationSerif(0)/m/n/12 NVIDIA.  NVIDIA Nemotron 3: Efficient and Ope
 n Intelligence.  \TU/LiberationSerif(0)/m/it/12 arXiv preprint[]
  []
 
-[129]) [130] (./main.aux)
+[132]) [133] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -2270,12 +2336,12 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: E375EE66AB28262674ABD6E5584E3F16;12576.
  ) 
 Here is how much of TeX's memory you used:
- 30582 strings out of 469704
- 662071 string characters out of 5467967
- 1120405 words of memory out of 5000000
- 58275 multiletter control sequences out of 15000+600000
- 640548 words of font info for 157 fonts, out of 8000000 for 9000
+ 30592 strings out of 469704
+ 662273 string characters out of 5467967
+ 1120748 words of memory out of 5000000
+ 58282 multiletter control sequences out of 15000+600000
+ 640564 words of font info for 159 fonts, out of 8000000 for 9000
  286 hyphenation exceptions out of 8191
  88i,18n,106p,1181b,1201s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (131 pages).
+Output written on main.pdf (134 pages).
