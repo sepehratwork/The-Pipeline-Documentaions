@@ -1,1 +1,208 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و اهداف دوگانه دادگان پس‌آموزش (\en{Post-Training Objectives})}
+فاز پس‌آموزش (\en{Post-training}) در خانواده مدل‌های زبانی \model{Qwen3} با دو رویکرد راهبردی و زیربنایی بازطراحی شده است:
+\begin{itemize}
+    \item \textbf{کنترل و یکپارچه‌سازی فرآیند تفکر (\en{Thinking Control}):} ادغام ساختاری دو حالت عملیاتی متمایز—شامل «حالت تفکر عمیق و چندمرحله‌ای» (\en{Thinking Mode}) برای مسائل استدلالی پیچیده و «حالت پاسخ‌دهی مستقیم و بافت‌محور» (\en{Non-Thinking Mode}) برای تعاملات متنی سریع—درون یک مدل واحد؛ این رویکرد نیاز به جابه‌جایی میان مدل‌های چت نظیر \en{GPT-4o} و مدل‌های تخصصی تفکر نظیر \en{QwQ-32B} \cite{qwen2025qwq} را مرتفع ساخته و قابلیت تنظیم پویای بودجه محاسباتی تفکر (\en{Thinking Budget}) را در زمان استنتاج فراهم می‌آورد.
+    \item \textbf{تقطیر دانش از قوی به ضعیف (\en{Strong-to-Weak Distillation}):} حذف خط لوله‌های پرهزینه آموزش چهارمرحله‌ای برای مدل‌های سبک‌وزن (شامل مدل‌های متراکم $0.6\text{B}$، $1.7\text{B}$، $4\text{B}$، $8\text{B}$، $14\text{B}$ و مدل تنک \en{Qwen3-30B-A3B}) از طریق انتقال مستقیم توزیع لاگیت‌ها از مدل‌های پرچمدار معلم (\en{Qwen3-32B} و \en{Qwen3-235B-A22B}).
+\end{itemize}
+
+\paragraph*{مرحله اول: دادگان آغاز سرد زنجیره تفکر طولانی (\en{Long-CoT Cold Start Data})}
+برای پی‌ریزی قابلیت استدلال نمادین و جلوگیری از اتکای مدل به حدس‌های سطحی، پیکره‌ای از مسائل حوزه‌های ریاضیات، برنامه‌نویسی و الگوریتم، منطق صوری و علوم مهندسی (\en{STEM}) گردآوری شد که هر نمونه با پاسخ‌های مرجع قطعی یا تست‌کیس‌های نرم‌افزاری اعتبارسنجی جفت شده بود. پالایش این دادگان طی یک فرآیند دو فازی صورت پذیرفت:
+\begin{itemize}
+    \item \textbf{فاز اول (پالایش پرسش‌ها با \en{Qwen2.5-72B-Instruct}):} پرسش‌های غیرقابل راستی‌آزمایی، دارای چند زیرمسئله پراکنده یا با ماهیت صرفاً تولید متن حذف شدند. همچنین مسائلی که مدل ارزیاب قادر بود بدون استفاده از زنجیره تفکر به آن‌ها پاسخ صحیح دهد کنار گذاشته شدند. دامنه‌ها نیز به دقت برچسب‌گذاری شدند تا تعادل توزیعی حفظ شود.
+    \item \textbf{فاز دوم (پالایش پاسخ‌ها با \en{QwQ-32B} و نظارت انسانی):} برای پرسش‌های منتخب، تعداد $N$ پاسخ توسط مدل استدلالی \en{QwQ-32B} \cite{qwen2025qwq} تولید و در صورت ناتوانی مدل، توسط ارزیابان انسانی تصحیح شد. روی پاسخ‌هایی با متریک مثبت $\text{Pass}@N$، شش شرط حذفی سخت‌گیرانه اعمال گردید:
+    \begin{enumerate}
+        \item تولید پاسخ نهایی نادرست؛
+        \item وجود تکرارهای فرساینده در مسیر استدلال؛
+        \item نشانه‌های حدس تصادفی بدون استدلال منطقی؛
+        \item ناهمخوانی میان بخش تفکر درون تگ \lr{\texttt{<think>}} و پاسخ نهایی؛
+        \item اختلاط نامناسب زبانی (\en{Code-Switching}) یا نوسان لحن؛
+        \item شباهت غیرطبیعی به آزمون‌ها و خطر نشت دادگان (\en{Contamination}).
+    \end{enumerate}
+\end{itemize}
+به منظور حفظ پتانسیل کاوش و یادگیری در مراحل بعدی، حجم دادگان و گام‌های آموزش در این مرحله در کمترین سطح ممکن محدود شد.
+
+\paragraph*{مرحله دوم: جفت‌های پرسش-ارزیاب در یادگیری تقویتی استدلالی (\en{Reasoning RL Data})}
+در این فاز، پارامترهای مدل با استفاده از الگوریتم بهینه‌سازی سیاست نسبی گروهی (\en{GRPO}) \cite{shao2024deepseekmath} ارتقا یافتند. دادگان مورد استفاده شامل دقیقاً \textbf{۳,۹۹۵ جفت پرسش-ارزیاب} (\en{Query-Verifier Pairs}) با ۴ معیار بود: (۱) عدم هم‌پوشانی با داده‌های آغاز سرد، (۲) یادگیری‌پذیر بودن برای مدل، (۳) داشتن بالاترین درجه دشواری و (۴) پوشش عمیق زیرشاخه‌های علمی.
+
+در سازوکار \en{GRPO}، به ازای هر پرسش $q \sim \mathcal{D}$، گروهی از خروجی‌ها $\{o_1, o_2, \dots, o_G\}$ توسط مدل فعلی نمونه‌برداری شده و مزیت هر پاسخ ($\tilde{A}_i$) بدون نیاز به مدل منتقد (\en{Critic}) محاسبه می‌گردد:
+\begin{equation}
+    \tilde{A}_i = \frac{r_i - \text{Mean}(\{r_1, \dots, r_G\})}{\text{Std}(\{r_1, \dots, r_G\})}
+\end{equation}
+تابع هدف بهینه‌سازی به صورت زیر بیشینه‌سازی می‌شود:
+\begin{equation}
+\begin{aligned}
+    \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{\substack{q \sim \mathcal{D} \\ \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}(q)}} \Bigg[ \frac{1}{G} \sum_{i=1}^G \Bigg( &\min \left( \frac{\pi_\theta(o_i \mid q)}{\pi_{\theta_{\text{old}}}(o_i \mid q)} \tilde{A}_i, \, \text{clip}\left(\frac{\pi_\theta(o_i \mid q)}{\pi_{\theta_{\text{old}}}(o_i \mid q)}, 1-\epsilon, 1+\epsilon\right) \tilde{A}_i \right) \\
+    &- \beta D_{\text{KL}}(\pi_\theta \,\|\, \pi_{\text{ref}}) \Bigg) \Bigg]
+\end{aligned}
+\end{equation}
+تزریق داده‌های بازپخش برون‌پالیسی (\en{Off-policy Rollouts}) همراه با دسته‌های محاسباتی بزرگ، بازدهی نمونه‌ها را ارتقا داد؛ به‌طوری‌که نمره مدل پرچمدار \model{Qwen3-235B-A22B} در بنچمارک \en{AIME'24} تنها در عرض ۱۷۰ گام آموزشی از $70.1$ به $85.1$ رسید.
+
+\paragraph*{مرحله سوم: دادگان تلفیق حالت تفکر و بودجه‌بندی محاسباتی (\en{Thinking Mode Fusion})}
+این فاز با هدف یکپارچه‌سازی حالت‌های با تفکر و بدون تفکر از طریق تنظیم دقیق پیوسته (\en{Continual SFT}) اجرا شد. دادگان آموزشی این مرحله از دو جریان متمایز تشکیل شده بود:
+\begin{itemize}
+    \item \textbf{دادگان با تفکر (\en{Thinking Data}):} با روش نمونه‌برداری پس‌زنشی (\en{Rejection Sampling}) از پرسش‌های مرحله ۱ با خودِ مدل مرحله ۲ استخراج گردید.
+    \item \textbf{دادگان بدون تفکر (\en{Non-thinking Data}):} شامل گستره‌ای از وظایف کدنویسی، ریاضیات، پیروی از دستورات، نگارش خلاقانه، پرسش و پاسخ و ایفای نقش که کیفیت آن‌ها با چک‌لیست‌های خودکار کنترل شد. همچنین سهم دادگان ترجمه برای زبان‌های کم‌منبع (\en{Low-Resource}) به شدت افزایش یافت.
+\end{itemize}
+
+ساختار نمونه‌ها بر اساس قالب‌های استاندارد چت در جدول زیر پیاده‌سازی شده است:
+
+\begin{table}[htbp]
+\centering
+\caption{قالب نمونه‌های دادگان \en{SFT} جهت تلفیق حالات تفکر و بدون تفکر در مدل‌های \model{Qwen3}}
+\label{tab:qwen3_chat_template}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{p{0.48\textwidth}p{0.48\textwidth}}
+\toprule
+\textbf{حالت تفکر (\en{Thinking Mode} - پیش‌فرض)} & \textbf{حالت بدون تفکر (\en{Non-Thinking Mode})} \\
+\midrule
+{\latinfont\small\raggedright
+<|im\_start|>user\newline
+\{query\} /think<|im\_end|>\newline
+<|im\_start|>assistant\newline
+<think>\newline
+\{thinking\_content\}\newline
+</think>\newline
+\{response\}<|im\_end|>
+}
+&
+{\latinfont\small\raggedright
+<|im\_start|>user\newline
+\{query\} /no\_think<|im\_end|>\newline
+<|im\_start|>assistant\newline
+<think>\newline
+</think>\newline
+\{response\}<|im\_end|>
+}
+\\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\textbf{پدیداری قابلیت بودجه تفکر (\en{Thinking Budget}):} تلفیق این دادگان باعث پدیداری طبیعی مهارت جمع‌بندی بر مبنای تفکر ناتمام شد. در صورت محدودسازی بودجه تفکر، فرآیند استدلال متوقف شده و رشته مداخله‌ای زیر در توالی درج می‌گردد:
+
+\begin{center}
+\parbox{0.92\linewidth}{\centering\ttfamily\small\latinfont
+``Considering the limited time by the user, I have to give the solution based on the thinking directly now.\textbackslash n</think>.\textbackslash n\textbackslash n''
+}
+\end{center}
+سپس مدل ادامه پاسخ نهایی را بر پایه استدلال انباشته‌شده تولید می‌کند.
+
+\paragraph*{مرحله چهارم: دادگان یادگیری تقویتی عمومی (\en{General RL Data \& Rewards})}
+در این فاز، یک سیستم پاداش مشتمل بر \textbf{بیش از ۲۰ وظیفه متنوع} در ۵ بعد اصلی تعبیه شد: (۱) پیروی از دستورات، (۲) تبعیت از فرمت نشانه‌گذاری تفکر، (۳) هم‌راستایی با ترجیحات انسانی، (۴) قابلیت‌های عاملی در تعامل چندنوبته با ابزارها و (۵) سناریوهای تخصصی مانند \en{RAG}.
+
+دادگان بازخورد در ۳ دسته طراحی شدند:
+\begin{enumerate}
+    \item \textbf{پاداش‌های قاعده‌محور (\en{Rule-based Rewards}):} تطابق خروجی با الزامات نحوی و کدهای خروجی بدون ریسک هک پاداش.
+    \item \textbf{پاداش‌های مدل‌محور با پاسخ مرجع:} ارزیابی پاسخ توسط \en{Qwen2.5-72B-Instruct} در مقایسه با جواب مبنا.
+    \item \textbf{پاداش‌های مدل‌محور بدون پاسخ مرجع:} آموزش مدل‌های پاداش (\en{Reward Models}) بر پایه ترجیحات انسانی جهت اعطای امتیاز کیفی.
+\end{enumerate}
+
+\paragraph*{دادگان تقطیر قوی به ضعیف (\en{Strong-to-Weak Distillation Data})}
+جهت بهینه‌سازی مدل‌های کوچک‌تر خانواده \model{Qwen3}، پایپ‌لاین تقطیر دو مرحله‌ای زیر پیاده‌سازی گردید:
+\begin{itemize}
+    \item \textbf{تقطیر برون‌پالیسی (\en{Off-policy Distillation}):} تلفیق خروجی‌های معلمان حاوی هر دو برچسب \lr{\texttt{/think}} و \lr{\texttt{/no\_think}} برای آموزش نظارت‌شده اولیه مدل‌های سبک‌وزن.
+    \item \textbf{تقطیر درون‌پالیسی (\en{On-policy Distillation}):} تولید پاسخ توسط مدل دانش‌آموز و به‌روزرسانی وزن‌ها بر اساس حداقل‌سازی واگرایی کولبک-لایبلر (\en{KL-Divergence}) نسبت به لاگیت‌های توزیع احتمالاتی مدل معلم:
+    \begin{equation}
+        \mathcal{L}_{\text{distill}}(\theta) = \mathbb{E}_{\substack{x \sim \mathcal{D}_{\text{prompts}} \\ y \sim \pi_\theta(\cdot \mid x)}} \left[ D_{\text{KL}}\left( \pi_{\text{teacher}}(\cdot \mid x, y_{<t}) \,\|\, \pi_\theta(\cdot \mid x, y_{<t}) \right) \right]
+    \end{equation}
+\end{itemize}
+
+جدول زیر برتری قطعی بهره‌وری محاسباتی و کیفیت دادگان تقطیر درون‌پالیسی را نسبت به یادگیری تقویتی مستقیم بر روی مدل \model{Qwen3-8B} نشان می‌دهد:
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه اثربخشی دادگان تقطیر درون‌پالیسی در برابر یادگیری تقویتی روی مدل \model{Qwen3-8B}}
+\label{tab:qwen3_distillation_vs_rl}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccccr}
+\toprule
+\textbf{روش آموزش} & \textbf{\en{AIME'24}} & \textbf{\en{AIME'25}} & \textbf{\en{MATH-500}} & \textbf{\en{LiveCodeBench v5}} & \textbf{\en{MMLU-Redux}} & \textbf{\en{GPQA-Diam.}} & \textbf{هزینه (\en{GPU Hours})} \\
+\midrule
+\en{Off-policy Distillation} & \lr{55.0 (90.0)} & \lr{42.8 (83.3)} & \lr{92.4} & \lr{42.0} & \lr{86.4} & \lr{55.6} & — \\
+\en{+ Reinforcement Learning} & \lr{67.6 (90.0)} & \lr{55.5 (83.3)} & \lr{94.8} & \lr{52.9} & \lr{86.9} & \lr{61.3} & \lr{17,920} \\
+\en{+ On-policy Distillation} & \textbf{\lr{74.4 (93.3)}} & \textbf{\lr{65.5 (86.7)}} & \textbf{\lr{97.0}} & \textbf{\lr{60.3}} & \textbf{\lr{88.3}} & \textbf{\lr{63.3}} & \textbf{\lr{1,800}} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+این ارزیابی اثبات می‌کند که تقطیر بر مبنای توزیع لاگیت نه تنها \textbf{هزینه آموزش را به یک‌دهم کاهش داده است} ($\frac{1,800}{17,920} \approx 10.04\%$)، بلکه شاخص پتانسیل کاوش استدلال ($\text{Pass}@64$) را در آزمون \en{AIME'24} از $90.0$ به $93.3$ و در \en{AIME'25} از $83.3$ به $86.7$ گسترش داده است:
+\begin{equation}
+    \text{Pass}@k = \mathbb{E} \left[ 1 - \frac{\binom{n - c}{k}}{\binom{n}{k}} \right]
+\end{equation}
+
+\paragraph*{تحلیل آماری اثرات مرحله‌به‌مرحله دادگان بر مدل \model{Qwen3-32B}}
+جدول زیر روند پیشرفت مهارت‌ها و همچنین اثرات تبادلی دادگان مراحل ۳ و ۴ را بر روی نسخه \model{Qwen3-32B} نشان می‌دهد:
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی تفکیکی اثر دادگان مراحل ۲، ۳ و ۴ پس‌آموزش بر روی مدل \model{Qwen3-32B}}
+\label{tab:qwen3_stage_ablation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llccccc}
+\toprule
+\multirow{2}{*}{\textbf{دسته وظایف}} & \multirow{2}{*}{\textbf{بنچمارک ارزیابی}} & \textbf{مرحله ۲ (\en{Reasoning RL})} & \multicolumn{2}{c}{\textbf{مرحله ۳ (\en{Mode Fusion})}} & \multicolumn{2}{c}{\textbf{مرحله ۴ (\en{General RL})}} \\
+\cmidrule(lr){3-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+& & \textbf{تفکر (\en{Think})} & \textbf{تفکر (\en{Think})} & \textbf{بدون تفکر (\en{No-Think})} & \textbf{تفکر (\en{Think})} & \textbf{بدون تفکر (\en{No-Think})} \\
+\midrule
+\multirow{3}{*}{\textbf{عمومی}} 
+& \en{LiveBench (2024-11-25)} & \lr{68.6} & \lr{70.9 (+2.3)} & \lr{57.1} & \textbf{\lr{74.9 (+4.0)}} & \lr{59.8 (+2.8)} \\
+& \en{Arena-Hard} & \lr{86.8} & \lr{89.4 (+2.6)} & \lr{88.5} & \textbf{\lr{93.8 (+4.4)}} & \lr{92.8 (+4.3)} \\
+& \en{CounterFactQA*} & \lr{50.4} & \lr{61.3 (+10.9)} & \lr{64.3} & \textbf{\lr{68.1 (+6.8)}} & \lr{66.4 (+2.1)} \\
+\midrule
+\multirow{4}{*}{\textbf{دستور و قالب}} 
+& \en{IFEval strict prompt} & \lr{73.0} & \lr{78.4 (+5.4)} & \lr{78.4} & \textbf{\lr{85.0 (+6.6)}} & \lr{83.2 (+4.8)} \\
+& \en{Multi-IF} & \lr{61.4} & \lr{64.6 (+3.2)} & \lr{65.2} & \textbf{\lr{73.0 (+8.4)}} & \lr{70.7 (+5.5)} \\
+& \en{LengthCtrl*} & \lr{62.6} & \lr{70.6 (+8.0)} & \lr{84.9} & \lr{73.5 (+2.9)} & \textbf{\lr{87.3 (+2.4)}} \\
+& \en{ThinkFollow*} & — & \lr{88.7} & — & \textbf{\lr{98.9 (+10.2)}} & — \\
+\midrule
+\multirow{2}{*}{\textbf{عامل‌ها}} 
+& \en{BFCL v3} & \lr{69.0} & \lr{68.4 (-0.6)} & \lr{61.5} & \textbf{\lr{70.3 (+1.9)}} & \lr{63.0 (+1.5)} \\
+& \en{ToolUse*} & \lr{63.3} & \lr{70.4 (+7.1)} & \lr{73.2} & \lr{85.5 (+15.1)} & \textbf{\lr{86.5 (+13.3)}} \\
+\midrule
+\multirow{2}{*}{\textbf{دانش و \en{STEM}}} 
+& \en{MMLU-Redux} & \textbf{\lr{91.4}} & \lr{91.0 (-0.4)} & \lr{86.7} & \lr{90.9 (-0.1)} & \lr{85.7 (-1.0)} \\
+& \en{GPQA-Diamond} & \lr{68.8} & \textbf{\lr{69.0 (+0.2)}} & \lr{50.4} & \lr{68.4 (-0.6)} & \lr{54.6 (+4.3)} \\
+\midrule
+\multirow{2}{*}{\textbf{ریاضی و کد}} 
+& \en{AIME'24} & \textbf{\lr{83.8}} & \lr{81.9 (-1.9)} & \lr{28.5} & \lr{81.4 (-0.5)} & \lr{31.0 (+2.5)} \\
+& \en{LiveCodeBench v5} & \textbf{\lr{68.4}} & \lr{67.2 (-1.2)} & \lr{31.1} & \lr{65.7 (-1.5)} & \lr{31.3 (+0.2)} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\textbf{تحلیل مصالحه آماری (\en{Performance Trade-off}):} دادگان مراحل ۳ و ۴ موجب ارتقای چشمگیر درک دستورات (\lr{+12.0} نمره در \en{IFEval})، کار با ابزار (\lr{+22.2} نمره در \en{ToolUse*}) و تثبیت کامل کنترل تفکر با نمره $98.9$ در بنچمارک \en{ThinkFollow*} شده‌اند. در نقطه مقابل، تعریض توزیع داده‌ها منجر به افت اندکی در آزمون‌های فوق‌تخصصی ریاضی (\lr{-2.4} در \en{AIME'24}) و برنامه‌نویسی (\lr{-2.7} در \en{LCB}) گردیده است که به عنوان هزینه‌ای پذیرفته‌شده در ازای چندمنظورگی مدل تلقی می‌شود.
+
+\paragraph*{توزیع زبانی دادگان ارزیابی چندزبانه (\en{Multilingual Evaluation Data})}
+برای ارزیابی تعمیم‌پذیری فرابومی قابلیت‌های پس‌آموزش، ارزیابی‌های گسترده‌ای با دادگان چندزبانه مطابق جدول زیر انجام پذیرفت:
+
+\begin{table}[htbp]
+\centering
+\caption{پیکره‌های ارزیابی پس‌آموزش چندزبانه در \model{Qwen3} و زبان‌های تحت پوشش}
+\label{tab:qwen3_multilingual_benchmarks}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcl}
+\toprule
+\textbf{مجموعه داده / بنچمارک} & \textbf{تعداد زبان} & \textbf{فهرست کدهای زبانی استاندارد (\en{ISO 639-3 / ISO 15924})} \\
+\midrule
+\en{Multi-IF} \cite{he2024multiif} & \lr{8} & \parbox[t]{0.7\textwidth}{\latinfont\raggedright en, es, fr, hi, it, pt, ru, zh} \\
+\midrule
+\en{INCLUDE} \cite{romanou2024include} & \lr{44} & \parbox[t]{0.7\textwidth}{\latinfont\raggedright ar, az, be, bg, bn, de, el, es, et, eu, fa, fi, fr, he, hi, hr, hu, hy, id, it, ja, ka, kk, ko, lt, mk, ml, ms, ne, nl, pl, pt, ru, sq, sr, ta, te, tl, tr, uk, ur, uz, vi, zh} \\
+\midrule
+\en{MMMLU} \cite{openai2024mmmlu} & \lr{14} & \parbox[t]{0.7\textwidth}{\latinfont\raggedright ar, bn, de, en, es, fr, hi, id, it, ja, ko, pt, sw, zh} \\
+\midrule
+\en{MT-AIME2024} \cite{son2025linguistic} & \lr{55} & \parbox[t]{0.7\textwidth}{\latinfont\raggedright af, ar, bg, bn, ca, cs, cy, da, de, el, en, es, et, fa, fi, fr, gu, he, hi, hr, hu, id, it, ja, kn, ko, lt, lv, mk, ml, mr, ne, nl, no, pa, pl, pt, ro, ru, sk, sl, so, sq, sv, sw, ta, te, th, tl, tr, uk, ur, vi, zh-Hans, zh-Hant} \\
+\midrule
+\en{PolyMath} \cite{wang2025polymath} & \lr{18} & \parbox[t]{0.7\textwidth}{\latinfont\raggedright ar, bn, de, en, es, fr, id, it, ja, ko, ms, pt, ru, sw, te, th, vi, zh} \\
+\midrule
+\en{MLogiQA} \cite{zhang2024pmmeval} & \lr{10} & \parbox[t]{0.7\textwidth}{\latinfont\raggedright ar, en, es, fr, ja, ko, pt, th, vi, zh} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+این پیکره به همراه ارزیابی درک زبانی طبیعی بر روی ۸۰ زبان در بنچمارک \en{Belebele} \cite{bandarkar2023belebele} نشان می‌دهد که بهینه‌سازی داده‌ها در فاز تلفیق حالتی، ثبات رفتار استدلالی مدل را حتی در زبان‌های کم‌منبع تضمین کرده است.

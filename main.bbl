@@ -910,6 +910,45 @@ Roger Waleffe, Wonmin Byeon, Duncan Riach, Brandon Norick, Vijay Korthikanti,
   mamba-transformer reasoning model.
 \newblock {\em arXiv preprint arXiv:2508.14444}, 2025.
 
+\bibitem{qwen2025qwq}
+{Team Qwen}.
+\newblock Qwq-32b: Embracing the power of reinforcement learning.
+\newblock \url{https://qwenlm.github.io/blog/qwq-32b/}, 2025.
+
+\bibitem{he2024multiif}
+Yun He, Di~Jin, Chaoqi Wang, Chloe Bi, Karishma Mandyam, Hejia Zhang, Chen Zhu,
+  Ning Li, Tengyu Xu, Hongjiang Lv, et~al.
+\newblock {Multi-IF}: Benchmarking {LLMs} on multi-turn and multilingual
+  instructions following.
+\newblock {\em arXiv preprint arXiv:2410.15553}, 2024.
+
+\bibitem{son2025linguistic}
+Guijin Son, Jiwoo Hong, Hyunwoo Ko, and James Thorne.
+\newblock Linguistic generalizability of test-time scaling in mathematical
+  reasoning.
+\newblock {\em arXiv preprint arXiv:2502.17407}, 2025.
+
+\bibitem{wang2025polymath}
+Yiming Wang, Pei Zhang, Jialong Tang, Haoran Wei, Baosong Yang, Rui Wang,
+  Chenshu Sun, Feitong Sun, Jiran Zhang, et~al.
+\newblock {PolyMath}: Evaluating mathematical reasoning in multilingual
+  contexts.
+\newblock {\em arXiv preprint arXiv:2502.18347}, 2025.
+
+\bibitem{zhang2024pmmeval}
+Yidan Zhang, Boyi Deng, Yu~Wan, Baosong Yang, Haoran Wei, Fei Huang, Bowen Yu,
+  Junyang Lin, and Jingren Zhou.
+\newblock {P-MMEval}: A parallel multilingual multitask benchmark for
+  consistent evaluation of {LLMs}.
+\newblock {\em arXiv preprint arXiv:2411.09116}, 2024.
+
+\bibitem{bandarkar2023belebele}
+Lucas Bandarkar, Davis Liang, Benjamin Muller, Mikel Artetxe, Satya~Narayan
+  Shukla, Donald Husa, Naman Goyal, Abhinandan Krishnan, et~al.
+\newblock The {Belebele} benchmark: A parallel reading comprehension dataset in
+  122 language variants.
+\newblock {\em arXiv preprint arXiv:2308.16884}, 2023.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -1192,11 +1231,6 @@ Chujie Zheng, Shixuan Liu, Mingze Li, Xiong-Hui Chen, Bowen Yu, Chang Gao, Kai
 {Team Qwen}.
 \newblock Qwen3 technical report.
 \newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
-
-\bibitem{qwen2025qwq}
-{Team Qwen}.
-\newblock Qwq-32b: Embracing the power of reinforcement learning.
-\newblock \url{https://qwenlm.github.io/blog/qwq-32b/}, 2025.
 
 \bibitem{openai2024learning}
 {OpenAI}.
