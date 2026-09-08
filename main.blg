@@ -2,46 +2,46 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 10589 items from 5000.
+Reallocated field_info (elt_size=8) to 11026 items from 5000.
 Database file #1: references.bib
-You've used 259 entries,
+You've used 278 entries,
             1791 wiz_defined-function locations,
-            1477 strings with 55207 characters,
-and the built_in function-call counts, 59391 in all, are:
-= -- 3992
-> -- 5034
+            1549 strings with 58193 characters,
+and the built_in function-call counts, 62552 in all, are:
+= -- 4219
+> -- 5274
 < -- 39
-+ -- 1779
-- -- 1520
-* -- 3915
-:= -- 10528
-add.period$ -- 772
-call.type$ -- 259
-change.case$ -- 259
++ -- 1866
+- -- 1588
+* -- 4065
+:= -- 11120
+add.period$ -- 829
+call.type$ -- 278
+change.case$ -- 278
 chr.to.int$ -- 0
-cite$ -- 259
-duplicate$ -- 2502
-empty$ -- 4801
-format.name$ -- 1520
-if$ -- 12623
+cite$ -- 278
+duplicate$ -- 2645
+empty$ -- 5079
+format.name$ -- 1588
+if$ -- 13297
 int.to.chr$ -- 0
-int.to.str$ -- 259
-missing$ -- 232
-newline$ -- 1293
-num.names$ -- 259
-pop$ -- 999
+int.to.str$ -- 278
+missing$ -- 248
+newline$ -- 1388
+num.names$ -- 278
+pop$ -- 1063
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 1266
+skip$ -- 1325
 stack$ -- 0
 substring$ -- 1354
-swap$ -- 631
+swap$ -- 650
 text.length$ -- 39
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 362
-width$ -- 262
-write$ -- 2632
+while$ -- 381
+width$ -- 281
+write$ -- 2823

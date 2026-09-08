@@ -949,6 +949,145 @@ Lucas Bandarkar, Davis Liang, Benjamin Muller, Mikel Artetxe, Satya~Narayan
   122 language variants.
 \newblock {\em arXiv preprint arXiv:2308.16884}, 2023.
 
+\bibitem{qwen2025qwq32b}
+{Qwen Team}.
+\newblock Qwq-32b: Embracing the power of reinforcement learning.
+\newblock {\em Qwen Blog}, 2025.
+
+\bibitem{zeng2025acecoder}
+H.~Zeng, J.~Yang, Y.~Zhang, B.~Yu, S.~Wang, Z.~Liu, M.~Sun, and T.~Liu.
+\newblock Acecoder: Acing coder rl via automated test-case synthesis.
+\newblock {\em arXiv preprint arXiv:2502.01718}, 2025.
+
+\bibitem{thealgorithms2025}
+{The Algorithms}.
+\newblock The algorithms - python.
+\newblock \url{https://github.com/TheAlgorithms/Python}, 2025.
+
+\bibitem{bercovich2025llamanemotron}
+A.~Bercovich, I.~Levy, I.~Golan, et~al.
+\newblock Llama-nemotron: Efficient reasoning models.
+\newblock {\em arXiv preprint arXiv:2505.00949}, 2025.
+
+\bibitem{ahmad2025opencodereasoning}
+W.~U. Ahmad, S.~Narenthiran, S.~Majumdar, et~al.
+\newblock Opencodereasoning: Advancing data distillation for competitive
+  coding.
+\newblock {\em arXiv preprint arXiv:2504.01943}, 2025.
+
+\bibitem{kopf2024openassistant}
+A.~K{\"o}pf, Y.~Kilcher, D.~von R{\"u}tte, et~al.
+\newblock Openassistant conversations -- democratizing large language model
+  alignment.
+\newblock {\em Advances in Neural Information Processing Systems}, 36, 2024.
+
+\bibitem{lambert2024tulu3}
+Nathan Lambert, Jacob Morrison, Valentina Pyatkin, Shengyi Huang, Hamish
+  Ivison, Faeze Brahman, Lester James~V Miranda, Alisa Liu, Nouha Dziri, Xinxi
+  Lyu, et~al.
+\newblock T{\"u}lu 3: Pushing frontiers in open language model post-training.
+\newblock {\em arXiv preprint arXiv:2411.15124}, 2024.
+
+\bibitem{guo2025deepseekr1}
+D.~Guo, D.~Yang, H.~Zhang, et~al.
+\newblock Deepseek-r1: Incentivizing reasoning capability in llms via
+  reinforcement learning.
+\newblock {\em arXiv preprint arXiv:2501.12948}, 2025.
+
+\bibitem{pyatkin2025generalizing}
+Valentina Pyatkin, Saumya Malik, Victoria Graf, Hamish Ivison, Shengyi Huang,
+  Pradeep Dasigi, Nathan Lambert, and Hannaneh Hajishirzi.
+\newblock Generalizing verifiable instruction following.
+\newblock {\em arXiv preprint arXiv:2507.02833}, 2025.
+
+\bibitem{meyer2025nemotronpersonas}
+Y.~Meyer and D.~Corneil.
+\newblock Nemotron-personas-usa: Synthetic personas aligned to real-world
+  distributions.
+\newblock \url{https://huggingface.co/datasets/nvidia/Nemotron-Personas-USA},
+  2025.
+
+\bibitem{brahman2024art}
+F.~Brahman, S.~Kumar, V.~Balachandran, et~al.
+\newblock The art of saying no: Contextual noncompliance in language models.
+\newblock {\em arXiv preprint arXiv:2407.12043}, 2024.
+
+\bibitem{han2024wildguard}
+S.~Han, K.~Rao, A.~Ettinger, et~al.
+\newblock Wildguard: Open one-stop moderation tools for safety risks,
+  jailbreaks, and refusals of llms.
+\newblock {\em arXiv preprint arXiv:2406.18495}, 2024.
+
+\bibitem{jiang2024wildteaming}
+L.~Jiang, K.~Rao, S.~Han, et~al.
+\newblock Wildteaming at scale: From in-the-wild jailbreaks to (adversarially)
+  safer language models.
+\newblock {\em arXiv preprint arXiv:2406.18510}, 2024.
+
+\bibitem{singh2024aya}
+S.~Singh, F.~Vargus, D.~Dsouza, et~al.
+\newblock Aya dataset: An open-access collection for multilingual instruction
+  tuning.
+\newblock {\em arXiv preprint arXiv:2402.06619}, 2024.
+
+\bibitem{zha2023tablegpt}
+L.~Zha, J.~Zhou, L.~Li, et~al.
+\newblock Tablegpt: Towards unifying tables, natural language and commands into
+  one gpt.
+\newblock {\em arXiv preprint arXiv:2307.08674}, 2023.
+
+\bibitem{geng2025delta}
+S.~Geng, H.~Ivison, C.-L. Li, et~al.
+\newblock The delta learning hypothesis: Preference tuning on weak data can
+  yield strong gains.
+\newblock {\em arXiv preprint arXiv:2507.06187}, 2025.
+
+\bibitem{yao2025offpolicy}
+F.~Yao, L.~Liu, D.~Zhang, C.~Dong, J.~Shang, and J.~Gao.
+\newblock Your efficient rl framework secretly brings you off-policy rl
+  training.
+\newblock {\em Notion Technical Report}, 2025.
+
+\bibitem{hu2025openreasonerzero}
+J.~Hu, Y.~Zhang, Q.~Han, et~al.
+\newblock Open-reasoner-zero: An open source approach to scaling up
+  reinforcement learning on the base model.
+\newblock {\em arXiv preprint arXiv:2503.24290}, 2025.
+
+\bibitem{chen2025acereason}
+Y.~Chen, Z.~Yang, Z.~Liu, et~al.
+\newblock Acereason-nemotron: Advancing math and code reasoning through
+  reinforcement learning.
+\newblock {\em arXiv preprint arXiv:2505.16400}, 2025.
+
+\bibitem{an2025polaris}
+C.~An, Z.~Xie, X.~Li, et~al.
+\newblock Polaris: A post-training recipe for scaling reinforcement learning on
+  advanced reasoning models.
+\newblock \url{https://hkunlp.github.io/blog/2025/Polaris}, 2025.
+
+\bibitem{sun2025omega}
+Y.~Sun, S.~Hu, G.~Zhou, et~al.
+\newblock Omega: Can llms reason outside the box in math?
+\newblock {\em arXiv preprint arXiv:2506.18880}, 2025.
+
+\bibitem{su2025klearreasoner}
+Z.~Su, L.~Pan, X.~Bai, et~al.
+\newblock Klear-reasoner: Advancing reasoning capability via
+  gradient-preserving clipping policy optimization.
+\newblock {\em arXiv preprint arXiv:2508.07629}, 2025.
+
+\bibitem{su2025expanding}
+Y.~Su, D.~Yu, L.~Song, et~al.
+\newblock Expanding rl with verifiable rewards across diverse domains.
+\newblock {\em arXiv preprint arXiv:2503.23829}, 2025.
+
+\bibitem{shao2025spurious}
+R.~Shao, S.~S. Li, R.~Xin, S.~Geng, Y.~Wang, S.~Oh, S.~S. Du, N.~Lambert,
+  S.~Min, R.~Krishna, et~al.
+\newblock Spurious rewards: Rethinking training signals in rlvr.
+\newblock {\em arXiv preprint arXiv:2506.10947}, 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -1346,13 +1485,6 @@ Ilya Loshchilov and Frank Hutter.
 \newblock {\em International Conference on Learning Representations (ICLR)},
   2019.
 
-\bibitem{lambert2024tulu3}
-Nathan Lambert, Jacob Morrison, Valentina Pyatkin, Shengyi Huang, Hamish
-  Ivison, Faeze Brahman, Lester James~V Miranda, Alisa Liu, Nouha Dziri, Xinxi
-  Lyu, et~al.
-\newblock T{\"u}lu 3: Pushing frontiers in open language model post-training.
-\newblock {\em arXiv preprint arXiv:2411.15124}, 2024.
-
 \bibitem{christiano2017deep}
 Paul~F Christiano, Jan Leike, Tom Brown, Miljan Martic, Shane Legg, and Dario
   Amodei.
@@ -1460,29 +1592,6 @@ Shengyi Huang, Michael Noukhovitch, Arian Hosseini, Kashif Rasul, Weixun Wang,
 Z.~Liu, C.~Chen, W.~Li, P.~Qi, T.~Pang, C.~Du, W.~S. Lee, and M.~Lin.
 \newblock Understanding r1-zero-like training: A critical perspective.
 \newblock {\em Conference on Language Modeling (COLM)}, 2025.
-
-\bibitem{yao2025offpolicy}
-F.~Yao, L.~Liu, D.~Zhang, C.~Dong, J.~Shang, and J.~Gao.
-\newblock Your efficient rl framework secretly brings you off-policy rl
-  training.
-\newblock {\em Notion Technical Report}, 2025.
-
-\bibitem{zeng2025acecoder}
-H.~Zeng, J.~Yang, Y.~Zhang, B.~Yu, S.~Wang, Z.~Liu, M.~Sun, and T.~Liu.
-\newblock Acecoder: Acing coder rl via automated test-case synthesis.
-\newblock {\em arXiv preprint arXiv:2502.01718}, 2025.
-
-\bibitem{pyatkin2025generalizing}
-Valentina Pyatkin, Saumya Malik, Victoria Graf, Hamish Ivison, Shengyi Huang,
-  Pradeep Dasigi, Nathan Lambert, and Hannaneh Hajishirzi.
-\newblock Generalizing verifiable instruction following.
-\newblock {\em arXiv preprint arXiv:2507.02833}, 2025.
-
-\bibitem{shao2025spurious}
-R.~Shao, S.~S. Li, R.~Xin, S.~Geng, Y.~Wang, S.~Oh, S.~S. Du, N.~Lambert,
-  S.~Min, R.~Krishna, et~al.
-\newblock Spurious rewards: Rethinking training signals in rlvr.
-\newblock {\em arXiv preprint arXiv:2506.10947}, 2025.
 
 \bibitem{piche2025pipelinerl}
 A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.

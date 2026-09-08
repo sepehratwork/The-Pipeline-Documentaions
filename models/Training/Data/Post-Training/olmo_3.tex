@@ -1,1 +1,193 @@
-\item \textbf asd
+\item \model{OLMo 3}
+
+\paragraph*{مقدمه و ساختار کلان خط لوله پس‌آموزش}
+فاز پس‌آموزش (\en{Post-Training}) در خانواده مدل‌های \model{OLMo 3} با هدف ارتقای قابلیت‌های استدلال چندمرحله‌ای، مکالمه مستقیم، تعامل با ابزارها و پیروی از دستورات تدوین شده است. بر خلاف مدل‌های وزن‌بسته یا نیمه‌شفاف، خط لوله پس‌آموزش \model{OLMo 3} به همراه تمام داده‌ها، چک‌پوینت‌های میانی و ابزارهای پالایش با نام پیکره داده \textbf{دولچی (\en{Dolci})} عرضه شده است. این توسعه در سه مسیر مجزا پیگیری می‌شود:
+\begin{itemize}
+    \item \textbf{مدل تفکرگر (\en{OLMo 3 Think}):} تولید ردپای تفکر درونی طولانی (\en{Thinking Traces}) پیش از پاسخ نهایی در قالب تگ‌های ساختاریافته اختصاصی.
+    \item \textbf{مدل دستوری (\en{OLMo 3 Instruct}):} بهینه‌سازی‌شده برای پاسخ‌دهی موجز و سریع، بدون تولید توکن‌های زائد فکری و با توانمندی بالا در فراخوانی ابزارها.
+    \item \textbf{مدل یادگیری تقویتی از پایه (\en{OLMo 3 RL-Zero}):} اعمال مستقیم الگوریتم‌های \en{RLVR} بر روی مدل پایه بدون گذر از فاز تنظیم دقیق تحت نظارت (\en{SFT}).
+\end{itemize}
+
+مسیر کلی بهینه‌سازی پس‌آموزش در این مدل‌ها از زنجیره سه‌مرحله‌ای زیر تبعیت می‌کند:
+\begin{equation}
+\begin{aligned}
+    \text{Base Model} &\xrightarrow{\quad\text{SFT}\quad} \text{SFT Model} \\
+    &\xrightarrow{\quad\text{DPO}\quad} \text{DPO Model} \xrightarrow{\quad\text{RLVR}\quad} \text{Final Model}
+\end{aligned}
+\end{equation}
+
+\paragraph*{داده‌های تنظیم دقیق تحت نظارت تفکرگر (\en{Dolci Think SFT})}
+مجموعه‌داده \en{Dolci Think SFT} با ترکیب بیش از ۲.۱ میلیون پرامپت چندحوزه‌ای و پاسخ‌های مجهز به زنجیره تفکر عمیق ایجاد شده است \cite{guha2025openthoughts, primeintellect2025synthetic2}:
+\begin{itemize}
+    \item \textbf{ریاضیات (\en{Mathematics}):} پرامپت‌ها از \en{OpenThoughts3} و دادگان راستی‌آزمایی‌شده \en{SYNTHETIC-2} استخراج شدند. نمونه‌های ناقص با استفاده از مدل استدلالی \en{QwQ-32B} \cite{qwen2025qwq32b} تا سقف بافت ۳۲,۷۶۸ توکن مجدداً تولید شدند.
+    \item \textbf{کدنویسی (\en{Coding}):} پرامپت‌های الگوریتمی از منابع \en{AceCoder} \cite{zeng2025acecoder}، \en{The Algorithms} \cite{thealgorithms2025}، \en{Llama-Nemotron} \cite{bercovich2025llamanemotron} و \en{OpenCodeReasoning} \cite{ahmad2025opencodereasoning} اخذ شدند. برای هر پرامپت تا ۱۶ پاسخ با \en{QwQ-32B} تولید و با تست‌کیس‌های ساخته‌شده توسط \en{GPT-4.1} اعتبارسنجی گردید.
+    \item \textbf{گفتگو و ایمنی (\en{Chat \& Safety}):} پرامپت‌های استخراج‌شده از \en{WildChat} \cite{zhao2024wildchat}، \en{OpenAssistant} \cite{kopf2024openassistant} و \en{T\"ulu 3} \cite{lambert2024tulu3} به همراه ردپاهای فکری مدل \en{DeepSeek-R1} \cite{guo2025deepseekr1} بازتولید شدند.
+    \item \textbf{دستورات دقیق (\en{Precise Instruction Following}):} پرامپت‌های \en{IF-RLVR} \cite{pyatkin2025generalizing} و پرامپت‌های شخصیت‌محور \cite{meyer2025nemotronpersonas} پس از آزمون موفق در راستی‌آزماهای خودکار به مجموعه افزوده شدند.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{ترکیب‌بندی منابع پرامپت در مجموعه داده \en{Dolci Think SFT}}
+\label{tab:olmo3_think_sft}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llcc}
+\toprule
+\textbf{دسته‌بندی موضوعی} & \textbf{مجموعه پرامپت} & \textbf{تعداد نمونه} & \textbf{مرجع} \\
+\midrule
+\multirow{4}{*}{\textbf{گفتگو و دستورات دقیق}} 
+& \en{WildChat} & 76,209 & \cite{zhao2024wildchat} \\
+& \en{OpenAssistant} & 6,647 & \cite{kopf2024openassistant} \\
+& \en{Dolci Think Persona Precise IF} & 220,530 & \cite{meyer2025nemotronpersonas} \\
+& \en{Dolci Think Precise IF} & 135,722 & \cite{pyatkin2025generalizing} \\
+\midrule
+\multirow{3}{*}{\textbf{ریاضیات}} 
+& \en{Dolci Think OpenThoughts 3+ Math} & 752,997 & \cite{guha2025openthoughts} \\
+& \en{Dolci Think OpenThoughts 3+ STEM} & 99,268 & \cite{guha2025openthoughts} \\
+& \en{SYNTHETIC-2-SFT-Verified} & 104,548 & \cite{primeintellect2025synthetic2} \\
+\midrule
+\multirow{3}{*}{\textbf{کدنویسی}} 
+& \en{Nemotron Post-Training Code} & 113,777 & \cite{bercovich2025llamanemotron} \\
+& \en{Dolci Think OpenThoughts 3+ Code} & 88,899 & \cite{guha2025openthoughts} \\
+& \en{Dolci Think Python Algorithms} & 466,676 & \cite{zeng2025acecoder, ahmad2025opencodereasoning} \\
+\midrule
+\multirow{3}{*}{\textbf{ایمنی (\en{Safety})}} 
+& \en{CoCoNot} & 9,549 & \cite{brahman2024art} \\
+& \en{WildGuardMix} & 36,673 & \cite{han2024wildguard} \\
+& \en{WildJailbreak} & 40,002 & \cite{jiang2024wildteaming} \\
+\midrule
+\textbf{چندزبانه} & \en{Aya} & 97,156 & \cite{singh2024aya} \\
+\textbf{سایر حوزه‌ها} & \en{TableGPT} & 4,973 & \cite{zha2023tablegpt} \\
+\midrule
+\textbf{مجموع کل} & \en{\textbf{Dolci Think Thinking Datasets}} & \textbf{2,153,607} & - \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{داده‌های ابزارمحور و فراخوانی توابع (\en{Tool Use \& Function Calling})}
+در مدل \en{OLMo 3 Instruct}، هدف ارتقای کارایی و سرعت تعامل با محیط‌های بیرونی با استفاده از پروتکل \en{Model Context Protocol (MCP)} است. داده‌های تعاملی بر پایه استاندارد \en{OpenAPI} و کدهای پایتونی سازمان‌یافته‌اند:
+\begin{itemize}
+    \item \textbf{تعاملات واقعی در محیط‌های \en{MCP}:} شامل مجموعه \en{Science QA} با ۲۲.۶ هزار مسیر تعاملی برای واکشی متون علمی و گراف ارجاعات از طریق سرور \en{ASTA}، و مجموعه \en{Web Search QA} با ۶.۶ هزار مسیر تعاملی در وب با استفاده از \en{Serper API}.
+    \item \textbf{تعاملات شبیه‌سازی‌شده (\en{SimFC}):} شامل ۲۰۰ هزار مسیر تعاملی با ۴۲.۶ هزار تابع یکتا برای پوشش رفتارهای چندنوبته، فراخوانی‌های موازی و رفتارهای امتناع هوشمندانه (\en{Refusals}).
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{ویژگی‌های آماری دادگان فراخوانی توابع در \model{OLMo 3}}
+\label{tab:olmo3_tool_use}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{مجموعه دادگان} & \textbf{نوع محیط} & \textbf{تعداد مسیرها} & \textbf{توابع یکتا} & \textbf{درصد چندنوبته} & \textbf{درصد چندمرحله‌ای} \\
+\midrule
+\en{Science QA} & واقعی (\en{Real MCP}) & 22,600 & 8 & - & 42.3\% \\
+\en{Web Search QA} & واقعی (\en{Real MCP}) & 6,600 & 3 & - & 76.1\% \\
+\en{SimFC} & شبیه‌سازی‌شده (\en{Simulated}) & 200,000 & 42,600 & 42.3\% & 23.8\% \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{خط لوله پالایش چندمرحله‌ای و آلودگی‌زدایی (\en{Filtering \& Decontamination})}
+جهت حذف نویزها و صیانت از تعمیم‌پذیری مدل، تمامی داده‌های پس‌آموزش از خط لوله فیلترینگ عبور کردند:
+\begin{enumerate}
+    \item \textbf{پالایش ساختاری (\en{Format Filtering}):} حذف زنجیره‌های فکری ناقص که پیش از بستن تگ تفکر قطع شده بودند و همچنین پاسخ‌های تهی.
+    \item \textbf{پالایش حوزه و موضوع (\en{Domain Filtering}):} غربال موضوعات نامطلوب و احوالپرسی‌های پرتکرار وب با رده‌بندی موضوعی \en{OpenAI}.
+    \item \textbf{پالایش محتوایی و ایمنی (\en{Content Filtering}):} حذف تاریخ انقضای دانش مدل‌ها (\en{Cutoff Dates}) و نام شرکت‌های توسعه‌دهنده جهت حفظ هویت مستقل مدل.
+    \item \textbf{مهار تکرار و غلبه زبان چینی:} حذف داده‌هایی با بیش از ۵٪ کاراکتر چینی و مهار زنجیره‌های با تکرار افراطی عبارات.
+    \item \textbf{آلودگی‌زدایی از بنچ‌مارک‌ها (\en{Decontamination}):} بهره‌گیری از تطابق $8$-گرامی با حد آستانه اشتراک ۵۰٪ نسبت به داده‌های آزمون.
+\end{enumerate}
+
+\begin{table}[htbp]
+\centering
+\caption{آمار تفکیکی مراحل فیلترسازی و درصد داده‌های پالایش‌شده در مجموعه \en{Dolci Think SFT}}
+\label{tab:olmo3_filtering_stats}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{نام دادگان} & \textbf{حجم اولیه} & \textbf{فیلتر فرمت} & \textbf{فیلتر موضوع} & \textbf{فیلتر محتوا} & \textbf{فیلتر تکرار} & \textbf{فیلتر چینی} & \textbf{حجم نهایی} \\
+\midrule
+\en{WildChat (T\"ulu 3)} & 57,407 & 1.61\% & 14.57\% & 3.10\% & - & 1.09\% & 45,917 \\
+\en{WildChat (New)} & 74,997 & 1.53\% & 48.09\% & 3.13\% & 0.02\% & 1.16\% & 36,417 \\
+\en{OpenAssistant 1} & 7,094 & 0.08\% & - & - & - & 3.86\% & 6,800 \\
+\en{OpenThoughts3-Regen} & 1,200,000 & 3.22\% & - & - & < 0.01\% & 0.04\% & 1,160,972 \\
+\en{Persona Precise IF} & 224,448 & 0.19\% & - & 0.29\% & < 0.01\% & 0.08\% & 223,123 \\
+\en{Val Precise IF (QwQ)} & 286,003 & - & - & 0.62\% & < 0.01\% & 1.17\% & 135,851 \\
+\en{Synthetic-2-SFT-Verified} & 104,913 & 0.01\% & - & - & < 0.01\% & 0.32\% & 104,569 \\
+\en{Saurabh Code Mix} & 884,767 & - & - & - & < 0.01\% & < 0.01\% & 884,570 \\
+\en{CoCoNot} & 10,460 & 0.57\% & - & - & - & 0.10\% & 10,227 \\
+\en{WildGuard} & 38,794 & 0.37\% & - & 0.54\% & < 0.01\% & 0.12\% & 38,315 \\
+\en{WildJailbreak} & 41,420 & 0.13\% & - & 0.61\% & - & < 0.01\% & 41,100 \\
+\en{Aya} & 98,863 & 0.15\% & - & - & < 0.01\% & 5.62\% & 98,598 \\
+\en{TableGPT} & 4,982 & 0.02\% & - & - & - & 0.06\% & 4,981 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{بهینه‌سازی ترجیحات بر پایه یادگیری تفاضلی (\en{Preference Tuning \& Delta Learning})}
+مرحله \en{DPO} در \model{OLMo 3} بر اساس «فرضیه یادگیری تفاضلی» \cite{geng2025delta} اجرا شد. بر مبنای این اصل، آنچه موجب یادگیری مؤثر در بهینه‌سازی ترجیحی می‌شود، وسعت و وضوح شکاف کیفی میان پاسخ برگزیده ($y_c$) و پاسخ نامطلوب ($y_r$) است. تابع زیان با نرمال‌سازی طول به صورت زیر فرموله شده است:
+\begin{equation}
+\begin{aligned}
+    \mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = - \mathbb{E}_{(x, y_c, y_r) \sim \mathcal{D}} \Bigg[ \log \sigma \Bigg( 
+    &\frac{\beta}{|y_c|} \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} \\
+    &- \frac{\beta}{|y_r|} \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)} \Bigg) \Bigg]
+\end{aligned}
+\end{equation}
+که در آن $\beta = 5$ تنظیم شده است. در داده‌های \en{Dolci Think DPO}، خروجی‌های برگزیده از \en{Qwen3-32B} و پاسخ‌های مردود از مدل ضعیف \en{Qwen3-0.6B} استخراج شدند. همچنین در مدل دستوری، به منظور مقابله با تمایل ذاتی مدل‌ها به درازگویی (\en{Length Bias})، اختلاف طول پاسخ‌های برگزیده و مردود در پرامپت‌های چت محدود شد:
+\begin{equation}
+    \big| |y_c| - |y_r| \big| \le 100
+\end{equation}
+
+\paragraph*{یادگیری تقویتی با پاداش‌های قابل‌راستی‌آزمایی (\en{RLVR \& OlmoRL})}
+فاز نهایی آموزش با زیرساخت توزیع‌شده \en{OlmoRL} بر مبنای الگوریتم \en{GRPO} \cite{shao2024deepseekmath} اجرا شد. در این فرمولاسیون، جریمه \en{KL} حذف شده، مزیت بدون نرمال‌سازی انحراف معیار محاسبه گردیده و از تصحیح نمونه‌برداری اهمیت کوتاه‌شده (\en{TIS}) \cite{yao2025offpolicy} استفاده شده است:
+\begin{equation}
+\begin{aligned}
+    J(\theta) = \frac{1}{\sum_{i=1}^G |y_i|} \sum_{i=1}^G \sum_{t=1}^{|y_i|} 
+    &\min \left( \frac{\pi_\theta(y_{i,t} \mid x, y_{i,<t})}{\pi_{\text{vllm}}(y_{i,t} \mid x, y_{i,<t})}, \rho \right) \\
+    &\times \min \left( r_{i,t} A_{i,t}, \, \text{clip}(r_{i,t}, 1-\varepsilon_{\text{low}}, 1+\varepsilon_{\text{high}}) A_{i,t} \right)
+\end{aligned}
+\end{equation}
+که در آن مزیت به صورت $A_{i,t} = r(x, y_i) - \frac{1}{G} \sum_{j=1}^G r(x, y_j)$ بوده و پارامترهای برش به صورت $\varepsilon_{\text{low}} = 0.20$ و $\varepsilon_{\text{high}} = 0.272$ تنظیم شده‌اند. در دادگان ریاضی، راستی‌آزمایی پاسخ با کتابخانه \en{SymPy} انجام می‌شود؛ در حوزه برنامه‌نویسی، کدهای تولیدشده در توابع ابری ایزوله \en{AWS Lambda} اجرا و ارزیابی می‌گردند؛ و در حوزه دستورات، شروط متنی به صورت قطعی سنجیده می‌شوند. همچنین پرامپت‌هایی که در فیلترینگ اولیه بیش از ۶۲.۵٪ نرخ موفقیت داشتند حذف شدند تا تمرکز مدل روی نمونه‌های چالش‌برانگیز حفظ شود.
+
+\begin{table}[htbp]
+\centering
+\caption{ترکیب آماری منابع پرامپت در مجموعه دادگان \en{Dolci Think RL} و \en{Dolci Instruct RL}}
+\label{tab:olmo3_rl_data}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llccc}
+\toprule
+\textbf{حوزه موضوعی} & \textbf{مجموعه پرامپت} & \textbf{تعداد در \en{Think RL}} & \textbf{تعداد در \en{Instruct RL}} & \textbf{مرجع} \\
+\midrule
+\textbf{دستورات دقیق} & \en{IF-RLVR} & 30,186 & 38,000 & \cite{pyatkin2025generalizing} \\
+\midrule
+\multirow{5}{*}{\textbf{ریاضیات}} 
+& \en{Open-Reasoner-Zero} & 3,000 & 14,000 & \cite{hu2025openreasonerzero} \\
+& \en{DAPO-Math} & 2,584 & 7,000 & \cite{yu2025dapo} \\
+& \en{AceReason-Math} & 6,602 & - & \cite{chen2025acereason} \\
+& \en{Polaris-Dataset} & - & 14,000 & \cite{an2025polaris} \\
+& \en{OMEGA-train} & 15,000 & 20,000 & \cite{sun2025omega} \\
+\midrule
+\multirow{4}{*}{\textbf{کدنویسی}} 
+& \en{AceCoder} & 9,767 & 20,000 & \cite{zeng2025acecoder} \\
+& \en{KlearReasoner-Code} & 8,040 & - & \cite{su2025klearreasoner} \\
+& \en{Nemotron Post-Training Code} & 2,303 & - & \cite{bercovich2025llamanemotron} \\
+& \en{SYNTHETIC-2} & 3,000 & - & \cite{primeintellect2025synthetic2} \\
+\midrule
+\multirow{3}{*}{\textbf{گفتگوی عمومی}} 
+& \en{T\"ulu 3 SFT} & 7,129 & 18,955 & \cite{lambert2024tulu3} \\
+& \en{Wildchat-4.8M} & 7,129 & 18,761 & \cite{zhao2024wildchat} \\
+& \en{Multi-Subject RLVR} & 7,129 & 12,234 & \cite{su2025expanding} \\
+\midrule
+\textbf{مجموع کل} & \en{\textbf{OLMo 3 Datasets}} & \textbf{104,869} & \textbf{171,950} & - \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{مسیر یادگیری تقویتی مستقیم از مدل پایه (\en{Dolci RL-Zero})}
+در مسیر \en{OLMo 3 RL-Zero}، یادگیری تقویتی بدون عبور از مرحله \en{SFT} اعمال شده است:
+\begin{itemize}
+    \item با فیلترسازی و خوشه‌بندی معنایی، مجموعه‌ای شامل ۱۳,۳۱۴ پرامپت ریاضیات دست‌چین شد که مدل پایه قادر به پاسخ‌دهی به همه آن‌ها در ۸ نمونه‌برداری اولیه نبود.
+    \item \textbf{آزمایش کنترل منفی پاداش کاذب (\en{Spurious Rewards}):} برای اطمینان از اینکه عملکرد مدل ناشی از یادگیری استدلال است و نه حفظ‌کردن داده‌ها، آزمایش پاداش تصادفی بر اساس متدولوژی شائو و همکاران \cite{shao2025spurious} اجرا شد. نتایج نشان داد که مدل با پاداش‌های تصادفی به هیچ پیشرفتی در آزمون‌های \en{AIME} دست نمی‌یابد؛ این امر اثبات کرد که پیکره آموزشی فاقد هرگونه آلودگی داده‌ای نسبت به بنچ‌مارک‌ها بوده است.
+\end{itemize}
