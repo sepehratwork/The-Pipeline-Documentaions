@@ -1,1 +1,61 @@
-\item \textbf asd
+\item \model{Nemotron 3}
+
+\paragraph*{معماری پیوندی \en{Mamba-Transformer MoE}}
+سری \model{Nemotron 3} \cite{nemotron3_2025} (شامل مدل‌های \en{Nano-30B-A3B}، \en{Super} و \en{Ultra}) با تلفیق لایه‌های فضای حالت (\en{SSM}) و ترانسفورمر، توازن سرعت و کیفیت را ارتقا داده است. در مدل پایه، بیشتر لایه‌ها از نوع \en{Mamba-2} هستند که با لایه‌های \en{MoE} جفت شده‌اند و تنها تعداد انگشت‌شماری لایه توجه کامل در شبکه تعبیه شده است. لایه‌های \en{Mamba-2} حالت مخفی بازگشتی با اندازه ثابت $h_t \in \mathbb{R}^{d_{\text{state}}}$ را نگهداری می‌کنند:
+\begin{equation}
+    h_t = \bar{A}_t h_{t-1} + \bar{B}_t x_t, \quad y_t = C_t h_t + D x_t
+\end{equation}
+حذف نیاز به کش رو به رشد \en{KV} در اکثر لایه‌ها، توان عملیاتی استنتاج را در دنباله‌های طولانی تا بیش از ۳.۳ برابر نسبت به مدل‌های تمام‌ترانسفورمر افزایش می‌دهد.
+
+\paragraph*{طراحی متخصصان مکنون (\en{LatentMoE})}
+برای شکستن گلوگاه پهنای باند و ارتباطات \en{All-to-All} که مستقیماً با بعد مدل $d$ و تعداد متخصصان فعال $K$ مقیاس می‌شود ($\mathcal{O}(K \cdot d)$)، معماری \en{LatentMoE} توکن‌ها را به بعد مکنون $\ell \approx d/4$ فشرده می‌سازد:
+\begin{equation}
+    z = W_{\text{down}} x \in \mathbb{R}^\ell, \quad W_{\text{down}} \in \mathbb{R}^{\ell \times d}
+\end{equation}
+محاسبات متخصصان در این فضای مکنون اجرا شده و سپس به بعد اصلی بازگردانده می‌شود:
+\begin{equation}
+    u = \sum_{i \in \text{TopK}} p_i \text{FFN}_i(z), \quad y = W_{\text{up}} u \in \mathbb{R}^d
+\end{equation}
+ظرفیت آزادشده پهنای باند صرف افزایش تعداد کل متخصصان از ۱۲۸ به ۵۱۲ و تعداد متخصصان فعال از ۶ به ۲۲ شده است، که ظرفیت غیرخطی مدل را به شدت بالا می‌برد.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.5cm and 2cm,
+    box/.style={rectangle, draw=green!60!black, fill=green!10, rounded corners=5pt, text width=3.8cm, align=center, minimum height=1cm, line width=1pt},
+    latent/.style={rectangle, draw=purple!70!black, fill=purple!10, rounded corners=5pt, text width=3.8cm, align=center, minimum height=1cm, line width=1pt},
+    expert/.style={rectangle, draw=orange!70!black, fill=orange!15, rounded corners=3pt, text width=1cm, align=center, minimum height=0.8cm, line width=1pt},
+    arrow/.style={draw=black!70, -{Stealth[length=2.5mm]}, line width=1.1pt}
+]
+    \node [box] (in) {\textbf{ورودی لایه} ($x \in \mathbb{R}^d$)};
+    \node [latent, below=of in] (projdown) {\textbf{فشرده‌سازی مکنون} \\ $z = W_{\text{down}} x \in \mathbb{R}^\ell$ ($\ell \approx d/4$)};
+    \node [expert, below=of projdown, xshift=-1.8cm] (e1) {$E_1$};
+    \node [expert, right=0.3cm of e1] (e2) {$E_2$};
+    \node [expert, right=0.3cm of e2] (dots) {$\dots$};
+    \node [expert, right=0.3cm of dots] (ek) {$E_K$};
+    \node [latent, below=1.5cm of projdown] (projup) {\textbf{انبساط خروجی} \\ $y = W_{\text{up}} u \in \mathbb{R}^d$};
+    \node [box, below=of projup] (out) {\textbf{خروجی پردازش‌شده}};
+
+    \path [arrow] (in) -- (projdown);
+    \path [arrow] (projdown) -| (e1);
+    \path [arrow] (projdown) -| (e2);
+    \path [arrow] (projdown) -| (ek);
+    \path [arrow] (e1) |- (projup);
+    \path [arrow] (e2) |- (projup);
+    \path [arrow] (ek) |- (projup);
+    \path [arrow] (projup) -- (out);
+\end{tikzpicture}
+}
+\caption{سازوکار لایه \en{LatentMoE} در مدل‌های \model{Nemotron 3}.}
+\label{fig:latent_moe}
+\end{figure}
+
+\paragraph*{پیش‌آموزش بومی با فرمت \en{NVFP4}}
+پیش‌آموزش روی ۲۵ تریلیون توکن با بهره‌گیری بومی از محاسبات ممیز شناور ۴ بیتی انویدیا (\en{NVFP4}) صورت پذیرفته است:
+\begin{itemize}
+    \item \textbf{فرمت میکروبلوک:} ساختار ۱۶ عنصری با فاکتورهای مقیاس E4M3 و عناصر E2M1 همراه با مقیاس سراسری ممیز شناور ۳۲ بیتی.
+    \item \textbf{تبدیل تصادفی هادامارد (\en{RHT}):} اعمال تبدیل \en{RHT} بر تنسورهای ورودی به منظور محو کردن نقاط تکین فرین و پایداری محاسبات گرادیان وزن ($w_{\text{grad}}$).
+    \item \textbf{حفاظت از لایه‌های حساس:} ۱۵٪ لایه‌های انتهایی مدل به همراه لایه‌های فرافکنی مکنون در دقت \en{BF16} حفظ شده و لایه‌های خروجی \en{Mamba} به دلیل حساسیت به صفر شدن زودهنگام در فرمت \en{MXFP8} آموزش دیدند.
+\end{itemize}
+مدل از مکانیزم موقعیتی بومی لایه‌های فضای حالت بهره برده و فاقد تعبیه دورانی در لایه‌های توجه است (\en{No-RoPE})، که گسترش طول بافت به ۱ میلیون توکن را در فاز CPT تسهیل می‌کند.

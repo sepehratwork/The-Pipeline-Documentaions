@@ -1695,4 +1695,46 @@ Z.~Lu, C.~Li, Y.~Shi, W.~Shen, et~al.
 {OpenAI}.
 \newblock Introducing swe-bench verified, 2024.
 
+\bibitem{glm5_2026}
+{GLM-5 Team}.
+\newblock Glm-5: from vibe coding to agentic engineering.
+\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
+
+\bibitem{kimi_k3_2026}
+{Kimi Team}.
+\newblock Kimi k3: Open frontier intelligence.
+\newblock {\em arXiv preprint arXiv:2607.24653}, 2026.
+
+\bibitem{magistral_2025}
+{Mistral AI}.
+\newblock Magistral: Scalable reinforcement learning for frontier reasoning.
+\newblock {\em arXiv preprint arXiv:2506.10910}, 2025.
+
+\bibitem{minimax_m2_2026}
+{MiniMax Team}.
+\newblock The minimax-m2 series: Mini activations unleashing max real-world
+  intelligence.
+\newblock {\em arXiv preprint arXiv:2605.26494}, 2026.
+
+\bibitem{mobilellm_pro_2025}
+Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, et~al.
+\newblock Mobilellm-pro technical report.
+\newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
+
+\bibitem{olmo3_2025}
+{Olmo Team}.
+\newblock Olmo 3: Fully open language and thinking models.
+\newblock {\em Technical Report, Allen Institute for AI}, 2025.
+
+\bibitem{qwen3_2025}
+{Qwen Team}.
+\newblock Qwen3 technical report.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{deepseek2025dsa}
+{DeepSeek-AI}.
+\newblock Deepseek-v3.2-exp: Boosting long-context efficiency with deepseek
+  sparse attention.
+\newblock {\em arXiv preprint}, 2025.
+
 \end{thebibliography}

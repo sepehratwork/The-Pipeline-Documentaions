@@ -1,1 +1,63 @@
-\item \textbf asd
+\item \model{OLMo 3}
+
+\paragraph*{معماری کاملاً شفاف مدل پایه (\en{Olmo 3 Base})}
+مدل‌های پایه \model{OLMo 3} \cite{olmo3_2025} در دو نسخه کاملاً باز ۷B (۳۲ لایه، بعد پنهان ۴۰۹۶، ۳۲ سر توجه) و ۳۲B (۶۴ لایه، بعد پنهان ۵۱۲۰، ۴۰ سر پرسش و ۸ سر کلید-مقدار \en{GQA}) عرضه شده‌اند. در سه لایه از هر چهار لایه، سازوکار توجه پنجره لغزان (\en{SWA}) با پهنای ۴۰۹۶ توکن به کار گرفته شده و لایه چهارم به همراه لایه انتهایی مدل از توجه متراکم کامل بهره می‌برند. فرکانس پایه تعبیه دورانی روی $\theta = 500,000$ تنظیم شده است.
+
+\paragraph*{پالایش چندمرحله‌ای و تئوری اطلاعاتی دادگان \en{Dolma 3}}
+آماده‌سازی پیکره ۵.۹ تریلیون توکنی \en{Dolma 3 Mix} از میان ۲۵۲.۶ میلیارد سند وب با سه فاز متمایز پالایش گردید:
+\begin{itemize}
+    \item \textbf{پالایش اکتشافی و زبانی:} حذف نشانی‌های اینترنتی هرزنامه، پالایش طول، حذف متون با نمادهای تکراری و اعمال فیلتر زبان انگلیسی \en{FastText} با آستانه ۰.۶۵ (کاهش ۸۴.۶ درصدی اسناد).
+    \item \textbf{حذف افزونگی سه‌گانه با ابزار \en{Duplodocus}:} (۱) حذف کپی‌های دقیق هش ۱۲۸ بیتی متن اسناد با کاهش ۶۶ درصدی اسناد، (۲) حذف فازی بر مبنای \en{MinHash} در ۳۲ بخش با هدف‌گیری شباهت ژاکارد $\ge 0.80$ با کاهش ۲۴ درصدی، (۳) حذف زیررشته‌های تکراری با آرایه‌های پسوندی فازی (\en{Suffix Array}) برای دنباله‌های بالای ۵۰۰ بایت با کاهش ۱۴ درصدی بایت‌ها.
+    \item \textbf{پالایش اسناد علمی با \en{olmOCR}:} استخراج متون از ۱۰۸ میلیون سند علمی \en{PDF} و پالایش کیفی بر اساس فشرده‌پذیری \en{gzip} (حذف ۲۰٪ داده‌های بسیار فشرده‌پذیر و ۲۰٪ داده‌های کم‌فشرده‌پذیر به عنوان داده‌های پرت).
+\end{itemize}
+
+\paragraph*{ترکیب بهینه مقید داده‌ها (\en{Constrained Mixing - Olmix})}
+ترکیب داده‌ها با هدف کمینه‌سازی شاخص بیت بر بایت (\en{BPB}) بر مبنای یک کلونی از مدل‌های کوچک ۳۰ میلیون پارامتری آموزش‌دیده روی توزیع‌های دیریکله نمونه‌برداری‌شده از سهم دامنه‌ها بهینه‌سازی شد. برای هر وظیفه $k$، یک مدل رگرسیون خطی تعمیم‌یافته برازش داده شد:
+\begin{equation}
+    \widehat{\text{BPB}}_k(w) = \beta_0^{(k)} + \sum_j \beta_j^{(k)} w_j
+\end{equation}
+سپس مسئله بهینه‌سازی مقید زیر با اعمال سقف تکرار برای هر دامنه حل گردید:
+\begin{equation}
+    \min_w \frac{1}{K} \sum_{k=1}^K \widehat{\text{BPB}}_k(w) \quad \text{s.t.} \quad \sum_j w_j = 1, \quad 0 \le w_j \le \frac{M \cdot X_j}{Z}
+\end{equation}
+
+\paragraph*{بازنمونه‌برداری کیفی با توابع نمایی-توانی بریده‌شده}
+برای نمونه‌برداری ترجیحی از متون باکیفیت بدون حذف ناگهانی، توابع بازنمونه‌برداری زیر به ازای صدک کیفیت $x$ برازش داده شدند:
+\begin{equation}
+    f_{p, \lambda}(x) = \begin{cases} 
+        0, & x < a \\ 
+        C(x - a)^p e^{\lambda(x - a)}, & x \ge a 
+    \end{cases}
+\end{equation}
+با تنظیم آستانه حذف $a = 0.40$ (حذف ۴۰٪ داده‌های بی‌کیفیت) و سقف تکرار $M=7$، مقادیر پارامترها به صورت عددی محاسبه شدند.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.6cm and 1.8cm,
+    stepbox/.style={rectangle, draw=blue!70!black, fill=blue!8, rounded corners=4pt, text width=3.4cm, align=center, minimum height=1.1cm, line width=1pt},
+    midbox/.style={rectangle, draw=teal!70!black, fill=teal!10, rounded corners=4pt, text width=3.4cm, align=center, minimum height=1.1cm, line width=1pt},
+    longbox/.style={rectangle, draw=purple!70!black, fill=purple!10, rounded corners=4pt, text width=3.4cm, align=center, minimum height=1.1cm, line width=1pt},
+    arr/.style={draw=black!70, -{Stealth[length=2.5mm]}, line width=1.1pt}
+]
+    \node [stepbox] (p1) {\textbf{پیش‌آموزش مرحله ۱} \\ \en{Dolma 3 Mix} (5.9T) \\ کانتکست $8\text{K}$};
+    \node [midbox, right=of p1] (p2) {\textbf{میان‌آموزش مرحله ۲} \\ \en{Dolmino Mix} (100B) \\ سنتز استدلال و کد};
+    \node [longbox, right=of p2] (p3) {\textbf{بسط کانتکست مرحله ۳} \\ \en{Longmino Mix} \\ کانتکست $65,536$ توکن};
+    \node [stepbox, below=1.2cm of p1] (olmix) {\textbf{ترکیب داده مقید} \\ الگوریتم \en{Olmix}};
+    \node [midbox, below=1.2cm of p2] (soup1) {\textbf{ادغام مدل‌ها (\en{Souping})} \\ ترکیب بذرها در نسخه 32B};
+    \node [longbox, below=1.2cm of p3] (yarn) {\textbf{مقیاس‌بندی \en{YaRN}} \\ روی لایه‌های توجه کامل};
+
+    \path [arr] (p1) -- (p2);
+    \path [arr] (p2) -- (p3);
+    \path [arr] (olmix) -- (p1);
+    \path [arr] (soup1) -- (p2);
+    \path [arr] (yarn) -- (p3);
+\end{tikzpicture}
+}
+\caption{چرخه پیش‌آموزش سه‌مرحله‌ای مدل‌های پایه \model{OLMo 3}.}
+\label{fig:olmo3_pipeline}
+\end{figure}
+
+\paragraph*{بسط طول کانتکست به ۶۴K توکن}
+در فاز نهایی بسط کانتکست (۵۰ میلیارد توکن برای مدل ۷B و ۱۰۰ میلیارد توکن برای ۳۲B)، الگوریتم \en{YaRN} منحصراً بر روی لایه‌های توجه کامل اعمال شد و لایه‌های \en{SWA} دست‌نخورده باقی ماندند. بسته‌بندی اسناد با بهترین تطابق (\en{Best-Fit Packing}) به همراه ماسک‌گذاری توجه درون‌سندی (\en{Intra-Document Masking}) از ایجاد پیوندهای کاذب میان متون مستقل جلوگیری نمود. در پایان، چک‌پوینت‌های انتهایی مدل ۳۲B با یکدیگر ادغام (\en{Model Souping}) شدند.

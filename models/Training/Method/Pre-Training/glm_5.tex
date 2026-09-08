@@ -1,1 +1,62 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{معماری مدل و مقیاس‌پذیری متخصصان (\en{Architecture \& MoE Scaling})}
+مدل \model{GLM-5} \cite{glm5_2026} به عنوان مدل پرچمدار با ساختار ترکیبی از متخصصان (\en{MoE}) با ۲۵۶ متخصص تفکیک‌شده و ۱ متخصص اشتراکی طراحی شده است. از میان متخصصان، در هر گام محاسباتی به ازای هر توکن ۸ متخصص فعال می‌شوند ($K=8$). ابعاد هندسی مدل به گونه‌ای تراز شده است که توازن بهینه میان ارتباطات بینابینی و توان پردازشی برقرار شود:
+\begin{itemize}
+    \item \textbf{تعداد کل پارامترها:} ۷۴۴ میلیارد پارامتر (\en{744B}) با ۴۰ میلیارد پارامتر فعال در هر گام محاسباتی (\en{40B active}).
+    \item \textbf{تعداد لایه‌ها:} ۸۰ لایه ترانسفورمر دکودر شامل ۳ لایه کاملاً متراکم (\en{Dense}) در ابتدای شبکه و ۷۵ لایه مبتنی بر \en{MoE} و ۲ لایه پیش‌بینی چندتوکنی (\en{MTP}).
+    \item \textbf{ابعاد پنهان:} بعد مخفی $d = 6144$، بعد میانی لایه‌های متراکم ۱۲۲۸۸ و بعد میانی هر لایه متخصص ۲۰۴۸ است.
+\end{itemize}
+
+\paragraph*{بهینه‌سازی \en{Muon Split} و ساختار \en{MLA-256}}
+در ترکیب مکانیزم توجه \en{MLA} با بهینه‌ساز ماتریسی \en{Muon} \cite{jordan2024muon}، ناسازگاری ابعادی میان ماتریس‌های فرافکنی بزرگ منجر به تضعیف یادگیری می‌شد. روش ارتوگونال‌سازی نیوتن-شولتز (\en{Newton-Schulz Iteration}) برای یک ماتریس عمومی $M \in \mathbb{R}^{n \times m}$ که مقادیر ویژه تکین آن درون بازه $(0, \sqrt{3})$ مقیاس شده‌اند، به صورت تکرار زیر تعریف می‌گردد:
+\begin{equation}
+    X_{k+1} = \frac{1}{2} X_k \left( 3I - X_k^T X_k \right)
+\end{equation}
+به منظور جلوگیری از غلبه مقیاس یک سر خاص بر کل ماتریس در فرافکنی‌های فراگیر، در \model{GLM-5} روش \textbf{\en{Muon Split}} ابداع شد: ماتریس‌های فرافکنی $W_{UQ}, W_{UK}, W_{UV}$ در راستای بعد سرها خرد شده و متعامدسازی به شکل مستقل بر هر زیرماتریس اعمال می‌گردد:
+\begin{equation}
+    W_U = \begin{bmatrix} W_U^{(1)} \\ W_U^{(2)} \\ \vdots \\ W_U^{(H)} \end{bmatrix} \implies W_U^{(h)} \leftarrow \operatorname{Orthogonalize}\left( W_U^{(h)} \right)
+\end{equation}
+علاوه بر این، بعد هر سر از ۱۹۲ به ۲۵۶ افزایش و تعداد سرها با ضریب یک‌سوم کاهش داده شد (\en{MLA-256}) تا هزینه ضرب داخلی ۵۷۶ بعدی در زمان رمزگشایی متوازن گردد.
+
+\paragraph*{پیش‌بینی چندتوکنی با اشتراک پارامتر (\en{Shared-Parameter MTP})}
+به جای آموزش ماژول‌های مجزا به ازای پیش‌بینی $N$ توکن آتی که منجر به مصرف خطی حافظه پنهان می‌گردد، در \model{GLM-5} پارامترهای ۳ لایه \en{MTP} با یکدیگر به اشتراک گذاشته شده‌اند. تابع اتلاف مجموع حاصل از گام‌های همزمان به شکل زیر بیان می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{MTP}}(\theta) = \mathcal{L}_{\text{Main}}(\theta) + \sum_{k=1}^3 \lambda_k \mathcal{L}_{\text{CE}}\left( P_\theta^{(k)}(x_{t+k} \mid x_{\le t}), x_{t+k} \right), \quad \text{با شرط } \theta_{\text{MTP}}^{(1)} \equiv \theta_{\text{MTP}}^{(2)} \equiv \theta_{\text{MTP}}^{(3)}
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.8cm and 2.2cm,
+    block/.style={rectangle, draw=blue!70!black, fill=blue!10, rounded corners=6pt, text width=4.5cm, align=center, minimum height=1.2cm, line width=1pt},
+    splitblock/.style={rectangle, draw=teal!70!black, fill=teal!10, rounded corners=6pt, text width=4.5cm, align=center, minimum height=1.2cm, line width=1pt},
+    procblock/.style={rectangle, draw=orange!70!black, fill=orange!10, rounded corners=6pt, text width=4.5cm, align=center, minimum height=1.2cm, line width=1pt},
+    line/.style={draw=black!70, -{Stealth[length=3mm]}, line width=1.2pt}
+]
+    \node [block] (input) {\textbf{ماتریس‌های فرافکنی فراگیر} \\ $W_{UQ}, W_{UK}, W_{UV}$};
+    \node [splitblock, right=of input] (split) {\textbf{افراز بر مبنای سرها} \\ (\en{Muon Split Decomposition})};
+    \node [procblock, right=of split] (ortho) {\textbf{متعامدسازی مستقل} \\ \en{Newton-Schulz Iteration}};
+    \node [block, below=of ortho] (dsa) {\textbf{تطبیق توجه تنک (\en{DSA})} \\ \en{Dense Warm-up} $\to$ \en{Sparse Adaptation}};
+    \node [splitblock, left=of dsa] (mtp) {\textbf{لایه‌های \en{MTP} اشتراکی} \\ پیش‌بینی همزمان ۳ توکن آتی};
+    \node [procblock, left=of mtp] (final) {\textbf{خروجی کانتکست $200\text{K}$} \\ توازن کامل حافظه و پردازش};
+
+    \path [line] (input) -- (split);
+    \path [line] (split) -- (ortho);
+    \path [line] (ortho) -- (dsa);
+    \path [line] (dsa) -- (mtp);
+    \path [line] (mtp) -- (final);
+\end{tikzpicture}
+}
+\caption{جریان فنی پیش‌آموزش \model{GLM-5} شامل مکانیزم‌های \en{Muon Split}، توجه تنک \en{DSA} و لایه‌های \en{MTP}.}
+\label{fig:glm5_pipeline}
+\end{figure}
+
+\paragraph*{پیش‌آموزش ادامه‌دار با توجه تنک و مقیاس کانتکست}
+مدل با یک رژیم دو مرحله‌ای از توجه متراکم به توجه تنک انتقال یافته است:
+\begin{itemize}
+    \item \textbf{گرم‌سازی شاخص‌گذار:} در طول ۱۰۰۰ گام، نرخ یادگیری تا $5 \times 10^{-3}$ تنظیم شد تا پارامترهای شاخص‌گذار بدون تغییر در مدل اصلی یادگیری را تثبیت کنند.
+    \item \textbf{تطبیق تنک:} با بودجه ۲۰ میلیارد توکن، شبکه اصلی بر مبنای استخراج $k=2048$ کلید برتر کالیبره شد.
+    \item \textbf{بسط طول کانتکست در فاز میانی (\en{Mid-Training}):} پنجره کانتکست طی سه مرحله تدریجی گسترش یافت: $32\text{K}$ (۱ تریلیون توکن)، $128\text{K}$ (۵۰۰ میلیارد توکن) و $200\text{K}$ (۵۰ میلیارد توکن).
+\end{itemize}

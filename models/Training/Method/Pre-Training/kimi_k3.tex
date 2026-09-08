@@ -1,1 +1,57 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{معماری چندوجهی ۲.۸ تریلیون پارامتری و ابعاد پایه}
+مدل \model{Kimi K3} \cite{kimi_k3_2026} به عنوان بزرگ‌ترین مدل وزن‌باز جهان با ساختار ترکیبی از متخصصان (\en{MoE}) با مشخصات فنی زیر پایه‌گذاری شده است:
+\begin{itemize}
+    \item \textbf{مقیاس پارامتری:} ۲.۷۸ تریلیون پارامتر کل (\en{2.78T}) با ۱۰۴.۲ میلیارد پارامتر فعال در هر توکن (\en{104.2B active}).
+    \item \textbf{عمق و بعد مدل:} ۹۳ لایه ترانسفورمر دکودر با بعد پنهان $d = 7168$ و حداکثر طول بافت ۱ میلیون توکن (\en{1M tokens}).
+    \item \textbf{ترکیب لایه‌ای توجه هیبرید:} هر بلوک از ۳ لایه \en{Kimi Delta Attention (KDA)} و ۱ لایه \en{Gated MLA} تشکیل شده است (نسبت ۳ به ۱).
+\end{itemize}
+
+\paragraph*{تحلیل ریاضی بازگشتی و زوال کران‌دار در \en{KDA}}
+مکانیزم \en{KDA} فرمول‌بندی قانون دلتا را با گیت فراموشی کانالی ترکیب می‌کند. بردار حالت بازگشتی ماتریسی $S_t \in \mathbb{R}^{d_k \times d_v}$ به شکل زیر بهنگام‌سازی می‌شود:
+\begin{equation}
+    S_t = \left( I - \beta_t k_t k_t^T \right) \operatorname{Diag}(\alpha_t) S_{t-1} + \beta_t k_t v_t^T, \quad \tilde{o}_t = S_t^T q_t
+\end{equation}
+در پیاده‌سازی‌های گذشته، لگاریتم زوال به صورت نامحدود در بازه $(-\infty, 0)$ تعریف می‌شد که معکوس تجمعی آن ($1/\Gamma$) در ممیزهای شناور دچار سرریز عددی می‌گشت. در \model{Kimi K3}، زوال لگاریتمی به صورت کران‌دار با سیگموئید مقیاس‌شده فرمول‌بندی شده است:
+\begin{equation}
+    g_t^h = g_{\min} \operatorname{Sigmoid}\left( e^{A_h} z_t^h \right) \in (g_{\min}, 0)^{d_k}, \quad g_{\min} = -5
+\end{equation}
+\begin{equation}
+    \alpha_t^h = \exp(g_t^h) \in \left( e^{-5}, 1 \right)^{d_k} \implies \alpha_{t, j}^h > e^{-5} \approx 6.7 \times 10^{-3}
+\end{equation}
+بنابراین، بر روی هر بلوک کاشی ۱۶ توکنی، زوال تجمعی همواره در بازه $(-80, 0)$ محصور شده و وارون آن کمتر از $e^{80}$ باقی می‌ماند که کاملاً در محدوده دینامیکی \en{BF16} است. این نوآوری امکان اجرای محاسبات ضرب ماتریسی متراکم را مستقیماً روی هسته‌های تانسوری فراهم ساخته و گلوگاه محاسباتی قطری را مرتفع می‌سازد.
+
+\paragraph*{پسماندهای توجه در عمق شبکه (\en{Block Attention Residuals - AttnRes})}
+به جای اتصالات پسماند کلاسیک ($h_l = h_{l-1} + f_l(h_{l-1})$)، مدل \model{Kimi K3} از مکانیزم \en{AttnRes} در لایه‌ها استفاده می‌کند. به منظور کنترل سربار حافظه از $\mathcal{O}(Ld)$ به $\mathcal{O}(Nd)$، لایه‌ها به $N=8$ بلوک با اندازه ۱۲ لایه تقسیم شده‌اند. با تعریف بازنمایی خلاصه‌شده هر بلوک به صورت $b_n = \sum_{j \in B_n} f_j(h_j)$، توجه لایه $l$ روی بردار شبه‌پرسش $w_l$ محاسبه می‌شود:
+\begin{equation}
+    \alpha_{i \to l} = \frac{\exp\left( w_l^T \operatorname{RMSNorm}(k_i) \right)}{\sum_{j=0}^{l-1} \exp\left( w_l^T \operatorname{RMSNorm}(k_j) \right)}, \quad h_l = \sum_{i=0}^{l-1} \alpha_{i \to l} v_i
+\end{equation}
+
+\paragraph*{متخصصان مکنون پایدار (\en{Stable LatentMoE}) و فعال‌ساز \en{SiTU-GLU}}
+تعداد متخصصان به ۸۹۶ متخصص افزایش یافته که ۱۶ متخصص در هر گام فعال می‌شوند. بردار ورودی ابتدا به فضای مکنون $\ell = 3584$ فشرده می‌شود ($W_\downarrow$) و پس از تجمیع خروجی متخصصان، پیش از فرافکنی بالا لایه \en{RMSNorm} اعمال می‌گردد:
+\begin{equation}
+    u = \sum_{i \in \mathcal{T}_k(x)} p_i E_i^{\text{routed}}(W_\downarrow x), \quad y = \sum_{j=1}^{N_s=2} E_j^{\text{shared}}(x) + W_\uparrow \operatorname{RMSNorm}(u)
+\end{equation}
+برای مهار فعال‌سازی‌های فرین، تابع \en{SiTU-GLU} با تحدید دوطرفه شاخه‌ها پیاده‌سازی شده است:
+\begin{equation}
+    \operatorname{SiTU-GLU}(x) = \left[ \beta_1 \tanh\left(\frac{W_g x}{\beta_1}\right) \odot \operatorname{Sigmoid}(W_g x) \right] \odot \left[ \beta_2 \tanh\left(\frac{W_u x}{\beta_2}\right) \right]
+\end{equation}
+با انتخاب $\beta_1 = 4$ و $\beta_2 = 25$، خروجی در بی‌نهایت محدود به کران قطعی است:
+\begin{equation}
+    \|\operatorname{SiTU-GLU}(x)\|_\infty \le \beta_1 \beta_2 = 100
+\end{equation}
+
+\paragraph*{تعادل بار کوانتایلی (\en{Quantile Balancing - QB})}
+تخصیص بهینه توکن‌ها با حل مسئله دوگان برقراری توازن بار انجام می‌گیرد. با کمینه‌سازی متناوب متغیرهای دوگان، مقدار انحراف بهینه متخصص $j$ به صورت تحلیلی به عنوان کوانتایل حاشیه‌ها حاصل می‌گردد:
+\begin{equation}
+    \beta_j^{(t+1)} \leftarrow \operatorname{quantile}_{1 - k/n}\left( s_{:, j} - \alpha^{(t)} \right), \quad b^{(t+1)} = -\beta^{(t+1)} - \operatorname{mean}(-\beta^{(t+1)})
+\end{equation}
+این مقدار با یک تخمین‌گر هیستوگرامی با ۱۰۰۰ بازه و با سربار ارتباطی زیر ۱٪ در سطح خوشه‌ها همگام می‌گردد.
+
+\paragraph*{موازی‌سازی کانتکست KDA (\en{KCP}) و چارچوب \en{MoonEP}}
+در موازی‌سازی بافت، ماتریس‌های گذار ضربی به همراه حالت تولیدشده محلی از رابطه بازگشتی زیر در رتبه‌ها ترکیب می‌شوند:
+\begin{equation}
+    S_{[i+1]}^t = \tilde{S}_{[i+1]}^t + M_{[i+1]}^{t \leftarrow 1} S_{[i]}^{T_i}, \quad M_{[i+1]}^{t \leftarrow 1} = \prod_{r \leftarrow 1}^t M_r
+\end{equation}
+چارچوب \en{MoonEP} اثبات می‌کند که با تخصیص حداکثر $E/R$ متخصص مازاد به ازای هر رتبه، توازن بار کامل پردازش توکن‌ها با ارتباطات بدون کپی (\en{Zero-Copy}) و بدون وقفه سنکرون تضمین می‌گردد.

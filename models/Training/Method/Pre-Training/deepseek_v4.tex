@@ -1,1 +1,45 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مبانی تئوری اطلاعات و تابع هدف پیش‌آموزش}
+فرایند پیش‌آموزش مدل‌های پایه در مقیاس‌های مدرن، بر بهینه‌سازی توزیع احتمالاتی روی دنباله‌ای از متغیرهای تصادفی گسسته $X = (x_1, x_2, \dots, x_T)$ استوار است. بر پایه قضیه شانون برای آنتروپی متقاطع و با فرض اینکه توزیع تجربی داده‌ها برابر با $P(X)$ و توزیع برآوردشده توسط پارامترهای شبکه برابر با $P_\theta(X)$ باشد، انحراف کل میان دو توزیع با استفاده از واگرایی کولبک-لایبلر (\en{KL-Divergence}) توصیف می‌شود:
+\begin{equation}
+    D_{\text{KL}}(P \parallel P_\theta) = \sum_{X \in \mathcal{X}} P(X) \log \frac{P(X)}{P_\theta(X)} = \mathbb{E}_{X \sim P}[\log P(X)] - \mathbb{E}_{X \sim P}[\log P_\theta(X)]
+\end{equation}
+از آنجا که عبارت اول بیانگر آنتروپی ذاتی داده‌ها ($H(P)$) و مقداری ثابت است، کمینه‌سازی واگرایی کولبک-لایبلر معادل با کمینه‌سازی آنتروپی متقاطع و حداکثرسازی لگاریتم درست‌نمایی (\en{Log-Likelihood}) خواهد بود. با اعمال قاعده زنجیره‌ای احتمال بر روی دنباله‌های زبانی خودرگرسیو، تابع هدف پیش‌آموزش حاصل می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{CE}}(\theta) = -\frac{1}{T} \sum_{t=1}^T \log P_\theta(x_t \mid x_1, \dots, x_{t-1})
+\end{equation}
+در مدل‌های مدرن نظیر \en{DeepSeek} و معماری‌های برآمده از آن، شاخص ارزیابی بیت بر بایت (\en{Bits-Per-Byte - BPB}) به عنوان مقیاسی مستقل از ساختار نشانه‌گذار تعریف می‌گردد:
+\begin{equation}
+    \text{BPB}(X) = \frac{\mathcal{L}_{\text{CE}}(\theta) \cdot T}{\ln(2) \cdot B(X)}
+\end{equation}
+که در آن $B(X)$ بیانگر تعداد کل بایت‌های خام \en{UTF-8} تشکیل‌دهنده دنباله $X$ است.
+
+\paragraph*{معماری توجه با متغیر مکنون چندگانه (\en{Multi-Head Latent Attention - MLA})}
+در پردازش کانتکست‌های فوق‌طولانی، بار حافظه‌ای کش کلید-مقدار (\en{KV-Cache}) به مهم‌ترین مانع توان عملیاتی تبدیل می‌شود. در مکانیزم توجه استاندارد، حجم ذخیره‌سازی به شکل خطی با طول توالی $T$ و بعد مدل $d$ رشد می‌کند. مکانیسم \en{MLA} با بهره‌گیری از فشرده‌سازی کم‌رتبه ماتریسی، این مشکل را حل می‌کند. بردار ورودی $x_t \in \mathbb{R}^d$ به یک بردار فشرده مکنون $c_t^{KV} \in \mathbb{R}^{d_c}$ که در آن $d_c \ll d_h \cdot n_{\text{head}}$ است تصویر می‌گردد:
+\begin{equation}
+    c_t^{KV} = W_{DKV} x_t, \quad W_{DKV} \in \mathbb{R}^{d_c \times d}
+\end{equation}
+سپس کلیدها و مقادیر محتوایی برای سر شماره $i$ ($i \in \{1, \dots, n_{\text{head}}\}$) از طریق ماتریس‌های فراافکنش بازسازی می‌شوند:
+\begin{equation}
+    k_{t, i}^C = W_{UK, i} c_t^{KV}, \quad v_{t, i}^C = W_{UV, i} c_t^{KV}, \quad W_{UK, i}, W_{UV, i} \in \mathbb{R}^{d_h \times d_c}
+\end{equation}
+برای ممانعت از اختلال اثر موقعیت مکانی در فشرده‌سازی، بردار مکانی کلید با استفاده از تعبیه دورانی (\en{RoPE}) \cite{su2024roformer} به صورت مستقل از بردار ورودی تولید و به بردار محتوایی الحاق می‌گردد:
+\begin{equation}
+    k_t^R = \operatorname{RoPE}(W_{KR} x_t), \quad k_{t, i} = \begin{bmatrix} k_{t, i}^C \\ k_t^R \end{bmatrix}
+\end{equation}
+این ساختار اجازه می‌دهد در مرحله استنتاج تنها $c_t^{KV}$ و بردار مکانی مشترک در حافظه ذخیره شوند که موجب صرفه‌جویی بیش از ۷۵ درصدی در حافظه نهان می‌شود.
+
+\paragraph*{مکانیزم توجه تنک محتوامحور (\en{DeepSeek Sparse Attention - DSA})}
+برای دستیابی به مقیاس کانتکست‌های یک میلیون توکنی، پیچیدگی زمانی $\mathcal{O}(T^2)$ توجه کامل با سازوکار تنک محتوامحور \en{DSA} جایگزین می‌گردد. در این ساختار، شاخص‌گذار پرسرعت (\en{Lightning Indexer}) ابتدا امتیاز تطابق توکن پرسش $q_t$ با توکن‌های گذشته را در فضایی کم‌بعد برآورد می‌کند:
+\begin{equation}
+    s_{t, j} = \operatorname{ReLU}\left( q_t^{\text{idx}} \cdot (k_j^{\text{idx}})^T \right), \quad j \le t
+\end{equation}
+سپس $k$ توکن دارای بالاترین امتیاز گزینش شده و توجه استاندارد صرفاً بر روی این زیرمجموعه برگزیده محاسبه می‌شود:
+\begin{equation}
+    \mathcal{I}_t = \operatorname{argTopK}_{j \le t} (s_{t, j}), \quad |\mathcal{I}_t| = k \ll T
+\end{equation}
+\begin{equation}
+    \operatorname{Attn}(q_t, K, V) = \sum_{j \in \mathcal{I}_t} \frac{\exp\left( \frac{q_t k_j^T}{\sqrt{d_k}} \right)}{\sum_{m \in \mathcal{I}_t} \exp\left( \frac{q_t k_m^T}{\sqrt{d_k}} \right)} v_j
+\end{equation}
+این تبدیل هوشمندانه، پیچیدگی محاسباتی توجه را به صورت محلی خطی نموده و امکان پردازش بافت‌های فوق‌طولانی را با حفظ پیوستگی معنایی فراهم می‌آورد.
