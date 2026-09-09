@@ -1400,6 +1400,24 @@ Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde de~Oliveira
 \newblock {Evaluating Large Language Models Trained on Code}.
 \newblock {\em arXiv preprint arXiv:2107.03374}, 2021.
 
+\bibitem{olmo3}
+Allyson Ettinger, Amanda Bertsch, Bailey Kuehl, David Graham, David Heineman,
+  Dirk Groeneveld, Faeze Brahman, Finbarr Timbers, Hamish Ivison, Jacob
+  Morrison, et~al.
+\newblock Olmo 3: Fully open language and thinking models.
+\newblock {\em arXiv preprint}, 2025.
+
+\bibitem{liu2025understanding}
+Z.~Liu, C.~Chen, W.~Li, P.~Qi, et~al.
+\newblock Understanding r1-zero-like training: A critical perspective.
+\newblock In {\em Conference on Language Modeling (COLM)}, 2025.
+
+\bibitem{piche2025pipelinerl}
+A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.
+\newblock Pipelinerl: Faster on-policy reinforcement learning for long sequence
+  generation.
+\newblock {\em arXiv preprint arXiv:2509.19128}, 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -1893,12 +1911,6 @@ Z.~Liu, C.~Chen, W.~Li, P.~Qi, T.~Pang, C.~Du, W.~S. Lee, and M.~Lin.
 \newblock Understanding r1-zero-like training: A critical perspective.
 \newblock {\em Conference on Language Modeling (COLM)}, 2025.
 
-\bibitem{piche2025pipelinerl}
-A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.
-\newblock Pipelinerl: Faster on-policy reinforcement learning for long sequence
-  generation.
-\newblock {\em arXiv preprint arXiv:2509.19128}, 2025.
-
 \bibitem{wang2016sample}
 Ziyu Wang, Victor Bapst, Nicolas Heess, Volodymyr Mnih, Remi Munos, Koray
   Kavukcuoglu, and Nando de~Freitas.
@@ -1999,5 +2011,15 @@ Guilherme Penedo, Anton Lozhkov, Hynek Kydl{\'i}{\v{c}}ek, Loubna~Ben Allal,
 {Mistral AI}.
 \newblock Mistral large 2.
 \newblock \url{https://mistral.ai/news/mistral-large-2407}, 2024.
+
+\bibitem{nathawani2025nemotron}
+D.~Nathawani, I.~Gitman, S.~Majumdar, et~al.
+\newblock Nemotron-post-training-dataset-v1.
+\newblock {\em Hugging Face Dataset}, 2025.
+
+\bibitem{berry2025decon}
+R.~Berry, M.~Jordan, and L.~Soldaini.
+\newblock Decon: Data decontamination tools for language models.
+\newblock \url{https://github.com/allenai/decon}, 2025.
 
 \end{thebibliography}

@@ -1,1 +1,249 @@
-\item \textbf asd
+\item \model{OLMo 3}
+
+\paragraph*{چارچوب کلی پس‌آموزش خانواده \model{OLMo 3}}
+مدل‌های خانواده \model{OLMo 3} \cite{olmo3} بر خلاف رویکردهای متداول که بر تنظیم ترجیحات مستقیم پس از پیش‌آموزش یا صرفاً آموزش نظارت‌شده تکیه می‌کنند، از یک خط‌لوله سه مرحله‌ای منسجم شامل **تنظیم دقیق نظارت‌شده (\en{SFT})**، **بهینه‌سازی ترجیحات با یادگیری اختلاف (\en{Delta DPO})** و **یادگیری تقویتی با پاداش‌های اعتبارسنجی‌پذیر (\en{OlmoRL / RLVR})** بهره می‌برند. دستاورد برجسته این مدل‌ها در انتشار تمام‌عیار «جریان مدل» (\en{Model Flow}) شامل چک‌پوینت‌ها، دادگان و زیرساخت‌های مهندسی بدون هیچ‌گونه پنهان‌کاری است.
+
+% =========================================================================
+% دیاگرام تیکز تمیز، خوانا و با فواصل کافی
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.4cm and 1.8cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1.1pt, drop shadow},
+    model_node/.style={base, fill=blue!12, draw=blue!75!black, minimum width=4.4cm, minimum height=1.1cm, font=\bfseries},
+    stage_think/.style={base, fill=teal!10, draw=teal!75!black, minimum width=3.8cm, minimum height=1.8cm},
+    stage_inst/.style={base, fill=orange!10, draw=orange!75!black, minimum width=3.8cm, minimum height=1.8cm},
+    stage_rlzero/.style={base, fill=purple!10, draw=purple!75!black, minimum width=3.8cm, minimum height=1.8cm},
+    final_node/.style={base, fill=green!15, draw=green!65!black, minimum width=4.0cm, minimum height=1.1cm, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.15]}, line width=1.1pt, draw=gray!75!black},
+    darrow/.style={-{Stealth[scale=1.15]}, line width=1.1pt, draw=blue!70!black, dashed}
+]
+
+    % Top: Base Model
+    \node[model_node] (base) {مدل پایه پیش‌آموزش‌دیده\\ \en{OLMo 3 Base (7B / 32B)}};
+
+    % Level 1: SFT
+    \node[stage_think, below left=1.8cm and 1.6cm of base] (sft_think) {
+        \textbf{تنظیم نظارت‌شده استدلالی}\\ \en{Dolci Think SFT}\\[4pt]
+        \scriptsize $\bullet$ توالی تفکر طویل تا \en{32K}\\
+        \scriptsize $\bullet$ تقطیر استدلال از \en{QwQ / R1}
+    };
+
+    \node[stage_rlzero, below right=1.8cm and 1.6cm of base] (rlzero) {
+        \textbf{یادگیری مستقیم از صفر}\\ \en{Dolci RL-Zero}\\[4pt]
+        \scriptsize $\bullet$ آموزش مستقیم بر مدل پایه\\
+        \scriptsize $\bullet$ قالب پرامپت ساده (\en{Zero-Shot})
+    };
+
+    % Level 2: DPO
+    \node[stage_think, below=1.4cm of sft_think] (dpo_think) {
+        \textbf{تنظیم ترجیحات با اختلاف}\\ \en{Delta Learning DPO}\\[4pt]
+        \scriptsize $\bullet$ جفت‌های کنتراستی نامتقارن\\
+        \scriptsize $\bullet$ نرمال‌سازی هندسی طول
+    };
+
+    \node[stage_inst, right=1.3cm of dpo_think] (sft_inst) {
+        \textbf{تنظیم نظارت‌شده عاملی}\\ \en{Dolci Instruct SFT}\\[4pt]
+        \scriptsize $\bullet$ آغاز از چک‌پوینت \en{Think SFT}\\
+        \scriptsize $\bullet$ فراخوانی ابزار و کارساز \en{MCP}
+    };
+
+    % Level 3: RL
+    \node[stage_think, below=1.4cm of dpo_think] (rl_think) {
+        \textbf{یادگیری تقویتی استدلالی}\\ \en{OlmoRL (RLVR)}\\[4pt]
+        \scriptsize $\bullet$ الگوریتم \en{GRPO} بدون انحراف معیار\\
+        \scriptsize $\bullet$ استنتاج ناهمگام و به‌روزرسانی برخط
+    };
+
+    \node[stage_inst, below=1.4cm of sft_inst] (dpo_inst) {
+        \textbf{تنظیم ترجیحات فشرده}\\ \en{Instruct DPO}\\[4pt]
+        \scriptsize $\bullet$ اعمال قید صریح کنترل طول\\
+        \scriptsize $\bullet$ مهار پرگویی با داوری \en{GPT}
+    };
+
+    \node[stage_inst, below=1.4cm of dpo_inst] (rl_inst) {
+        \textbf{یادگیری تقویتی عاملی}\\ \en{Instruct RL}\\[4pt]
+        \scriptsize $\bullet$ سقف پاسخ فشرده (\en{8K})\\
+        \scriptsize $\bullet$ بهینه‌سازی هم‌زمان ابزار و چت
+    };
+
+    % Final Deliverables
+    \node[final_node, below=1.3cm of rl_think] (final_think) {
+        \model{OLMo 3 Think}\\
+        \normalsize (\en{Flagship 32B / 7B})
+    };
+
+    \node[final_node, below=1.3cm of rl_inst] (final_inst) {
+        \model{OLMo 3 Instruct}\\
+        \normalsize (\en{Fast Chat \& Tool Use})
+    };
+
+    \node[final_node, below=6.8cm of rlzero] (final_zero) {
+        \model{OLMo 3 RL-Zero}\\
+        \normalsize (\en{Open Pre-train RL Benchmark})
+    };
+
+    % Connections
+    \draw[arrow] (base) -| (sft_think.north);
+    \draw[arrow] (base) -| (rlzero.north);
+
+    \draw[arrow] (sft_think) -- (dpo_think);
+    \draw[arrow] (dpo_think) -- (rl_think);
+    \draw[arrow] (rl_think) -- (final_think);
+
+    % Bridge from Think SFT to Instruct SFT
+    \draw[darrow] (sft_think.south east) -- node[above, sloped, font=\scriptsize, text=blue!80!black] {مقداردهی اولیه بهینه} (sft_inst.north west);
+
+    \draw[arrow] (sft_inst) -- (dpo_inst);
+    \draw[arrow] (dpo_inst) -- (rl_inst);
+    \draw[arrow] (rl_inst) -- (final_inst);
+
+    \draw[arrow] (rlzero) -- (final_zero);
+
+\end{tikzpicture}%
+}
+\caption{جریان کاری چندشاخه و یکپارچه پس‌آموزش در خانواده \model{OLMo 3}.}
+\label{fig:olmo3_post_training_pipeline}
+\end{figure}
+
+\paragraph*{فاز اول: تنظیم دقیق نظارت‌شده استدلالی (\en{Dolci Think SFT})}
+در این فاز، هدف انتقال مدل پایه به یک سیستم با قابلیت تعقل زنجیره‌ای درون تگ‌های شناختی صریح (\en{\textless think\textgreater...\textless/think\textgreater}) است. 
+
+\paragraph*{مبانی ریاضی و دیفرانسیلی \en{SFT}:}
+فرض کنید داده ورودی با $x = (x_1, \dots, x_m)$ و دنباله خروجی هدف با $y = (y_1, \dots, y_n)$ نشان داده شود. تابع احتمال شرطی خودبازگشتی مدل با پارامترهای $\theta$ عبارت است از:
+\begin{equation}
+    P_\theta(y \mid x) = \prod_{t=1}^n P_\theta(y_t \mid x, y_{<t})
+\end{equation}
+بهینه‌سازی بر پایه برآورد بیشینه‌ درست‌نمایی (\en{MLE}) انجام می‌شود که معادل با کمینه‌سازی واگرایی کولبک-لایبلر تجربی میان توزیع داده‌ها $P_{\text{data}}$ و مدل $P_\theta$ است:
+\begin{equation}
+    \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|\mathcal{D}|} \sum_{(x, y) \in \mathcal{D}} \sum_{t=1}^n \log P_\theta(y_t \mid x, y_{<t})
+\end{equation}
+احتمال هر توکن از طریق نگاشت هموار لاجیت‌ها ($z_t \in \mathbb{R}^{|\mathcal{V}|}$) محاسبه می‌شود:
+\begin{equation}
+    P_\theta(y_t = k \mid x, y_{<t}) = \frac{\exp(z_{t,k})}{\sum_{j \in \mathcal{V}} \exp(z_{t,j})}
+\end{equation}
+مشتق جزئی تحلیلی زیان نسبت به مولفه لاجیت $z_{t,k}$ در جبر خطی برابر است با:
+\begin{equation}
+    \frac{\partial \mathcal{L}_{\text{SFT}}}{\partial z_{t,k}} = P_\theta(y_t = k \mid x, y_{<t}) - \delta_{k, y_t}
+\end{equation}
+که در آن $\delta$ نشان‌دهنده دلتای کرونکر است. گرادیان دقیقاً به اندازه اختلاف احتمال برآوردشده از واقعیت جاری در داده پس‌انتشار می‌یابد.
+
+\paragraph*{انتقال از \en{Think SFT} به \en{Instruct SFT}:}
+یکی از یافته‌های مهم مقاله \model{OLMo 3} این است که آموزش مستقیم مدل محاوره‌ای (\en{Instruct}) روی مدل پایه، به توانایی‌های استدلال ریاضی آسیب جدی وارد می‌کند. با مقداردهی اولیه \en{Instruct SFT} از چک‌پوینت \en{Think SFT}، عملکرد میانگین بنچمارک‌ها از ۴۴.۵ به ۴۷.۸ واحد جهش پیدا کرد بدون اینکه میانگین طول پاسخ در سناریوهای چت نامتعارف گردد \cite{olmo3}.
+
+\paragraph*{فاز دوم: بهینه‌سازی ترجیحات با فرضیه یادگیری اختلاف (\en{Delta DPO})}
+بر خلاف برداشت مرسوم که تنظیم ترجیحات را محدود به سبک نوشتاری و هم‌ترازی انسانی می‌داند، در \model{OLMo 3} این مرحله به عنوان موتوری برای گسترش مرزهای حل مسئله بازتعریف شده است.
+
+\paragraph*{اشتقاق فرم بسته و تابع هدف بهینه‌سازی مستقیم ترجیحات (\en{DPO}):}
+مدل‌سازی احتمالاتی ترجیحات بر اساس فرمول‌بندی ترجیحات بردلی-تری (\en{Bradley-Terry Model}) بیان می‌شود \cite{rafailov2024direct}:
+\begin{equation}
+    P^*(y_c \succ y_r \mid x) = \sigma(r^*(x, y_c) - r^*(x, y_r)) = \frac{1}{1 + \exp\left( -(r^*(x, y_c) - r^*(x, y_r)) \right)}
+\end{equation}
+که در آن $y_c$ پاسخ برگزیده و $y_r$ پاسخ مردود است. در فرآیند استاندارد بهینه‌سازی، تابع هدف بیشینه‌سازی پاداش با جریمه واگرایی کولبک-لایبلر نسبت به مدل مرجع $\pi_{\text{ref}}$ تعریف می‌گردد:
+\begin{equation}
+    \max_{\pi_\theta} \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta} \left[ r(x, y) \right] - \beta \mathbb{D}_{\text{KL}}\left( \pi_\theta(y \mid x) \parallel \pi_{\text{ref}}(y \mid x) \right)
+\end{equation}
+با استفاده از روش ضرایب لاگرانژ و حساب تغییرات، سیاست بهینه تحلیلی $\pi^*$ به صورت تحلیلی به دست می‌آید:
+\begin{equation}
+    \pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\left( \frac{1}{\beta} r(x, y) \right)
+\end{equation}
+که در آن $Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp\left(\frac{1}{\beta} r(x,y)\right)$ تابع تقسیم آماری است. با اعمال لگاریتم طبیعی بر دو طرف و مرتب‌سازی بر حسب پاداش:
+\begin{equation}
+    r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)
+\end{equation}
+با جایگذاری این عبارت در فرمولاسیون ترجیحات بردلی-تری، جمله مزاحم $\beta \log Z(x)$ به دلیل تفاضل پاداش‌ها به شکل ریاضی حذف می‌شود:
+\begin{equation}
+    r^*(x, y_c) - r^*(x, y_r) = \beta \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} - \beta \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)}
+\end{equation}
+
+\paragraph*{تعدیل نرمال‌سازی طول در استدلال‌های طویل (\en{Length-Normalized DPO}):}
+به دلیل طول متغیر زنجیره تفکر، مجموع لگاریتم احتمالات بدون مقیاس‌بندی دچار سوگیری ذاتی علیه پاسخ‌های طویل می‌شود. در \model{OLMo 3}، از تابع هدف نرمال‌شده بر مبنای طول دنباله استفاده شده است:
+\begin{equation}
+    \mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x, y_c, y_r) \sim \mathcal{D}} \left[ \log \sigma \left( \frac{\beta}{|y_c|} \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} - \frac{\beta}{|y_r|} \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)} \right) \right]
+\end{equation}
+
+\paragraph*{حل معضل اشباع تقلید با یادگیری اختلاف (\en{Delta Learning}):}
+در فاز \en{Think DPO}، بازآموزی نظارتی مستقیم روی نمونه‌های تولیدی مدل بزرگ‌تر (\en{Qwen3-32B}) به دلیل اشباع یادگیری تقلیدی (\en{Imitation Saturation})، موجب افت کارایی مدل پایه گردید (کاهش نمره از ۷۰.۳ به ۶۴.۵). برای حل این چالش، با تکیه بر فرضیه یادگیری اختلاف \cite{geng2025delta}، داده‌های جفتی کنتراستی به صورت نامتقارن تولید شدند:
+\begin{itemize}
+    \item پاسخ‌های برگزیده ($y_c$) توسط مدل قدرتمند \en{Qwen3-32B (Thinking)}.
+    \item پاسخ‌های مردود ($y_r$) توسط مدل ضعیف \en{Qwen3-0.6B (Thinking)}.
+\end{itemize}
+این تدبیر سبب شد که سیگنال گرادیان ناشی از اختلاف کیفی عمیق میان دو خروجی، نه‌تنها زیان فاز قبل را جبران کند، بلکه میانگین عملکرد را به ۷۲.۹ ارتقا داده و مرز استدلال در معیار \en{AIME} را به شکل چشمگیری گسترش دهد \cite{olmo3}.
+
+\begin{table}[htbp]
+\centering
+\caption{پارامترهای بهینه‌سازی فاز \en{DPO} در خانواده \model{OLMo 3}}
+\label{tab:olmo3_dpo_hyperparameters}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+\textbf{ابرپارامتر (\en{Hyperparameter})} & \textbf{OLMo 3 Think (7B)} & \textbf{OLMo 3 Think (32B)} & \textbf{OLMo 3 Instruct (7B)} \\
+\midrule
+تعداد زوج‌های ترجیحی (\en{Pairs}) & \lr{150,000} & \lr{200,000} & \lr{260,000} \\
+تعداد دورها (\en{Epochs}) & \lr{1} & \lr{1} & \lr{1} \\
+ضریب تنظیم واگرایی ($\beta$) & \lr{5.0} & \lr{5.0} & \lr{5.0} \\
+نرخ یادگیری (\en{Peak LR}) & \lr{$8.0 \times 10^{-8}$} & \lr{$7.0 \times 10^{-8}$} & \lr{$1.0 \times 10^{-6}$} \\
+برنامه نرخ یادگیری (\en{Schedule}) & کاهش خطی (\en{Linear}) & کاهش خطی (\en{Linear}) & کاهش خطی (\en{Linear}) \\
+اندازه دسته کل (\en{Batch Size}) & \lr{128} & \lr{128} & \lr{128} \\
+سقف طول دنباله (\en{Max Length}) & \lr{16K} & \lr{8K} & \lr{16K} \\
+تعداد شتاب‌دهنده‌ها (\en{GPUs}) & \lr{32x H100} & \lr{64-128x H100} & \lr{16x H100} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{فاز سوم: یادگیری تقویتی نوین با زیرساخت \en{OlmoRL}}
+الگوریتم یادگیری تقویتی \en{OlmoRL} بر مبنای الگوریتم بهینه‌سازی خط‌مشی نسبی گروهی (\en{GRPO}) \cite{shao2024deepseekmath} و نوآوری‌های \en{DAPO} \cite{yu2025dapo} و \cite{liu2025understanding} توسعه یافته است.
+
+\paragraph*{اشتقاق ریاضی و دیفرانسیلی تابع هدف \en{OlmoRL}:}
+بر خلاف الگوریتم‌های سنتی نظیر \en{PPO} که به شبکه نقاد جداگانه وابسته هستند، در \en{GRPO} به ازای هر پرامپت ورودی $x \sim \mathcal{D}$، دسته‌ای از پاسخ‌ها به تعداد $G$ نمونه‌برداری می‌شوند:
+\begin{equation}
+    \{y_1, y_2, \dots, y_G\} \sim \pi_{\theta_{\text{old}}}(\cdot \mid x)
+\end{equation}
+پاداش هر نمونه توسط ارزیاب‌های دامنه تعیین می‌گردد: $r_i = r(x, y_i)$.
+
+در \en{GRPO} سنتی، مزیت بر اساس انحراف معیار نمونه نرمال می‌شد که این امر در مسائل بسیار سخت یا بسیار آسان ($\sigma_G \to 0$) به بروز خطای تقسیم بر صفر و سوگیری دشواری منجر می‌گردید. در \en{OlmoRL}، انحراف معیار حذف شده و مزیت به صورت تفاضل خالص از میانگین گروه تعریف می‌شود:
+\begin{equation}
+    A_{i,t} = r(x, y_i) - \frac{1}{G} \sum_{j=1}^G r(x, y_j)
+\end{equation}
+
+تابع هدف بهینه‌سازی خط‌مشی در \en{OlmoRL} به صورت دقیق و تحلیلی در معادله (\ref{eq:olmorl_loss}) تدوین شده است:
+\begin{equation}
+\label{eq:olmorl_loss}
+\begin{aligned}
+    \mathcal{J}(\theta) = \frac{1}{\sum_{i=1}^G |y_i|} \sum_{i=1}^G \sum_{t=1}^{|y_i|} \min \Bigg( & \frac{\pi_\theta(y_{i,t} \mid x, y_{i,<t})}{\pi_{\text{vLLM}}(y_{i,t} \mid x, y_{i,<t})}, \, \rho \Bigg) \\
+    & \cdot \min \Big( r_{i,t} A_{i,t}, \, \text{clip}(r_{i,t}, 1 - \varepsilon_{\text{low}}, 1 + \varepsilon_{\text{high}}) A_{i,t} \Big)
+\end{aligned}
+\end{equation}
+که در آن:
+\begin{itemize}
+    \item نسبت احتمالاتی به‌صورت $r_{i,t} = \frac{\pi_\theta(y_{i,t} \mid x, y_{i,<t})}{\pi_{\theta_{\text{old}}}(y_{i,t} \mid x, y_{i,<t})}$ است.
+    \item برش نامتقارن (\en{Clip-Higher}): برای ایجاد فضای بیشتر جهت پذیرش به‌روزرسانی‌های مطلوب، $\varepsilon_{\text{low}} = 0.2$ و $\varepsilon_{\text{high}} = 0.272$ تنظیم شده است \cite{yu2025dapo}.
+    \item نمونه‌برداری اهمیتی کوتاه‌شده (\en{TIS}): برای مهار عدم تطابق مقادیر لاجیت میان موتور استنتاج (\en{vLLM}) و یادگیرنده، ضریب نسبت با آستانه $\rho = 2.0$ مهار می‌شود.
+    \item نرمال‌سازی در سطح توکن (\en{Token-Level}): مجموع جریمه‌ها بر کل توکن‌های بچ ($\sum_{i=1}^G |y_i|$) تقسیم می‌شود تا اثر طول بر گرادیان خنثی گردد.
+\end{itemize}
+
+\paragraph*{معماری ارزیاب‌های پاداش صوری (\en{Verifiers}):}
+سیستم‌های پاداش در \en{OlmoRL} چهار ستون اصلی را در بر می‌گیرند:
+\begin{enumerate}
+    \item \textbf{ریاضیات:} بازبین برابری نمادین مبتنی بر \en{SymPy} برای بررسی هم‌ارزی جبری پاسخ‌ها به صورت قطعی ($r \in \{0, 1\}$).
+    \item \textbf{کدنویسی:} اجرای ایمن و بلادرنگ آزمون‌های واحد درون محیط‌های ابری سرورلس \en{AWS Lambda} با صدها اجرای هم‌زمان.
+    \item \textbf{پیروی از دستورات:} ارزیابی خودکار توابع تحلیلی قیود در مجموعه \en{IF-RLVR}.
+    \item \textbf{مکالمه عمومی:} داوری بدون نیاز به پاسخ مرجع از طریق مدل \en{Qwen3-32B} جهت نمره‌دهی کیفیت بین صفر و یک.
+\end{enumerate}
+
+\paragraph*{نوآوری‌های زیرساخت سیستم در \en{OlmoRL}:}
+تولید پاسخ‌های استدلالی طویل تا سقف ۳۲ هزار توکن، بار پردازشی بخش استنتاج را به شدت سنگین می‌سازد (۸۵٪ زمان هر گام). برای غلبه بر این گلوگاه، نوآوری‌های زیر معرفی گردید:
+\begin{itemize}
+    \item \textbf{دسته‌بندی پیوسته (\en{Continuous Batching}):} با توجه به میانگین طول دنباله ۱۴,۶۲۸ توکن و حداکثر طول ۳۲,۷۶۸، استفاده از دسته‌بندی استاتیک موجب اتلاف بیش از ۵۴٪ توان پردازشی به علت توقف نمونه‌های کوتاه‌تر می‌شد. دسته‌بندی پیوسته با جایگزینی بلافاصله نمونه‌های تمام‌شده در کارت گرافیک، این اتلاف را به صفر رساند.
+    \item \textbf{نمونه‌برداری فعال (\en{Active Sampling}):} فیلتر کردن هوشمند نمونه‌هایی که در یک گروه پاداش یکسان دریافت کرده و گرادیان صفر تولید می‌کنند ($A_{i,t} = 0$)، و پر کردن مستمر صف با نمونه‌های دارای واریانس پاداش مثبت.
+    \item \textbf{به‌روزرسانی در حال پرواز (\en{In-flight Weight Updates}):} ارسال مستقیم وزن‌های جدید مدل یادگیرنده به موتور استنتاج \en{vLLM} بدون نیاز به توقف نمونه‌برداری یا پاک‌سازی حافظه \en{KV Cache} \cite{piche2025pipelinerl} که موجب افزایش توان گذردهی آموزش تا ۴ برابر گردید.
+\end{itemize}
+
+\paragraph*{مسیر یادگیری تقویتی از صفر (\en{OLMo 3 RL-Zero}) و ارزیابی پاداش ساختگی}
+در مدل‌های سری \en{RL-Zero}، فرآیند یادگیری تقویتی مستقیماً بر روی مدل پایه \en{OLMo 3 Base} و با استفاده از قالب‌های پرامپت ساده (فاقد تگ‌های پیچیده مکالمه) پیاده‌سازی شده است. 
+
+به منظور رد فرضیه حفظ‌کردن داده‌ها (\en{Data Memorization}) در حین پیش‌آموزش، پژوهشگران یک آزمایش کنترل منفی با **پاداش ساختگی تصادفی (\en{Spurious Random Rewards})** اجرا کردند \cite{shao2025spurious}. در صورتی که داده‌های ارزیابی در فاز پیش‌آموزش نشت کرده باشند، هدایت مدل با پاداش‌های تصادفی به دلیل برانگیختن محفوظات منجر به ارتقای نمره آزمون می‌شود. آزمایش‌های منفی \model{OLMo 3} نشان داد که مدل با پاداش تصادفی هیچ‌گونه بهبودی در معیارهای \en{GSM8K}، \en{MATH} و \en{IFEval} کسب نکرده و عملکرد آن افت می‌کند؛ امری که سندی قطعی بر پاک بودن داده‌های آموزشی از آلودگی است \cite{olmo3}.

@@ -2,49 +2,49 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 12222 items from 5000.
+Reallocated field_info (elt_size=8) to 12268 items from 5000.
 Database file #1: references.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
 Warning--I didn't find a database entry for "nemotron_nano2_2025"
-You've used 330 entries,
+You've used 334 entries,
             1791 wiz_defined-function locations,
-            1712 strings with 65194 characters,
-and the built_in function-call counts, 72813 in all, are:
-= -- 4936
-> -- 6013
+            1724 strings with 65752 characters,
+and the built_in function-call counts, 73625 in all, are:
+= -- 4984
+> -- 6090
 < -- 45
-+ -- 2137
-- -- 1807
-* -- 4625
-:= -- 12914
-add.period$ -- 985
-call.type$ -- 330
-change.case$ -- 329
++ -- 2164
+- -- 1830
+* -- 4675
+:= -- 13063
+add.period$ -- 997
+call.type$ -- 334
+change.case$ -- 333
 chr.to.int$ -- 0
-cite$ -- 330
-duplicate$ -- 3125
-empty$ -- 6030
-format.name$ -- 1807
-if$ -- 15525
+cite$ -- 334
+duplicate$ -- 3158
+empty$ -- 6101
+format.name$ -- 1830
+if$ -- 15697
 int.to.chr$ -- 0
-int.to.str$ -- 330
-missing$ -- 293
-newline$ -- 1648
-num.names$ -- 330
-pop$ -- 1286
+int.to.str$ -- 334
+missing$ -- 296
+newline$ -- 1668
+num.names$ -- 334
+pop$ -- 1305
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 1545
+skip$ -- 1557
 stack$ -- 0
 substring$ -- 1511
-swap$ -- 755
+swap$ -- 760
 text.length$ -- 45
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 0
-while$ -- 448
-width$ -- 333
-write$ -- 3350
+while$ -- 452
+width$ -- 337
+write$ -- 3390
 (There was 1 warning)
