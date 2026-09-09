@@ -1,1 +1,310 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{مقدمه و پارادایم پس‌آموزش (\en{Post-Training Paradigm})}
+مدل \model{MobileLLM-Pro} \cite{huber2025mobilellmpro} یک مدل زبانی بنیادی در مقیاس ۱ میلیارد پارامتر ($1.08\text{B}$) است که به طور خاص برای استقرار و اجرای بلادرنگ بر روی دستگاه‌های با منابع محدود محاسباتی نظیر تلفن‌های همراه و گجت‌های پوشیدنی بهینه‌سازی شده است. در مدل‌های کوچک‌مقیاس، مرحله پس‌آموزش (\en{Post-Training}) یا تنظیم دقیق دستورالعمل‌محور (\en{Instruction Fine-Tuning - IFT}) چالش‌های منحصر‌به‌فردی به همراه دارد؛ زیرا گنجایش فرضیاتی مدل (\en{Hypothesis Space}) در مقایسه با مدل‌های عظیم محدودتر بوده و تداخل گرادیان‌ها یا عدم تعادل در توزیع داده‌ها به سرعت به پدیده فراموشی فاجعه‌بار (\en{Catastrophic Forgetting}) و افت قابلیت‌های شناختی منجر می‌گردد.
+
+مدل پایه‌ای که وارد مرحله پس‌آموزش می‌شود (\en{MobileLLM-Pro-base})، واجد مشخصات ساختاری زیر است:
+\begin{itemize}
+    \item \textbf{پیکربندی ترانسفورمر:} ۳۰ لایه، بعد پنهان $d_{\text{model}} = 1280$، لایه پیش‌خوران (\en{FFN}) با ضریب گسترش $4.8\times$ (بعد پنهان ۶۱۴۴)، ۲۰ سر توجه پرسمان و ۴ سر کلید-مقدار بر مبنای سازوکار توجه تجمیعی (\en{GQA}) \cite{ainslie2023gqa}.
+    \item \textbf{اشتراک‌گذاری تعبیه‌سازی‌ها (\en{Tied Embeddings}):} با هدف صرفه‌جویی در ۲۶۰ میلیون پارامتر، ماتریس تعبیه ورودی و سر پیش‌بینی خروجی با دایره واژگان کامل ۲۰۲,۰۴۸ توکنی به اشتراک گذاشته شده است \cite{press2017output,liu2024mobilellm}.
+    \item \textbf{سازوکار پنجره زمینه طولانی (\en{128k Long-Context}):} پشتیبانی از پنجره ۱۲۸,۰۰۰ توکنی با مکانیزم توجه متناوب محلی-سراسری (\en{Local-Global Attention}) با نسبت ۳ به ۱، که در آن لایه‌های محلی دارای پنجره لغزان ۵۱۲ توکنی بوده و لایه‌های ابتدا (۰) و انتها (۲۹) سراسری هستند \cite{beltagy2020longformer}.
+\end{itemize}
+
+در فاز پس‌آموزش، تابع زیان از تقطیر نرم توزیع لاجیت‌های مدل معلم (\en{Forward KL Distillation}) به سمت کمینه‌سازی انتروپی متقاطع تفکیکی بر روی توکن‌های پاسخ و در ادامه بهینه‌سازی مستقیم ترجیحات (\en{DPO}) با حفظ کامل پنجره ۱۲۸ هزار توکنی تغییر می‌یابد.
+
+% =========================================================================
+% دیاگرام جامع فرآیند سه‌مرحله‌ای پس‌آموزش
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.4cm and 1.2cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1.1pt, drop shadow},
+    base_model/.style={base, fill=blue!15, draw=blue!75!black, minimum width=6.5cm, minimum height=1.2cm, font=\bfseries},
+    stage1_box/.style={base, fill=teal!12, draw=teal!75!black, minimum width=15cm, minimum height=2.4cm},
+    stage2_box/.style={base, fill=orange!12, draw=orange!75!black, minimum width=15cm, minimum height=2.6cm},
+    stage3_box/.style={base, fill=purple!12, draw=purple!75!black, minimum width=15cm, minimum height=2.6cm},
+    deploy_box/.style={base, fill=cyan!12, draw=cyan!75!black, minimum width=6.8cm, minimum height=1.6cm},
+    final_model/.style={base, fill=green!18, draw=green!60!black, minimum width=6.8cm, minimum height=1.6cm, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.15]}, line width=1.2pt, draw=gray!80!black},
+    dash_arrow/.style={-{Stealth[scale=1.15]}, dashed, line width=1.1pt, draw=cyan!70!black}
+]
+
+    % Base Model Node
+    \node[base_model] (base) {مدل پایه پیش‌آموزش‌دیده\\ \en{MobileLLM-Pro-base (1.08B Parameters, 128k Context)}};
+
+    % Phase 1 Node
+    \node[stage1_box, below=1.2cm of base] (phase1) {
+        \textbf{\large فاز اول: تنظیم دقیق تنوع‌محور دستورالعمل‌ها (\en{Diversity-First SFT Stage})}\\[4pt]
+        \small مجموعه‌داده غنی ۷.۶۴ میلیون نمونه‌ای از ۷ حوزه (\en{Flan, Nemotron Math, Tulu 3, Code, Science, Chat, Safety})\\[2pt]
+        \scriptsize $\bullet$ تکیه بر توزیع تجربی داده‌ها بدون بیش‌نمونه‌برداری مصنوعی \quad
+        $\bullet$ جلوگیری از انحراف و اشباع نامتقارن گرادیان‌ها در مقیاس کوچک \quad
+        $\bullet$ برقراری شالوده ادراکی پایدار
+    };
+
+    % Phase 2 Node
+    \node[stage2_box, below=1.2cm of phase1] (phase2) {
+        \textbf{\large فاز دوم: تنظیم دقیق ادامه‌دار بر مبنای اعتبارسنجی حذفی (\en{Leave-One-Out Continued Tuning})}\\[4pt]
+        \small تحلیل حساسیت نوبتی (\en{LOO Ablation}) بر روی ابعاد هفت‌گانه عملکردی\\[2pt]
+        \scriptsize $\bullet$ سنجش ابعاد: فراخوانی ابزار، پیروی از دستورات، دانش، بازنویسی، خلاصه‌سازی، استدلال منطقی و ریاضیات\\
+        \scriptsize $\bullet$ شناسایی اثر بحرانی \en{Tulu 3} و \en{Nemotron Science} در مهار پسرفت‌های رفتاری \quad
+        $\bullet$ بازتوزین هوشمند و پر کردن شکاف‌های مهارتی
+    };
+
+    % Phase 3 Node
+    \node[stage3_box, below=1.2cm of phase2] (phase3) {
+        \textbf{\large فاز سوم: ترازسازی ایمنی و هویت دستیار (\en{Safety \& Self-Identification Alignment})}\\[4pt]
+        \small تلفیق یادگیری تحت نظارت (\en{SFT}) و بهینه‌سازی مستقیم ترجیحات (\en{DPO}) با داده‌های ترکیبی ترجیحی\\[2pt]
+        \scriptsize $\bullet$ تثبیت قاطع رفتار امتناع از پاسخ‌های خطرناک و ناقض اخلاق \quad
+        $\bullet$ تثبیت هویت درونی مستقل به عنوان دستیار هوشمند محلی بر روی دستگاه\\
+        \scriptsize $\bullet$ اعمال آگاهانه مالیات ترازسازی (\en{Alignment Tax}) و موازنه اصولی با بنچ‌مارک‌های آکادمیک
+    };
+
+    % Sub-nodes: Final Checkpoint & QAT Deployment
+    \node[final_model, below left=1.3cm and 0.4cm of phase3] (final_instruct) {
+        مدل نهایی دستورپذیر\\ \en{\textbf{MobileLLM-Pro (Instruct)}}\\[3pt]
+        \scriptsize $\bullet$ پیروز در ارزیابی انسانی و ابزارمحور\\
+        \scriptsize $\bullet$ پنجره طولانی کامل $128\text{k}$ توکن
+    };
+
+    \node[deploy_box, below right=1.3cm and 0.4cm of phase3] (quant_deploy) {
+        کوانتایزاسیون آگاه از آموزش (\en{QAT})\\
+        \scriptsize $\bullet$ نسخه پردازنده مرکزی: \en{INT4 Sym Group-32 (590 MB)}\\
+        \scriptsize $\bullet$ نسخه شتاب‌دهنده: \en{INT4 Channel-wise (720 MB)}\\
+        \scriptsize $\bullet$ سرعت رمزگشایی تا \en{33.6 tok/s} در موتور \en{ExecuTorch}
+    };
+
+    % Connecting Arrows
+    \draw[arrow] (base) -- (phase1);
+    \draw[arrow] (phase1) -- (phase2);
+    \draw[arrow] (phase2) -- (phase3);
+    \draw[arrow] (phase3.south) ++(-3.5,0) -- (final_instruct.north);
+    \draw[dash_arrow] (phase3.south) ++(3.5,0) -- (quant_deploy.north);
+
+\end{tikzpicture}%
+}
+\caption{جریان‌کاری سه‌مرحله‌ای پس‌آموزش در \model{MobileLLM-Pro}: پایه‌ریزی تنوع‌محور، هدایت با ارزیابی حذفی (\en{LOO}) و ترازسازی با \en{DPO}.}
+\label{fig:mobilellm_pro_post_training}
+\end{figure}
+
+\paragraph*{مبانی تئوری اطلاعات و فرمول‌بندی ریاضی فرآیند پس‌آموزش}
+در درک تحلیلی آموزش مدل‌های زبانی، انتروپی متقاطع (\en{Cross-Entropy}) مستقیماً از تئوری اطلاعات شانون و واگرایی کولبک-لایبلر (\en{KL}) مشتق می‌شود. اگر توزیع احتمال تجربی توکن‌های زبان طبیعی هدف برابر با $P(y)$ و توزیع پیش‌بینی‌شده توسط مدل پارامتری $\theta$ برابر با $P_\theta(y)$ روی فضای گسسته واژگان $\mathcal{V}$ باشد، واگرایی \en{KL} میان دو توزیع به‌صورت زیر تعریف می‌گردد:
+\begin{equation}
+    \mathbb{D}_{\text{KL}}(P \parallel P_\theta) = \sum_{y \in \mathcal{V}} P(y) \ln \left( \frac{P(y)}{P_\theta(y)} \right) = \sum_{y \in \mathcal{V}} P(y) \ln P(y) - \sum_{y \in \mathcal{V}} P(y) \ln P_\theta(y)
+\end{equation}
+با توجه به اینکه انتروپی شانون توزیع هدف برابر با $H(P) = - \sum_{y \in \mathcal{V}} P(y) \ln P(y)$ است، تابع زیان انتروپی متقاطع به فرم زیر بازنویسی می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{CE}}(\theta) = H(P) + \mathbb{D}_{\text{KL}}(P \parallel P_\theta) = - \sum_{y \in \mathcal{V}} P(y) \ln P_\theta(y)
+\end{equation}
+
+در فازهای اول و دوم تنظیم دقیق تحت نظارت (\en{SFT})، دنباله ورودی به دو بخش پرامپت $\mathbf{x} = (x_1, \dots, x_N)$ و پاسخ دستیار $\mathbf{y} = (y_1, \dots, y_M)$ تفکیک می‌شود. احتمال شرطی کل پاسخ طبق قاعده زنجیره‌ای احتمال برابر است با:
+\begin{equation}
+    P_\theta(\mathbf{y} \mid \mathbf{x}) = \prod_{m=1}^{M} P_\theta(y_m \mid \mathbf{x}, y_{<m})
+\end{equation}
+زیان بهینه‌سازی صرفاً بر روی توکن‌های پاسخ دستیار محاسبه شده و توکن‌های پرامپت کاربر ماسک می‌شوند:
+\begin{equation}
+    \mathcal{L}_{\text{SFT}}(\theta) = - \sum_{m=1}^{M} \ln P_\theta(y_m \mid \mathbf{x}, y_{<m})
+\end{equation}
+
+فرض کنید بردار ویژگی لایه آخر برای توکن $m$-ام برابر با $\mathbf{h}_m \in \mathbb{R}^{d_{\text{model}}}$ و ماتریس وزن لایه واژگان برابر با $\mathbf{W} \in \mathbb{R}^{V \times d_{\text{model}}}$ باشد. لاجیت مولفه $k$-ام به‌صورت $z_{m,k} = \mathbf{w}_k^T \mathbf{h}_m$ و احتمال حاصل از تبدیل بیشینه هموار (\en{Softmax}) به‌صورت زیر محاسبه می‌شود:
+\begin{equation}
+    P_\theta(y_m = k \mid \mathbf{x}, y_{<m}) = \frac{\exp(z_{m,k})}{\sum_{j=1}^{V} \exp(z_{m,j})}
+\end{equation}
+مشتق جزئی تابع زیان تک‌توکن $\ell_m = - \ln P_\theta(y_m = t)$ نسبت به لاجیت دلخواه $z_{m,k}$ با اعمال قاعده زنجیره‌ای دیفرانسیل به فرم زیر استخراج می‌گردد:
+\begin{equation}
+    \frac{\partial \ell_m}{\partial z_{m,k}} = P_\theta(y_m = k) - \mathbb{I}(k = t) \implies \frac{\partial \ell_m}{\partial \mathbf{z}_m} = \mathbf{P}_{\theta, m} - \mathbf{e}_{y_m}
+\end{equation}
+که در آن $\mathbf{e}_{y_m}$ بردار پایه یکانی در موقعیت برچسب واقعی است. این رابطه نشان می‌دهد گرادیان بازگشتی خطایی معادل با اختلاف میان احتمال پیش‌بینی‌شده مدل و توزیع قطعی واقعی است.
+
+\paragraph*{استخراج تحلیلی الگوریتم بهینه‌سازی مستقیم ترجیحات (\en{DPO})}
+در فاز سوم، برای هم‌ترازی ایمنی و رفتار هویتی مدل، از الگوریتم \en{DPO} \cite{rafailov2024dpo} استفاده شده است. بر خلاف روش‌های سنتی \en{RLHF} مبتنی بر الگوریتم‌های بازیگر-نقاد نظیر \en{PPO} که به آموزش یک مدل پاداش مجزا و ناپایداری‌های عددی بالا وابسته‌اند، \en{DPO} مدل پاداش پنهان را مستقیماً درون خط‌مشی زبانی ادغام می‌کند.
+
+مسئله هم‌ترازی با قید تحدید واگرایی \en{KL} نسبت به مدل پایه اولیه $\pi_{\text{ref}}$ به‌صورت تابعی زیر فرمول‌بندی می‌شود:
+\begin{equation}
+    \max_{\pi} \mathbb{E}_{x \sim \mathcal{D}} \left[ \mathbb{E}_{y \sim \pi(\cdot \mid x)} [r(x, y)] - \beta \mathbb{D}_{\text{KL}}(\pi(y \mid x) \parallel \pi_{\text{ref}}(y \mid x)) \right]
+\end{equation}
+به ازای هر پرامپت ثابت $x$، لاگرانژین بهینه‌سازی با قید پایستگی احتمالات ($\sum_y \pi(y \mid x) = 1$) به فرم زیر درمی‌آید:
+\begin{equation}
+    \mathcal{J}(\pi) = \sum_{y} \pi(y \mid x) r(x, y) - \beta \sum_{y} \pi(y \mid x) \ln \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \right) + \lambda \left( 1 - \sum_{y} \pi(y \mid x) \right)
+\end{equation}
+با مشتق‌گیری جزئی بر اساس روش حساب تغییرات نسبت به $\pi(y \mid x)$ و برابر قرار دادن با صفر:
+\begin{equation}
+    \frac{\partial \mathcal{J}}{\partial \pi(y \mid x)} = r(x, y) - \beta \left( \ln \pi(y \mid x) - \ln \pi_{\text{ref}}(y \mid x) + 1 \right) - \lambda = 0
+\end{equation}
+\begin{equation}
+    \ln \left( \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \right) = \frac{1}{\beta} r(x, y) - \frac{\beta + \lambda}{\beta} \implies \pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\left( \frac{1}{\beta} r(x, y) \right)
+\end{equation}
+که در آن $Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp\left( \frac{1}{\beta} r(x, y) \right)$ تابع تقسیم و ضریب نرمال‌سازی است.
+
+با اعمال لگاریتم بر دو طرف رابطه و بازآرایی آن بر حسب تابع پاداش $r(x, y)$:
+\begin{equation}
+    r(x, y) = \beta \ln \left( \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \right) + \beta \ln Z(x)
+\end{equation}
+بر اساس مدل روان‌سنجی ترجیحات زوجی بردلی-تری (\en{Bradley-Terry}):
+\begin{equation}
+    P(y_w \succ y_l \mid x) = \sigma\left( r(x, y_w) - r(x, y_l) \right) = \frac{1}{1 + \exp\left( -(r(x, y_w) - r(x, y_l)) \right)}
+\end{equation}
+با جای‌گذاری رابطه پاداش، جمله نامعین و پرهزینه $\beta \ln Z(x)$ به دلیل تفاضل کاملاً حذف می‌گردد:
+\begin{equation}
+    r(x, y_w) - r(x, y_l) = \beta \ln \left( \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} \right) - \beta \ln \left( \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) = \beta \ln \left( \frac{\frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)}}{\frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}} \right)
+\end{equation}
+در نتیجه، تابع هدف کمینه‌سازی \en{DPO} بر روی توزیع داده‌های ترجیحی $\mathcal{D}_{\text{pref}} = \{(x, y_w, y_l)\}$ به فرم بسته زیر حاصل می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = - \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}_{\text{pref}}} \left[ \ln \sigma \left( \beta \ln \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \ln \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]
+\end{equation}
+
+با محاسبه گرادیان این زیان نسبت به پارامترهای مدل $\theta$:
+\begin{equation}
+    \nabla_\theta \mathcal{L}_{\text{DPO}}(\theta) = - \beta \mathbb{E}_{(x, y_w, y_l)} \left[ \sigma\left( \hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w) \right) \cdot \left( \nabla_\theta \ln \pi_\theta(y_w \mid x) - \nabla_\theta \ln \pi_\theta(y_l \mid x) \right) \right]
+\end{equation}
+که در آن $\hat{r}_\theta(x, y) = \beta \ln \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)}$ نشان‌دهنده پاداش ضمنی مدل است. ضریب $\sigma\left( \hat{r}_\theta(x, y_l) - \hat{r}_\theta(x, y_w) \right)$ به عنوان وزن تصحیح گرادیان عمل می‌کند؛ هر چه مدل پاسخ نامطلوب $y_l$ را مطلوب‌تر بداند، گرادیان بزرگ‌تری برای افزایش درست‌نمایی $y_w$ و کاهش درست‌نمایی $y_l$ اعمال می‌نماید.
+
+\paragraph*{فاز اول: تنظیم دقیق تنوع‌محور (\en{Diversity-First Instruction Tuning})}
+در گام اول، تمرکز بر روی تنوع زبانی داده‌ها قرار داده شد. جدول \ref{tab:mobilellm_pro_ift_data} آمار مجموعه‌داده‌های استفاده‌شده در این فاز با حجم مجموع ۷.۶۴ میلیون نمونه را نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{آمار مجموعه‌داده‌های مورد استفاده در فاز اول تنظیم دقیق دستورالعمل‌ها (\en{IFT})}
+\label{tab:mobilellm_pro_ift_data}
+\resizebox{0.85\textwidth}{!}{%
+\begin{tabular}{lcc}
+\toprule
+\textbf{نام مجموعه‌داده (\en{Dataset})} & \textbf{تعداد نمونه‌ها (میلیون)} & \textbf{درصد سهم از کل (\%)} \\
+\midrule
+\en{Flan (2021)} \cite{wei2021finetuned} & ۲.۸۰ & ۳۶.۶۵ \\
+\en{Nemotron Math (2025)} \cite{bercovich2025nemotron} & ۲.۷۰ & ۳۵.۳۴ \\
+\en{Tulu 3 (2024)} \cite{lambert2024tulu3} & ۰.۹۴ & ۱۲.۳۰ \\
+\en{Nemotron Code (2025)} \cite{bercovich2025nemotron} & ۰.۶۵ & ۸.۵۱ \\
+\en{Nemotron Science (2025)} \cite{bercovich2025nemotron} & ۰.۴۸ & ۶.۲۸ \\
+\en{Nemotron Chat (2025)} \cite{bercovich2025nemotron} & ۰.۰۴ & ۰.۵۲ \\
+\en{Nemotron Safety (2025)} \cite{bercovich2025nemotron} & ۰.۰۳ & ۰.۳۹ \\
+\midrule
+\textbf{مجموع کل} & \textbf{۷.۶۴} & \textbf{۱۰۰.۰} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\textbf{یافته کلیدی تجربی:} بیش از ۷۰٪ از حجم نمونه‌ها متعلق به دو مجموعه \en{Flan} و \en{Nemotron Math} است. آزمایش‌های نویسندگان نشان داد که تلاش برای بیش‌نمونه‌برداری (\en{Oversampling}) تصنعی حوزه‌های کوچک‌تر (مانند \en{Chat} و \en{Safety}) در این فاز آغازین، اثرات نامطلوبی بر همگرایی مدل و قدرت تعمیم عمومی آن می‌گذارد؛ بنابراین پیروی از توزیع طبیعی منابع بهترین نتیجه را ارائه داد.
+
+\paragraph*{فاز دوم: تنظیم ادامه‌دار بر پایه ارزیابی حذفی (\en{Leave-One-Out Continued Tuning})}
+در فاز دوم، جهت تطبیق ترکیب داده‌ها با نقاط ضعف مدل، یک ارزیابی حذفی نوبتی (\en{Leave-One-Out - LOO}) روی ۷ مجموعه داده اجرا شد. مدل به ازای حذف هر حوزه ($\neg\text{Domain}$) در ۷ مهارت اساسی شامل فراخوانی ابزار (\en{Function Calling})، پیروی از دستورات (\en{Instruction Following})، دانش (\en{Knowledge})، بازنویسی (\en{Rewriting})، خلاصه‌سازی (\en{Summarization})، استدلال منطقی (\en{Reasoning}) و ریاضیات (\en{Math}) سنجیده شد. نتایج نشان داد که حذف \en{Tulu 3} و \en{Nemotron Science} شدیدترین پسرفت‌ها را در عملکرد چندگانه مدل به وجود می‌آورد. بر اساس این یافته، ضرایب ترکیب داده‌ها در فاز دوم مجدداً تنظیم شد تا این نواقص رفتاری به طور موثر پوشش داده شوند.
+
+\paragraph*{فاز سوم: ترازسازی ایمنی و هویت دستیار (\en{Safety \& Self-ID Alignment})}
+در این فاز نهایی، ترکیبی از تنظیم دقیق نظارت‌شده (\en{SFT}) و بهینه‌سازی مستقیم ترجیحات (\en{DPO}) بر روی داده‌های ساختگی ترجیحی اعمال شد تا مدل رفتارهای ایمن، رد درخواست‌های خطرناک و پایبندی به هویت خود را فراگیرد. نویسندگان تصریح می‌کنند که برقراری دقیق این ویژگی‌ها مستلزم پرداخت «مالیات ترازسازی» (\en{Alignment Tax}) و چشم‌پوشی جزئی از صعود بر روی برخی بنچ‌مارک‌های خام آکادمیک بوده است تا مدلی امن برای عرضه واقعی حاصل شود.
+
+\paragraph*{تحلیل ابلیشن ترکیب داده‌ها با شبیه‌سازی آفلاین (\en{SDM Ablation})}
+در بخش ۱۲.۱ مقاله، اثر استراتژی اختلاط خودکار داده‌ها با رویکرد \en{Scalable Data Mixer (SDM)} \cite{chang2025sdm} در مقایسه با ترکیب یکنواخت داده‌ها (\en{Uniform}) در فاز تنظیم دقیق دستورالعمل‌ها ارزیابی شده است (جدول \ref{tab:sdm_ift_ablation}).
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه عملکرد فاز \en{Instruction Tuning} بر مبنای ترکیب یکنواخت و ترکیب هدایت‌شده با \en{SDM}}
+\label{tab:sdm_ift_ablation}
+\resizebox{0.8\textwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{مرحله آموزش} & \textbf{بودجه توکن} & \textbf{روش ترکیب داده‌ها} & \textbf{میانگین امتیاز عملکردی (\%)} \\
+\midrule
+تنظیم دقیق دستورالعمل‌ها (\en{IFT}) & \en{80B} & یکنواخت (\en{Uniform}) & ۱۷.۹۴ \\
+\textbf{تنظیم دقیق دستورالعمل‌ها (\en{IFT})} & \en{80B} & \textbf{بهینه‌سازی‌شده با \en{SDM}} & \textbf{۴۵.۲۳} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+این آزمایش نشان می‌دهد که بهره‌گیری از داده‌آرایی هدایت‌شده با شبیه‌سازی سودمندی در \en{SDM}، منجر به یک جهش خیره‌کننده **۲۷.۲۹ درصدی مطلق** (ارتقای امتیاز از ۱۷.۹۴٪ به ۴۵.۲۳٪) در عملکرد میانگین بنچ‌مارک‌های پس‌آموزش شده است.
+
+\paragraph*{نتایج ارزیابی بر روی بنچ‌مارک‌های استاندارد چت (\en{Benchmark Results})}
+عملکرد مدل دستورپذیر \model{MobileLLM-Pro} در برابر رقبای مطرح رده ۱ میلیارد پارامتر یعنی \en{Gemma 3-1B} \cite{team2025gemma3} و \en{Llama 3.2-1B} \cite{grattafiori2024llama3} در جدول \ref{tab:mobilellm_pro_instruct_eval} خلاصه شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه عملکرد مدل‌های دستورپذیر در مقیاس ۱ میلیارد پارامتر بر روی بنچ‌مارک‌های استاندارد}
+\label{tab:mobilellm_pro_instruct_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccc}
+\toprule
+\textbf{بنچ‌مارک (\en{Benchmark})} & \textbf{شاخص متریک} & \model{MobileLLM-Pro} & \model{Gemma 3-1B} & \model{Llama 3.2-1B} \\
+\midrule
+\en{MMLU (2021)} & \en{macro\_avg/acc} & ۴۴.۸ & ۲۹.۹ & \textbf{۴۹.۳} \\
+\en{IFEval (2023)} \cite{zhou2023ifeval} & \en{acc*} & ۶۲.۰ & \textbf{۸۰.۲} & ۵۹.۵ \\
+\en{MBPP (2021)} & \en{pass@1} & \textbf{۴۶.۸} & ۳۵.۲ & ۳۹.۶ \\
+\en{HumanEval (2021)} & \en{pass@1} & \textbf{۵۹.۸} & ۴۱.۵ & ۳۷.۸ \\
+\en{ARC-Challenge (2018)} & \en{acc} & \textbf{۶۲.۷} & – & ۵۹.۴ \\
+\en{HellaSwag (2019)} & \en{acc} & \textbf{۵۸.۴} & – & ۴۱.۲ \\
+\en{BFCL v2 (2024)} \cite{patil2024bfcl} & \en{acc} & \textbf{۲۹.۴} & – & ۲۵.۷ \\
+\en{Open Rewrite (2023)} & \en{micro\_avg/rougeL} & \textbf{۵۱.۰} & – & ۴۱.۶ \\
+\en{TLDR9+ (2021)} & \en{rougeL} & \textbf{۱۶.۸} & – & \textbf{۱۶.۸} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\textbf{تحلیل نتایج:} مدل \model{MobileLLM-Pro} در ۷ بنچ‌مارک از ۹ بنچ‌مارک استاندارد رتبه اول را تصاحب کرده است. برتری چشمگیر در آزمون‌های کدنویسی (\en{HumanEval} با نمره ۵۹.۸٪ در مقایسه با ۴۱.۵٪ و ۳۷.۸٪ رقبا) و ارتقای قاطع در فراخوانی ابزار (\en{BFCL v2}) و بازنویسی (\en{Open Rewrite})، کارآمدی خط‌لوله طراحی‌شده پس‌آموزش را اثبات می‌نماید.
+
+\paragraph*{ارزیابی‌های انسانی و داوری مدل بزرگ‌تر (\en{Human Evaluation \& LLM-as-a-Judge})}
+برای راستی‌آزمایی دقیق و مهار خطاهای ناشی از آلودگی آزمون‌ها، ارزیابی‌های کورسوی مقایسه‌ای بر روی ۱۰۰ پرامپت در چهار حوزه دستیاری انجام شد (جداول \ref{tab:human_eval_gemma} و \ref{tab:human_eval_llama}). برای وظیفه ساختاریافته فراخوانی ابزار، از مدل \en{Llama 3-70B} به عنوان داور معتبر استفاده شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای \model{MobileLLM-Pro} در برابر \model{Gemma 3-1B} (۱۰۰ نمونه در هر دسته)}
+\label{tab:human_eval_gemma}
+\resizebox{0.8\textwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{وظیفه / دسته} & \textbf{برد \model{MobileLLM-Pro}} & \textbf{برد \model{Gemma 3-1B}} & \textbf{تساوی (\en{Tie})} \\
+\midrule
+خلاصه‌سازی (\en{Summarization}) & ۴۷ & \textbf{۵۱} & ۲ \\
+بازنویسی متون (\en{Rewrite}) & ۴۵ & \textbf{۴۹} & ۶ \\
+بازیابی اطلاعات (\en{Recall}) & \textbf{۴۷} & ۳۰ & ۲۳ \\
+فراخوانی ابزار (\en{Tool Calling*}) & \textbf{۵۳} & ۲۴ & ۲۳ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای \model{MobileLLM-Pro} در برابر \model{Llama 3.2-1B} (۱۰۰ نمونه در هر دسته)}
+\label{tab:human_eval_llama}
+\resizebox{0.8\textwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{وظیفه / دسته} & \textbf{برد \model{MobileLLM-Pro}} & \textbf{برد \model{Llama 3.2-1B}} & \textbf{تساوی (\en{Tie})} \\
+\midrule
+خلاصه‌سازی (\en{Summarization}) & \textbf{۴۲} & ۳۰ & ۲۸ \\
+بازنویسی متون (\en{Rewrite}) & \textbf{۵۳} & ۳۰ & ۱۶ \\
+بازیابی اطلاعات (\en{Recall}) & \textbf{۵۶} & ۸ & ۳۷ \\
+فراخوانی ابزار (\en{Tool Calling*}) & \textbf{۴۰} & ۳۵ & ۲۵ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+ارزیابی‌ها نشان‌دهنده برتری مطلق در برابر \en{Llama 3.2-1B} در تمامی زمینه‌ها (به‌ویژه برتری چشمگیر ۵۶ به ۸ در بازیابی اطلاعات) و برتری آشکار در قابلیت‌های کلیدی عاملی و دستیاری نظیر ابزارمحوری (۵۳ به ۲۴) و بازیابی نسبت به \en{Gemma 3-1B} است.
+
+\paragraph*{استقرار کوانتیزه‌شده بر روی سخت‌افزارهای لبه (\en{Edge Deployment Efficiency})}
+برای آنکه مدل حاصل از فاز پس‌آموزش بر روی دستگاه‌های تلفن همراه به صورت عملیاتی مستقر شود، از الگوریتم کوانتایزاسیون آگاه از آموزش (\en{QAT}) با بازه‌های یادگیرنده دامنه مقیاس (\en{Learnable Quant Ranges}) بر روی بستر \en{ExecuTorch} استفاده شده است. مشخصات کارایی این مدل روی پردازنده \en{Galaxy S25 CPU} و شتاب‌دهنده تنسور \en{Galaxy S24 HTP} در جدول \ref{tab:mobilellm_pro_latency} گزارش شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{تاخیر پیش‌پردازش (\en{Prefill})، سرعت تولید (\en{Decode}) و حجم حافظه \en{KV Cache} در طول زمینه‌های گوناگون}
+\label{tab:mobilellm_pro_latency}
+\resizebox{0.9\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{شاخص کارایی (\en{Benchmark Metric})} & \textbf{واحد} & \textbf{زمینه \en{2k}} & \textbf{زمینه \en{4k}} & \textbf{زمینه \en{8k}} \\
+\midrule
+تاخیر پیش‌پردازش پردازنده (\en{CPU Prefill Latency}) & ثانیه & ۸.۹ & ۲۴.۸ & ۶۳.۵ \\
+تاخیر پیش‌پردازش شتاب‌دهنده (\en{HTP Prefill Latency}) & ثانیه & ۲.۰ & ۳.۴ & ۹.۸ \\
+سرعت رمزگشایی پردازنده (\en{CPU Decode Speed}) & توکن بر ثانیه & ۳۳.۶ & ۲۴.۸ & ۱۹.۷ \\
+سرعت رمزگشایی شتاب‌دهنده (\en{HTP Decode Speed}) & توکن بر ثانیه & ۳۱.۶ & ۲۹.۰ & ۲۲.۸ \\
+فضای اشغال‌شده \en{KV Cache} & مگابایت & ۱۴.۰ & ۲۳.۰ & ۴۰.۰ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+این نتایج تجربی نشان می‌دهند که وزن‌های حاصل از متدولوژی پس‌آموزش \model{MobileLLM-Pro} نه تنها در فرمت دقیق، بلکه پس از فشردگی شدید ۴ بیتی (با افت کیفی ناچیز ۰.۷۳٪ در پردازنده و ۱.۳٪ در شتاب‌دهنده) توانمندی‌های منطقی، طول زمینه $128\text{k}$ و هوشمندی عامل‌محور خود را حفظ کرده و تجربه‌ای سریع و بدون وقفه را در پردازش محلی رقم می‌زنند.

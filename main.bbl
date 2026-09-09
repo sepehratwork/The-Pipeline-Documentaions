@@ -1327,6 +1327,47 @@ Jun~Shern Chan, Neil Chowdhury, Oliver Jaffe, James Aung, Dane Sherburn, Evan
   Engineering}.
 \newblock {\em arXiv preprint arXiv:2501.01234}, 2025.
 
+\bibitem{press2017output}
+Ofir Press and Lior Wolf.
+\newblock {Using the Output Embedding to Improve Language Models}.
+\newblock In {\em Proceedings of the 15th Conference of the European Chapter of
+  the ACL (EACL)}, pages 157--163, 2017.
+
+\bibitem{liu2024mobilellm}
+Zechun Liu, Changsheng Zhao, Forrest Iandola, Chen Lai, Yuandong Tian, Igor
+  Fedorov, Yunyang Xiong, Ernie Chang, Yangyang Shi, Raghuraman Krishnamoorthi,
+  Liangzhen Lai, and Vikas Chandra.
+\newblock {MobileLLM: Optimizing Sub-Billion Parameter Language Models for
+  On-Device Use Cases}.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2024.
+
+\bibitem{rafailov2024dpo}
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher~D
+  Manning, and Chelsea Finn.
+\newblock {Direct Preference Optimization: Your Language Model is Secretly a
+  Reward Model}.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~36, 2024.
+
+\bibitem{bercovich2025nemotron}
+Akhiad Bercovich, Itay Levy, Izik Golan, et~al.
+\newblock {Llama-Nemotron: Efficient Reasoning Models}.
+\newblock {\em arXiv preprint arXiv:2505.00949}, 2025.
+
+\bibitem{zhou2023ifeval}
+Jeffrey Zhou, Tianjian Lu, Swaroop Mishra, Siddhartha Brahma, Sujoy Basu,
+  Yi~Luan, Denny Zhou, and Le~Hou.
+\newblock {Instruction-Following Evaluation for Large Language Models}.
+\newblock {\em arXiv preprint arXiv:2311.07911}, 2023.
+
+\bibitem{patil2024bfcl}
+Shishir~G Patil, Huanzhi Mao, Charlie Cheng-Jie Ji, Fanjia Yan, Vishnu Suresh,
+  Ion Stoica, and Joseph~E Gonzalez.
+\newblock {The Berkeley Function Calling Leaderboard (BFCL): From Tool Use to
+  Agentic Evaluation of Large Language Models}.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2024.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
