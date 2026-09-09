@@ -1254,6 +1254,43 @@ Alexander Samarin et~al.
   decoding.
 \newblock {\em arXiv preprint arXiv:2602.23881}, 2026.
 
+\bibitem{shazeer2017outrageously}
+Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc~V. Le,
+  Geoffrey~E. Hinton, and Jeff Dean.
+\newblock {Outrageously Large Neural Networks: The Sparsely-Gated
+  Mixture-of-Experts Layer}.
+\newblock In {\em International Conference on Learning Representations}, 2017.
+
+\bibitem{merrill2026terminalbench}
+Mike~A. Merrill, Alexander~Glenn Shaw, Nicholas Carlini, et~al.
+\newblock {Terminal-bench: Benchmarking Agents on Hard, Realistic Tasks in
+  Command Line Interfaces}.
+\newblock In {\em International Conference on Learning Representations}, 2026.
+
+\bibitem{minimax2026her}
+{MiniMax AI}.
+\newblock {A Deep Dive into the MiniMax-M2-HER}.
+\newblock \url{https://x.com/MiniMax_AI/status/2016521115355799660}, 2026.
+
+\bibitem{minimax2025m1}
+{MiniMax}, Aonian Li, Bangwei Gong, Bo~Yang, Boji Shan, Chang Liu, Cheng Zhu,
+  et~al.
+\newblock Minimax-m1: Scaling test-time compute efficiently with lightning
+  attention.
+\newblock {\em arXiv preprint arXiv:2506.13585}, 2025.
+
+\bibitem{schulman2017ppo}
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+\newblock {Proximal Policy Optimization Algorithms}.
+\newblock {\em arXiv preprint arXiv:1707.06347}, 2017.
+
+\bibitem{chan2025mlebench}
+Jun~Shern Chan, Neil Chowdhury, Oliver Jaffe, James Aung, Dane Sherburn, Evan
+  Mays, Giulio Starace, Kevin Liu, Leon Maksin, Tejal Patwardhan, et~al.
+\newblock {MLE-bench: Evaluating Machine Learning Agents on Machine Learning
+  Engineering}.
+\newblock {\em arXiv preprint arXiv:2501.01234}, 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -1541,13 +1578,6 @@ Chujie Zheng, Shixuan Liu, Mingze Li, Xiong-Hui Chen, Bowen Yu, Chang Gao, Kai
 {OpenAI}.
 \newblock Learning to reason with llms.
 \newblock \url{https://openai.com/index/learning-to-reason-with-llms/}, 2024.
-
-\bibitem{minimax2025m1}
-{MiniMax}, Aonian Li, Bangwei Gong, Bo~Yang, Boji Shan, Chang Liu, Cheng Zhu,
-  et~al.
-\newblock Minimax-m1: Scaling test-time compute efficiently with lightning
-  attention.
-\newblock {\em arXiv preprint arXiv:2506.13585}, 2025.
 
 \bibitem{zheng2023click}
 Chujie Zheng, Pei Ke, Zheng Zhang, and Minlie Huang.

@@ -1,1 +1,325 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{مقدمه و فلسفه طراحی پس‌آموزش (\en{Post-Training Philosophy})}
+سری مدل‌های \model{MiniMax-M2} (شامل نسخه‌های \en{M2.5} ،\en{M2} و \en{M2.7}) بر پایه پارادایم نوین \textbf{«فعال‌سازی حداقلی برای دستیابی به حداکثر هوشمندی جهان واقعی» (\en{Mini Activations Unleashing Max Real-World Intelligence})} بنا نهاده شده‌اند \cite{minimax2026m2}. مدل پرچمدار این خانواده با ساختار ترکیبی از متخصصان (\en{MoE}) دارای \en{229.9B} پارامتر کل است که در هر توکن تنها \en{9.8B} پارامتر (حدود ۱۰ میلیارد پارامتر) از میان ۲۵۶ متخصص ریزدانه (\en{Fine-Grained Experts}) با دروازه‌بانی مستقل سیگموئید (\en{Sigmoid Gating}) فعال می‌گردند \cite{dai2024deepseekmoe, shazeer2017outrageously, wang2024auxiliary}.
+
+در حالی که فاز پیش‌آموزش بر روی \en{29.2T} توکن، دانش پایه‌ای مدل را شکل می‌دهد، جهش اصلی قابلیت‌های عاملی در افق‌های زمانی بلندمدت (\en{Long-Horizon Agentic Workflows}) از طریق یک خط‌لوله پس‌آموزش (\en{Post-Training}) چندمرحله‌ای حاصل شده است. این سیستم بر چهار پایه استوار است:
+\begin{enumerate}
+    \item \textbf{خط‌لوله‌های داده عاملی و محیط‌های اجرایی (\en{Agent-Driven Data Pipelines}):} تولید داده‌های ساختاریافته در حوزه‌های کدنویسی، هم‌کاری اداری و استدلال، مقید به محیط‌های سندباکس داکر و پاداش‌های مبتنی بر آزمون‌های اجرایی.
+    \item \textbf{تنظیم دقیق نظارت‌شده با تفکر درهم‌تنیده (\en{Interleaved Thinking SFT}):} درهم‌آمیختن استدلال پیوسته، اقدامات و مشاهدات محیطی، همراه با حفظ کامل حافظه وضعیت استدلال (\en{Reasoning State Persistence}).
+    \item \textbf{یادگیری تقویتی عامل‌محور با بهینه‌ساز \en{CISPO}:} فرمولاسیون فرایند تصمیم‌گیری مارکوف (\en{MDP}) برای کنشگری ابزارها، طراحی پاداش ترکیبی سه‌گانه و مهار واریانس بهینه‌سازی از طریق برش نامتقارن نسبت اهمیت.
+    \item \textbf{زیرساخت مقیاس‌پذیر \en{Forge} و تکامل خودکار (\en{Self-Evolution}):} معماری توزیع‌شده برای آموزش هم‌زمان عامل‌های جعبه‌سفید و جعبه‌سیاه، زمان‌بندی پنجره‌ای \en{FIFO}، ادغام درخت پیشوند با اتلاف صفر، و توانمندسازی مدل در دیباگ مستقل کدهای آموزشی خود.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع فرآیند پس‌آموزش MiniMax-M2
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.4cm and 1.0cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    base_model/.style={base, fill=blue!12, draw=blue!75!black, minimum width=6cm, minimum height=1.1cm, font=\bfseries},
+    data_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=3.6cm, minimum height=2.3cm},
+    sft_box/.style={base, fill=cyan!12, draw=cyan!75!black, minimum width=15.8cm, minimum height=2.3cm},
+    forge_box/.style={base, fill=orange!12, draw=orange!75!black, minimum width=15.8cm, minimum height=2.6cm},
+    rl_box/.style={base, fill=purple!10, draw=purple!70!black, minimum width=15.8cm, minimum height=2.5cm},
+    self_box/.style={base, fill=red!10, draw=red!70!black, minimum width=15.8cm, minimum height=2.0cm},
+    final_model/.style={base, fill=green!15, draw=green!65!black, minimum width=6.5cm, minimum height=1.2cm, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % Base Model Node
+    \node[base_model] (base) {مدل پایه پیش‌آموزش‌دیده \model{MiniMax-M2}\\ \scriptsize (\en{229.9B Total / 9.8B Activated per token - 29.2T Tokens})};
+
+    % Layer 1: Agentic Data Pipelines (4 Boxes)
+    \node[data_box, below left=1.4cm and 3.9cm of base] (data1) {
+        \textbf{مهندسی نرم‌افزار (\en{SWE})}\\[3pt]
+        \scriptsize $\bullet$ فیلتر \en{PR}های گیت‌هاب\\
+        \scriptsize $\bullet$ محیط‌های داکر چندزبانه\\
+        \scriptsize $\bullet$ پاداش آزمون \en{F2P} و \en{P2P}
+    };
+
+    \node[data_box, below left=1.4cm and -0.3cm of base] (data2) {
+        \textbf{توسعه برنامه (\en{AppDev})}\\[3pt]
+        \scriptsize $\bullet$ متاکوئری و ارزیاب \en{AaaV}\\
+        \scriptsize $\bullet$ ۳ لایه: اجرا، تعامل، بصری\\
+        \scriptsize $\bullet$ تقطیر پرامپت (\en{Distillation})
+    };
+
+    \node[data_box, below right=1.4cm and -0.3cm of base] (data3) {
+        \textbf{ترمینال و ابزارها}\\[3pt]
+        \scriptsize $\bullet$ بستر \en{Terminal-Gym}\\
+        \scriptsize $\bullet$ سنتز شِما از \en{Stack Overflow}\\
+        \scriptsize $\bullet$ کالیبراسیون دشواری وظایف
+    };
+
+    \node[data_box, below right=1.4cm and 3.9cm of base] (data4) {
+        \textbf{همکاری اداری و وب}\\[3pt]
+        \scriptsize $\bullet$ جست‌وجوی عمیق (\en{Deep Search})\\
+        \scriptsize $\bullet$ اکسل، مالی و اسناد \en{GDPval}\\
+        \scriptsize $\bullet$ توازن داده‌های استدلالی
+    };
+
+    \node[draw=teal!60!black, dashed, rounded corners=8pt, fit=(data1) (data2) (data3) (data4), inner sep=8pt, label=above:\textbf{\textcolor{teal!70!black}{خط‌لوله‌های تولید و اعتبارسنجی داده‌های عامل‌محور (\en{Agent-Driven Data Pipelines})}}] (data_group) {};
+
+    % Layer 2: Interleaved SFT
+    \node[sft_box, below=1.2cm of data_group] (sft) {
+        \textbf{\large تنظیم دقیق نظارت‌شده با تفکر درهم‌تنیده (\en{Interleaved Thinking SFT Stage})}\\[3pt]
+        \small $\tau = (r_1, a_1, o_1, r_2, a_2, o_2, \dots, r_T, a_T, o_T) \quad \mid \quad \mathcal{H}_{t+1} = \mathcal{H}_t \oplus [\text{assistant}(r_t, a_t)] \oplus [\text{tool}(o_t)]$\\[4pt]
+        \scriptsize $\bullet$ پیاده‌سازی چرخه شناختی طرح‌ریزی-اقدام-تأمل (\en{Plan-Act-Reflect Loop}) \quad
+        $\bullet$ پایایی دائم وضعیت تفکر (\en{Reasoning State Persistence}) برای پیشگیری از رانش حالت\\
+        \scriptsize $\bullet$ نمونه‌برداری دفعی چندبعدی (\en{Multi-dimensional Rejection Sampling}) روی داده‌های گفتگو، استدلال، کد و کارهای دفتری
+    };
+
+    % Layer 3: Forge RL Infrastructure
+    \node[forge_box, below=1.2cm of sft] (forge) {
+        \textbf{\large زیرساخت یادگیری تقویتی عامل‌محور \en{Forge} (\en{Agent-Native RL Infrastructure})}\\[3pt]
+        \scriptsize $\bullet$ \textbf{معماری ماژولار سه‌گانه:} تفکیک سمت عامل (\en{Agent Side})، میان‌افزار (\en{Gateway / Data Pool})، و سمت آموزش/استنتاج (\en{Engines})\\
+        \scriptsize $\bullet$ \textbf{پشتیبانی دوگانه:} عامل‌های جعبه‌سفید (\en{White-Box}) با بازسازی کانتکست و جعبه‌سیاه (\en{Black-Box}) از طریق پایش جریان داده\\
+        \scriptsize $\bullet$ \textbf{زمان‌بندی پنجره‌ای (\en{Windowed FIFO}):} بازه لغزان ($W=0.3N$) جهت رفع انسداد سراصفحه (\en{HoL Blocking}) با حفظ ثبات توزیع آماری\\
+        \scriptsize $\bullet$ \textbf{ادغام درخت پیشوند (\en{Prefix Tree Merging}):} شتاب‌بخشی تا ۴۰ برابر محاسبات آموزش با تضمین ریاضی خطای تقریب صفر
+    };
+
+    % Layer 4: CISPO Policy Optimization
+    \node[rl_box, below=1.2cm of forge] (rl) {
+        \textbf{\large الگوریتم بهینه‌سازی سیاست با نمونه‌برداری بااهمیت بریده‌شده (\en{CISPO})}\\[3pt]
+        \small $J_{\text{CISPO}}(\theta) = \mathbb{E} \left[ \frac{1}{\sum |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \operatorname{sg}\left( \hat{r}_{i,t}(\theta) \right) \hat{A}_{i,t} \log \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \right] \quad \mid \quad \hat{r}_{i,t}(\theta) = \operatorname{clip}\left( \frac{\pi_\theta}{\pi_{\theta_{\text{old}}}}, 0, 1+\epsilon_{\text{high}}^{\text{IS}} \right)$\\[4pt]
+        \scriptsize $\bullet$ \textbf{پاداش مرکب سه‌گانه:} $r_t = \alpha \cdot r_t^{\text{process}} + \beta \cdot r_t^{\text{speed}} + r_t^{\text{perf}}$ (پاداش ساختار تفکر + پاداش سرعت و موازی‌سازی ابزارها + پاداش درستی وظیفه)\\
+        \scriptsize $\bullet$ \textbf{آموزش چنددامنه‌ای هم‌زمان:} توازن پویا میان ۴ دامنه استدلال، کد، عامل و عمومی همراه با گسترش تدریجی کانتکست تا \en{192K}
+    };
+
+    % Layer 5: Self-Evolution
+    \node[self_box, below=1.2cm of rl] (self_evo) {
+        \textbf{\large پارادایم خودتکاملی عملیاتی در \en{M2.7} (\en{Operational Self-Evolution Loop})}\\[3pt]
+        \scriptsize $\bullet$ \textbf{سامانه تکرار مدل (\en{Model Iteration System}):} داربست کاملاً سنتز‌شده توسط مدل بدون کدنویسی انسان (\en{Zero Human-Written Code})\\
+        \scriptsize $\bullet$ \textbf{چرخه کاری دوگانه:} جذب ۳۰٪ تا ۵۰٪ بار عیب‌یابی روزانه اجرای \en{RL} توسط خود مدل و ارتقای بازگشتی ساختار ابزارها\\
+        \scriptsize $\bullet$ \textbf{مهندسی یادگیری ماشین:} کسب نرخ مدال ۶۶.۶٪ در بنچمارک رقابتی \en{MLE-Bench Lite} و برابری با قوی‌ترین مدل‌های تجاری
+    };
+
+    % Final Model Node
+    \node[final_model, below=1.2cm of self_evo] (final) {
+        مدل نهایی عاملی \model{MiniMax-M2.7}\\
+        \normalsize (\en{Top-tier Performance in SWE-bench, GDPval-AA \& AIME 2026})
+    };
+
+    % Connecting Arrows
+    \draw[arrow] (base) -- (data1.north);
+    \draw[arrow] (base) -- (data2.north);
+    \draw[arrow] (base) -- (data3.north);
+    \draw[arrow] (base) -- (data4.north);
+
+    \draw[arrow] (data_group.south) -- (sft.north);
+    \draw[arrow] (sft.south) -- (forge.north);
+    \draw[arrow] (forge.south) -- (rl.north);
+    \draw[arrow] (rl.south) -- (self_evo.north);
+    \draw[arrow] (self_evo.south) -- (final.north);
+
+\end{tikzpicture}%
+}
+\caption{جریان کاری جامع و ساختار پس‌آموزش در سری \model{MiniMax-M2}: از خطوط داده عامل‌محور و تفکر درهم‌تنیده تا بهینه‌سازی \en{CISPO} در بستر \en{Forge} و تکامل خودکار مدل.}
+\label{fig:minimax_m2_post_training_pipeline}
+\end{figure}
+
+\paragraph*{خط‌لوله‌های داده‌های پس‌آموزش عامل‌محور (\en{Agent-Driven Data Pipelines})}
+برای تضمین پایایی مدل در تعاملات پیچیده، داده‌های پس‌آموزش حول محور محیط‌های عملیاتی و بازخوردهای عینی مهندسی شده‌اند:
+\begin{itemize}
+    \item \textbf{خط‌لوله مقیاس‌بندی مهندسی نرم‌افزار (\en{SWE-Scaling}):} با واکشی درخواست‌های ادغام‌شده (\en{Merged PRs}) از گیت‌هاب با مجوزهای آزاد، مسائل کدنویسی استخراج می‌شوند. برای رفع چالش‌های کامپایل در زبان‌های غیرپایتونی نظیر \en{Java} ،\en{Rust} ،\en{C++} و \en{Go}، از یک عامل خودکار برای تولید چرخه‌ای و بهینه‌سازی اسکریپت‌های \en{Dockerfile} استفاده شده است. وظایف بر اساس پاداش‌های آزمون‌محور تفکیک می‌شوند: آزمون‌های ناموفق-به-موفق (\en{F2P}) و موفق-به-موفق (\en{P2P}) برای باگ‌زدایی، آزمون‌های قابلیت جدید، و آزمون‌های سنجش کارایی برای بهینه‌سازی کد. همچنین تکنیک‌های تزریق باگ (\en{Bug Injection}) و تبدیل وظیفه به نوشتن آزمون معکوس (\en{SWE-Test}) جهت غنی‌سازی توزیع داده اعمال گردیده‌اند \cite{yang2024swesmith}.
+    \item \textbf{توسعه اپلیکیشن با عامل ارزیاب (\en{AppDev via Agent-as-a-Verifier - AaaV}):} به منظور سنتز برنامه‌های کامل از ابتدا (\en{From Scratch})، متخصصان انسانی متاکوئری‌هایی متناسب با فناوری‌های نوین (نظیر \en{React + Zustand + Tailwind}) تدوین می‌کنند. پس از تنوع‌بخشی و رفع تکرار با الگوریتم \en{MinHash}، برنامه‌های تولیدشده در سندباکس اجرا شده و توسط چارچوب \en{AaaV} در سه سطح ارزیابی می‌شوند: لایه اجرا (\en{Execution}) به عنوان گیت سخت‌گیرانه، لایه تعامل کاربر (\en{Interaction}) از طریق سناریوهای خودکار فریم‌ورک \en{Playwright}، و لایه زیبایی‌شناسی بصری (\en{Visual Aesthetics}). همچنین با تکنیک «تقطیر پرامپت» (\en{Prompt Distillation})، بخش‌های تفصیلی راهنمای سیستم حین آموزش تدریجاً حذف می‌شوند تا مدل رفتار استاندارد را درونی‌سازی کند.
+    \item \textbf{محیط خودکار خط فرمان (\en{Terminal-Gym}):} با پالایش و تبدیل داده‌های سایت \en{Stack Overflow} \cite{merrill2026terminalbench}، مسائل تعاملی سیستم‌عامل لینوکس در قالب سناریوهای مشخص بازنویسی می‌شوند. فرایند تبدیل طی سه گام تولید محیط و اسکریپت آزمون، انتزاع سرنخ‌ها (\en{Query Evolution}) و کالیبراسیون سختی انجام می‌پذیرد تا وظایفی استاندارد و قابل ارزیابی پدید آید.
+    \item \textbf{همکاری سازمانی و پژوهش وب (\en{Agentic Cowork}):} وظایف این بخش در چهار شاخه عملیاتی می‌شوند: پژوهش عمیق وب (\en{Deep Search}) با استراتژی بازنویسی و پنهان‌سازی نهادها جهت الزام مدل به بازیابی مستند شواهد \cite{liu2025webexplorer}؛ وظایف اداری بر پایه بنچمارک \en{GDPval} \cite{patwardhan2025gdpval} با معیارهای چندبعدی راستی‌آزمایی؛ تحلیل و مدل‌سازی مالی بر مبنای سنتز معکوس شواهد \cite{chen2026dive} همراه با بازسنجی قطعی فرمول‌ها و سلول‌های اکسل؛ و تولید و اصلاح ساختاری اسلایدها با رندرسازی و نمره‌دهی توسط مدل‌های بینایی.
+    \item \textbf{پایداری هویت و نقش‌آفرینی (\en{Role-Play Persona}):} فضای گفتگو به صورت حاصل‌ضرب دکارتی $\{\text{Worlds}\} \times \{\text{Stories}\}$ شرطی‌شده بر ترجیحات کاربر مدل‌سازی شده است \cite{minimax2026her}. ارزیابی با معیار \en{Role-Play Bench} جهت جریمه شکست نقش یا تناقض منطقی صورت گرفته و بهینه‌سازی نهایی با پالایش آماری داده‌های ترجیحی و پایش آنتروپی انجام می‌شود.
+\end{itemize}
+
+\paragraph*{تنظیم دقیق نظارت‌شده با تفکر درهم‌تنیده (\en{Interleaved Thinking SFT})}
+در وظایف عاملی طولانی‌مدت، رویکردهای سنتی زنجیره تفکر مقدماتی (\en{Front-loaded CoT}) که پیش از هر اقدامی کل استدلال را تولید می‌کنند، توانایی انطباق با بازخوردهای ابزار را ندارند؛ همچنین رویکردهای تفکر بدون حالت (\en{Stateless CoT}) که در هر مرحله تفکرات دورهای قبل را حذف می‌کنند، به رانش پیوسته وضعیت منجر می‌گردند. 
+
+در \model{MiniMax-M2}، مفهوم تفکر درهم‌تنیده (\en{Interleaved Thinking}) پیاده‌سازی شده است که در آن مسیر اجرایی عامل $\tau$ به صورت دنباله‌ای متناوب از توکن‌های استدلال $r_t$، توکن‌های اقدام $a_t$ و مشاهدات محیطی $o_t$ تعریف می‌شود:
+\begin{equation}
+    \tau = (r_1, a_1, o_1, r_2, a_2, o_2, \dots, r_T, a_T, o_T)
+\end{equation}
+هر بخش استدلال $r_t$ بر کل تاریخچه پیشین شرطی می‌گردد:
+\begin{equation}
+    P(r_t \mid r_1, a_1, o_1, \dots, r_{t-1}, a_{t-1}, o_{t-1})
+\end{equation}
+نوآوری کلیدی معماری، حفظ دائمی وضعیت استدلال (\en{Reasoning State Persistence}) در طول تاریخچه مکالمه $\mathcal{H}$ است:
+\begin{equation}
+    \mathcal{H}_{t+1} = \mathcal{H}_t \oplus [\text{assistant}(r_t, a_t)] \oplus [\text{tool}(o_t)]
+\end{equation}
+در صورت حذف وضعیت تفکر، بافت مکالمه به $\mathcal{H}_{t+1}^{(\text{drop})} = \mathcal{H}_t \oplus [\text{assistant}(a_t)] \oplus [\text{tool}(o_t)]$ تقلیل می‌یابد که مدل را ناچار می‌سازد فرضیات و قیود را مکرراً از ابتدا بازتولید کند. پایایی وضعیت تفکر، حلقه شناختی سه‌گانه «طرح‌ریزی، اقدام و تأمل» (\en{Plan-Act-Reflect Loop}) را ممکن ساخته و بازدهی نمونه‌برداری و خوداصلاحی را به میزان چشمگیری ارتقا می‌دهد.
+
+\paragraph*{فرمولاسیون تصمیم‌گیری مارکوف برای عامل‌ها (\en{Agent MDP Formulation})}
+فرایند تعامل عامل با محیط به صورت یک فرایند تصمیم‌گیری مارکوف $\mathcal{M} = (\mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \gamma)$ مدل‌سازی می‌شود:
+\begin{itemize}
+    \item \textbf{وضعیت ($s_t \in \mathcal{S}$):} شامل کلیه محتویات پنجره کانتکست در گام $t$ (دستور مسئله، سوابق قبلی، پیام‌های سیستمی و خروجی ابزارها).
+    \item \textbf{اقدام ($a_t \in \mathcal{A}$):} یک گام کامل تولید متن مدل زبانی شامل استدلال متنی، فراخوانی ساختاریافته توابع، یا دستورات مدیریتی.
+    \item \textbf{انتقال وضعیت ($f_{\text{trans}}$):} محیط پس از اجرای اقدام، مشاهده $o_t$ را بازگردانده و وضعیت بعدی با تابع دلخواه زیر رقم می‌خورد:
+    \begin{equation}
+        s_{t+1} = f_{\text{trans}}(s_t, a_t, o_t)
+    \end{equation}
+\end{itemize}
+مرز میان سیاست $\pi_\theta$ و محیط دقیقاً در لایه درگاه خروجی مدل قرار دارد. بدین ترتیب مدل نیازی به درک سازوکار داخلی بازنویسی بافت متنی ندارد؛ سیاست بر جفت‌های منفرد $(s_t, a_t)$ بهینه‌سازی شده، در حالی که تخمین مزیت و بازگشت پاداش در سطح کل اپیزود $\tau$ ارزیابی می‌گردد.
+
+\paragraph*{اشتقاق کامل ریاضی و تحلیل اطلاعاتی الگوریتم \en{CISPO}}
+برای بهینه‌سازی سیاست عامل در مقیاس‌های بزرگ، الگوریتم بهینه‌سازی سیاست با نمونه‌برداری بااهمیت بریده‌شده (\en{Clipped Importance Sampling Policy Optimization - CISPO}) \cite{minimax2025m1} به کار گرفته شده است. در ادامه، استخراج تحلیلی این بهینه‌ساز از اصول پایه‌ای حسابان، آمار و تئوری اطلاعات ارائه می‌گردد.
+
+\subparagraph*{۱. قضیه گرادیان خط‌مشی و ترفند نسبت درست‌نمایی (\en{Score Function Trick}):}
+هدف یادگیری تقویتی بیشینه‌سازی پاداش مورد انتظار تحت توزیع مسیرهای ناشی از خط‌مشی $\pi_\theta$ است:
+\begin{equation}
+    J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}[R(\tau)] = \int P(\tau; \theta) R(\tau) \, d\tau
+\end{equation}
+که در آن احتمال یک مسیر با طول $T$ برابر است با:
+\begin{equation}
+    P(\tau; \theta) = \rho(s_0) \prod_{t=0}^T \pi_\theta(a_t \mid s_t) P(s_{t+1} \mid s_t, a_t)
+\end{equation}
+با مشتق‌گیری دیفرانسیلی نسبت به بردار پارامترها $\theta \in \mathbb{R}^d$ و استفاده از هویت مشتق لگاریتمی $\nabla_\theta P(\tau; \theta) = P(\tau; \theta) \nabla_\theta \log P(\tau; \theta)$:
+\begin{equation}
+\begin{aligned}
+    \nabla_\theta J(\theta) &= \int \nabla_\theta P(\tau; \theta) R(\tau) \, d\tau \\
+    &= \int P(\tau; \theta) \nabla_\theta \log P(\tau; \theta) R(\tau) \, d\tau \\
+    &= \mathbb{E}_{\tau \sim \pi_\theta} \left[ \nabla_\theta \log P(\tau; \theta) R(\tau) \right]
+\end{aligned}
+\end{equation}
+با توجه به استقلال توابع انتقال محیط از پارامترهای مدل ($\nabla_\theta P(s_{t+1} \mid s_t, a_t) = \mathbf{0}$)، مشتق زنجیره‌ای چگالی مسیر به جمع گرادیان لاگ-احتمالات اقدامات تبدیل شده و با جایگزینی پاداش کل با تابع مزیت $\hat{A}(s_t, a_t)$ برای کاهش واریانس، گرادیان استاندارد خط‌مشی حاصل می‌شود:
+\begin{equation}
+    \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^T \nabla_\theta \log \pi_\theta(a_t \mid s_t) \hat{A}(s_t, a_t) \right]
+\end{equation}
+
+\subparagraph*{۲. نمونه‌برداری بااهمیت (\en{Importance Sampling}) و تحلیل تئوری اطلاعات:}
+هنگام آموزش ناهمگام (\en{Off-Policy}) که در آن داده‌ها توسط خط‌مشی پیشین $\pi_{\theta_{\text{old}}}$ تولید شده‌اند، امید ریاضی تحت توزیع جدید با استفاده از وزن اهمیت بازنویسی می‌شود. به ازای توکن $t$ از پاسخ $o_i$ برای پرامپت $q$:
+\begin{equation}
+    r_{i,t}(\theta) = \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}
+\end{equation}
+از منظر تئوری اطلاعات، فاصله میان دو خط‌مشی با واگرایی کولبک-لایبلر (\en{KL Divergence}) سنجیده می‌شود:
+\begin{equation}
+    \mathbb{D}_{\text{KL}}(\pi_{\theta_{\text{old}}} \parallel \pi_\theta) = -\mathbb{E}_{\pi_{\theta_{\text{old}}}} \left[ \log r_{i,t}(\theta) \right]
+\end{equation}
+واریانس تخمین‌گر نمونه‌برداری بااهمیت به ممان دوم نسبت احتمال وابسته است:
+\begin{equation}
+    \operatorname{Var}_{\pi_{\theta_{\text{old}}}}\left[ r_{i,t}(\theta) f(x) \right] = \mathbb{E}_{\pi_{\theta_{\text{old}}}}\left[ (r_{i,t}(\theta))^2 f^2(x) \right] - \left( \mathbb{E}_{\pi_\theta}[f(x)] \right)^2
+\end{equation}
+هنگامی که خط‌مشی جدید $\pi_\theta$ دچار انحراف شود، نسبت $r_{i,t}(\theta)$ می‌تواند بی‌نهایت بزرگ شده و به انفجار واریانس گرادیان و فروپاشی آموزش در مدل‌های زبانی عظیم منتهی گردد.
+
+\subparagraph*{۳. برش نامتقارن (\en{Asymmetric Clipping}) و عملگر توقف گرادیان (\en{Stop-Gradient}):}
+برای برطرف کردن این ناپایداری، الگوریتم \en{CISPO} نسبت اهمیت را به صورت نامتقارن برش می‌زند:
+\begin{equation}
+    \hat{r}_{i,t}(\theta) = \operatorname{clip}\left( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}, \, 0, \, 1 + \epsilon_{\text{high}}^{\text{IS}} \right)
+\end{equation}
+کران بالای $1 + \epsilon_{\text{high}}^{\text{IS}}$ از جهش‌های بزرگ خط‌مشی ممانعت می‌کند؛ در حالی که کران پایین صفر (برخلاف رویکرد متقارن \en{PPO} \cite{schulman2017ppo} که کران پایین را روی $1-\epsilon$ می‌بندد) اجازه می‌دهد توکن‌ها و رفتارهایی که در خط‌مشی جدید رد شده‌اند، با شدت زیاد تضعیف و سرکوب شوند. 
+
+همچنین با اعمال عملگر توقف گرادیان $\operatorname{sg}(\cdot)$ بر روی وزن اهمیت، از تشکیل مشتقات مرتبه دوم ناشی از خود نسبت وزنی جلوگیری شده و فرمول نهایی تابع هدف \en{CISPO} به دست می‌آید:
+\begin{equation}
+    J_{\text{CISPO}}(\theta) = \mathbb{E}_{\substack{(q,a) \sim \mathcal{D} \\ \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}(\cdot \mid q)}} \left[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \operatorname{sg}\left(\hat{r}_{i,t}(\theta)\right) \hat{A}_{i,t} \log \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \right]
+\end{equation}
+که در آن $G$ تعداد رول‌اوت‌ها به ازای هر پرسش و $|o_i|$ طول توالی است. ضریب نرمال‌سازی $\frac{1}{\sum |o_i|}$ موجب وزن‌دهی یکنواخت به ازای هر توکن و حذف سوگیری به نفع مسیرهای طولانی‌تر می‌گردد.
+
+تخمین مزیت $\hat{A}_{i,t}$ نیز از طریق جمع پاداش تا انتها (\en{Reward-to-Go}) منهای خط پایه کاهش واریانس محاسبه می‌شود:
+\begin{equation}
+    \hat{A}_{i,t} = \sum_{p=t}^T r_p - B_i \quad , \quad G_t = \sum_{\tau=t}^T \gamma^{\tau - t} r_\tau
+\end{equation}
+
+\paragraph*{طراحی پاداش ترکیبی و آموزش چنددامنه‌ای (\en{Composite Reward \& Mixed-Domain RL})}
+در مسیرهای طولانی تا \en{192K} توکن، سیگنال‌های تنک انتهای مسیر کفایت نمی‌کنند. پاداش در هر گام به صورت ترکیبی از سه مولفه تعیین می‌شود:
+\begin{equation}
+    r_t = \alpha \cdot r_t^{\text{process}} + \beta \cdot r_t^{\text{speed}} + r_t^{\text{perf}}
+\end{equation}
+\begin{itemize}
+    \item \textbf{پاداش متراکم فرایند ($r_t^{\text{process}}$):} تشویق ساختار منظم استدلال و اعمال جریمه بر خطاهای سینتکسی در فراخوانی ابزارها یا اختلاط نامطلوب زبان‌ها.
+    \item \textbf{پاداش سرعت اجرای وظیفه ($r_t^{\text{speed}}$):} تشویق مدل به موازی‌سازی اجرای ابزارها و کاهش زمان واقعی انتظار (\en{Wall-clock Time}):
+    \begin{equation}
+        r_t^{\text{speed}} = h\left( \frac{T_{\text{completion}}}{T_{\text{baseline}}} \right)
+    \end{equation}
+    که در آن $h(\cdot)$ تابعی اکیداً نزولی، $T_{\text{completion}}$ زمان سپری‌شده در مسیر و $T_{\text{baseline}}$ زمان مرجع است.
+    \item \textbf{پاداش عملکرد ($r_t^{\text{perf}}$):} سیگنال عینی موفقیت در تست‌ها یا تطابق مقادیر با داده‌های مرجع.
+\end{itemize}
+برای جلوگیری از پدیده فراموشی فاجعه‌بار و انتقال منفی (\en{Negative Transfer})، آموزش \en{RL} به صورت هم‌زمان بر روی چهار دامنه استدلال، کد، کارهای عاملی و گفتگو پیش می‌رود. در طول مراحل، سه بعد اصلی به صورت برنامه‌ریزی‌شده (\en{Curriculum}) تنظیم می‌شوند: نسبت آمیختگی دامنه‌ها (تمرکز نخستین بر مهارت‌های استدلالی و سپس گسترش وظایف عاملی)، افزایش تدریجی طول کانتکست، و ارتقای توزیع دشواری مسائل.
+
+\paragraph*{زیرساخت مقیاس‌پذیر \en{Forge} و حل مثلث ناممکن (\en{Forge RL Infrastructure})}
+آموزش سیستم‌های عاملی با یک چالش سه‌گانه بنیادین (\en{Impossible Triangle}) شامل \textbf{بیشینه‌سازی توان عملیاتی (\en{Throughput})}، \textbf{پایداری بهینه‌سازی ($\mathbb{E}[\operatorname{Var}(\nabla_\theta J)] < \delta$)}، و \textbf{پشتیبانی از ساختارهای دلخواه عامل ($\mathcal{A} \in \Omega_{\text{agent}}$)} مواجه است. زیرساخت \en{Forge} با نوآوری‌های زیر این تنش‌ها را برطرف ساخته است:
+\begin{itemize}
+    \item \textbf{معماری تفکیک‌شده سه‌لایه:} تفکیک لایه عامل (\en{Agent Side}) به عنوان تولیدکننده صرف مسیر، لایه میان‌افزار (\en{Gateway Server} و \en{Data Pool}) برای مسیریابی مستقل و ذخیره توزیع‌شده داده‌ها، و لایه موتورهای محاسباتی (\en{Rollout Engine} و \en{Train Engine}) جهت همگام‌سازی ناهمگام وزن‌ها.
+    \item \textbf{پشتیبانی از عامل‌های جعبه‌سفید و جعبه‌سیاه:} عامل‌های جعبه‌سفید امکان بازسازی دقیق کانتکست و پس‌انتشار در تحولات حافظه را فراهم می‌سازند؛ در حالی که عامل‌های جعبه‌سیاه با تکیه صرف بر جریان درخواست‌های بیرونی $(s_t, a_t, o_t)$، بدون نیاز به دستکاری کدهای درونی، داربست‌های چندعاملی و حلقه‌های استدلال عمیق را آموزش می‌دهند.
+    \item \textbf{زمان‌بندی پنجره‌ای (\en{Windowed FIFO Scheduling}):} زمان اجرای وظایف عاملی تنوع شدیدی دارد (از چند ثانیه تا چندین ساعت). صف‌بندی سنتی \en{FIFO} موجب انسداد صف توسط تسک‌های کند (\en{Head-of-Line / HoL Blocking}) می‌شود؛ در مقابل، صف‌بندی حریصانه منجر به هجوم نمونه‌های کوتاه و ایجاد رانش شدید توزیع داده می‌گردد. الگوریتم \en{Windowed FIFO} واکشی داده‌ها را به یک پنجره لغزان $[T_i, T_{i+W-1}]$ با اندازه متناسب ($W = 0.3N$) محدود می‌سازد؛ درون پنجره واکشی آزاد است (مهار \en{HoL})، اما پیشروی پنجره منوط به مصرف کهنه‌ترین تسک‌ها در ابتدای صف است که ثبات توزیع آماری را تضمین می‌کند.
+\end{itemize}
+
+\paragraph*{اثبات ریاضی عدم اتلاف در ادغام درخت پیشوند (\en{Prefix Tree Merging})}
+در تعاملات چندمرحله‌ای، نمونه‌های یک گروه دارای پیشوندهای متنی مشترک طولانی هستند. در رویکرد معمول، این بخش‌های مشترک به ازای هر نمونه مکرراً پردازش می‌شوند. سیستم \en{Forge} این ساختار را به یک درخت پیشوند تبدیل کرده و بخش مشترک را تنها یک بار در گذر پیشرو (\en{Forward Pass}) محاسبه می‌نماید.
+
+\subparagraph*{اثبات برابری و خطای تقریب صفر بر مبنای جبر خطی:}
+در لایه خودتوجهی چندسر (\en{Multi-Head Attention})، برای دنباله‌ای به طول $L$، ماتریس توجه با ماسک علّی $M \in \mathbb{R}^{L \times L}$ محاسبه می‌شود:
+\begin{equation}
+    \operatorname{Attention}(Q, K, V) = \operatorname{Softmax}\left( \frac{Q K^T}{\sqrt{d_k}} + M \right) V
+\end{equation}
+ماسک علّی ساختار ماتریس مثلثی پایینی دارد:
+\begin{equation}
+    M_{ij} = \begin{cases} 
+        0 & j \le i \\ 
+        -\infty & j > i 
+    \end{cases}
+\end{equation}
+به دلیل این ساختار، بازنمایی فعال‌سازی پنهان برای هر موقعیت توکن $k$ در پیشوند مشترک ($k \le L_{\text{prefix}}$) منحصراً تابعی از بردارهای پیشین است:
+\begin{equation}
+    h_k = f_{\text{attn}}\left(h_{\le k}, W_Q, W_K, W_V\right)
+\end{equation}
+این بردار $h_k$ نسبت به توکن‌هایی که در آینده در شاخه‌های گوناگون منشعب خواهند شد، به صورت اکید مستقل است. در نتیجه:
+\begin{equation}
+    \|h_{\text{tree}} - h_{\text{independent}}\| = 0
+\end{equation}
+پس از پایان گذر پیشرو، فعال‌سازی‌ها بر اساس فراداده‌های شاخه‌ها تفکیک شده و گرادیان تابع اتلاف به صورت مستقل محاسبه می‌شود. این نوآوری تا \textbf{۴۰ برابر سرعت آموزش را در بافت‌های طولانی افزایش داده} و حافظه مصرفی را به حداقل می‌رساند.
+
+\paragraph*{بهینه‌سازی‌های شتاب‌دهی استنتاج (\en{Inference Acceleration})}
+به منظور تسریع فرآیند رول‌اوت در حین یادگیری تقویتی:
+\begin{itemize}
+    \item \textbf{آموزش همگام ماژول‌های \en{MTP}:} ماژول‌های پیش‌بینی چندتوکنی (\en{Multi-Token Prediction - MTP}) \cite{gloeckle2024better} با کپی کردن وزن‌های مدل اصلی مقداردهی شده و در حین \en{RL} با اتلاف واگرایی کولبک-لایبلر (\en{Top-$K$ KL Loss}) آموزش می‌بینند تا نرخ پذیرش توکن‌های حدسی در رمزگشایی گمانه‌زن (\en{Speculative Decoding}) \cite{leviathan2023fast} در شرایط تغییر توزیع مدل حفظ شود.
+    \item \textbf{جداسازی محاسباتی فازهای \en{Prefill} و \en{Decode}:} پردازش کانتکست (\en{Prefill}) و تولید توکن (\en{Decode}) به نودهای سخت‌افزاری مجزا با استراتژی‌های موازی‌سازی بهینه‌شده تفکیک شده‌اند تا تداخل زمان‌بندی در معماری \en{MoE} حذف گردد.
+    \item \textbf{استخر سراسری \en{L3 KV Cache}:} یک کش توزیع‌شده با ساختار پیمایش عمقی (\en{DFS-backed}) که با مسیریابی آگاه از هزینه، نرخ برخورد (\en{Cache Hit}) کانتکست‌های تکراری را در طول مکالمات چندمرحله‌ای بیشینه می‌سازد.
+\end{itemize}
+
+\paragraph*{سامانه خودتکاملی و داربست‌های بازگشتی (\en{Self-Evolution \& MLE-Bench})}
+در نسخه \model{MiniMax-M2.7}، مدل وارد مرحله عملیاتی \textbf{خودتکاملی (\en{Self-Evolution})} شده است؛ بدین معنا که مدل به صورت خودمختار در هدایت چرخه توسعه، رفع عیوب و بازآرایی زیرساخت‌های خود نقش ایفا می‌کند:
+\begin{itemize}
+    \item \textbf{سامانه تکرار مدل (\en{Model Iteration System}):} این چارچوب بر اصل «انسان هدایت می‌کند، مدل می‌سازد» بنا شده است. محیط کاری عامل (\en{Agent Harness}) شامل مهارت‌های تعاملی، حافظه پایدار، گاردریل‌ها و بسترهای تست، تماماً توسط نسخه داخلی \model{M2.7} و بدون حتی یک خط کدنویسی انسان تولید شده است.
+    \item \textbf{چرخه کاری دوگانه تیم \en{RL}:} عامل به طور خودکار به پایش لاگ‌های آموزش، پروفایلینگ اجرای مدل و ریشه‌یابی ناهنجاری‌های یادگیری تقویتی پرداخته و با دیباگ کد و تنظیم ابرپارامترها، \textbf{۳۰٪ تا ۵۰٪ از بار کاری روزمره مهندسان \en{RL} را جذب کرده است}.
+    \item \textbf{بهینه‌سازی بازگشتی داربست‌ها:} مدل در یک آزمایش بهینه‌سازی ۱۰۰ دوره‌ای خودمختار، با تحلیل خطاها و افزودن قابلیت‌هایی نظیر تشخیص حلقه بی‌نهایت (\en{Loop Detection}) به کدهای ابزار خود، توانست کارایی داربست داخلی کدنویسی را ۳۰٪ افزایش دهد.
+    \item \textbf{مطالعه موردی در مهندسی یادگیری ماشین (\en{MLE-Bench Lite}):} در ارزیابی جامع روی ۲۲ مسابقه واقعی یادگیری ماشین در بنچمارک \en{MLE-Bench Lite} \cite{chan2025mlebench}، مدل تحت پنجره ۲۴ ساعته با نقد مداوم خود (\en{Self-reflection}) و ذخیره آموخته‌ها در حافظه کوتاه، توانست به \textbf{نرخ مدال ۶۶.۶٪} (شامل ۹ مدال طلا، ۵ نقره و ۱ برنز) دست یافته و با مدل اختصاصی \en{Gemini 3.1 Pro} برابری نماید.
+\end{itemize}
+
+\paragraph*{نتایج ارزیابی‌های جامع و مقایسه با مدل‌های مرزی}
+همان‌گونه که در جدول \ref{tab:minimax_m2_eval_results} نشان داده شده است، مدل \model{MiniMax-M2.7} با وجود ردپای محاسباتی کوچک (تنها $\sim$۱۰ میلیارد پارامتر فعال در هر توکن)، در سطحی هم‌تراز با بزرگ‌ترین مدل‌های وزن‌بسته تجاری جهان رقابت می‌کند.
+
+\begin{table}[htbp]
+\centering
+\caption{عملکرد \model{MiniMax-M2.7} در مقایسه با مدل‌های تجاری مطرح بر روی بنچمارک‌های عامل‌محور، اداری و استدلال}
+\label{tab:minimax_m2_eval_results}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{شاخه ارزیابی / بنچمارک} & \model{M2.7} & \model{M2.5} & \en{Opus 4.6} & \en{Sonnet 4.6} & \en{GPT 5.4} & \en{Gemini 3.1 Pro} \\
+\midrule
+\multicolumn{7}{l}{\textbf{کدنویسی و مهندسی نرم‌افزار (\en{Coding \& SWE Agents})}} \\
+\en{SWE-bench Pro} & 56.2 & 55.4 & 57.3 & 57.2 & \textbf{57.7} & 54.2 \\
+\en{SWE-bench Multilingual} & 76.5 & 74.1 & \textbf{77.8} & 75.9 & 70.5 & -- \\
+\en{Multi-SWE-bench} & \textbf{52.7} & 51.3 & 50.3 & 51.0 & 49.0 & -- \\
+\en{Terminal-Bench 2.0} & 57.0 & 51.7 & 65.4 & 59.1 & \textbf{75.1} & 68.5 \\
+\en{MLE Bench Lite (Medal \%)} & 66.6 & 51.5 & \textbf{75.7} & 72.7 & 71.2 & 66.6 \\
+\midrule
+\multicolumn{7}{l}{\textbf{توسعه اپلیکیشن (\en{Application Development})}} \\
+\en{VIBE-Pro} & 55.6 & 54.2 & 55.6 & \textbf{56.1} & -- & 41.0 \\
+\en{HyperTask} & 67.6 & 59.4 & \textbf{75.7} & 74.1 & -- & 50.9 \\
+\midrule
+\multicolumn{7}{l}{\textbf{همکاری اداری و وب (\en{Agentic Cowork \& Search})}} \\
+\en{BrowseComp} & 77.8 & 76.3 & 84.0 & 74.7 & 82.7 & \textbf{85.9} \\
+\en{GDPval-AA} & 50.0 & 35.0 & 55.0 & 57.0 & \textbf{58.0} & 41.0 \\
+\en{Toolathlon} & 46.3 & 38.3 & 47.2 & 44.8 & \textbf{54.6} & 48.8 \\
+\en{MM Claw} & 62.7 & 57.6 & \textbf{75.4} & 64.2 & 73.6 & 61.8 \\
+\midrule
+\multicolumn{7}{l}{\textbf{استدلال ریاضی و دانش تخصصی (\en{Reasoning \& Knowledge})}} \\
+\en{AIME 2026} & 94.2 & 87.2 & 92.5 & 92.7 & \textbf{97.0} & 88.7 \\
+\en{GPQA-Diamond} & 89.8 & 85.2 & 89.6 & 87.5 & 92.0 & \textbf{94.1} \\
+\en{IFBench} & 76.0 & 72.0 & 53.1 & 56.6 & 73.9 & \textbf{77.1} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
