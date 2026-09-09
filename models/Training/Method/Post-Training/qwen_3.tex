@@ -1,1 +1,337 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و پارادایم یکپارچه پس‌آموزش (\en{Post-Training Paradigm})}
+فرآیند پس‌آموزش (\en{Post-Training}) در خانواده مدل‌های \model{Qwen3} \cite{qwen3techreport} بر پایه یک معماری تحول‌آفرین با دو هدف راهبردی بنیادین بازطراحی شده است:
+\begin{enumerate}
+    \item \textbf{کنترل یکپارچه تفکر (\en{Thinking Control}):} ادغام کامل «حالت تفکر» (\en{Thinking Mode} برای استدلال‌های عمیق چندمرحله‌ای) و «حالت عدم تفکر» (\en{Non-thinking Mode} برای پاسخ‌های سریع و محاوره‌ای) درون یک مدل واحد، بدون نیاز به سوئیچ میان مدل‌های مجزا (نظیر جابجایی میان \model{Qwen2.5} و \model{QwQ} \cite{qwq32b}).
+    \item \textbf{تقطیر بهینه قوی‌به‌ضعیف (\en{Strong-to-Weak Distillation}):} ارتقای عملکرد مدل‌های سبک‌وزن با انتقال دانش توزیع لاجیت‌ها از مدل‌های پرچمدار، که ضمن کاهش ده برابری هزینه‌های محاسباتی نسبت به یادگیری تقویتی مستقیم، فضای کاوش (\en{Exploration Space}) مدل‌های کوچک‌تر را به طرز چشمگیری گسترش می‌دهد.
+\end{enumerate}
+
+مدل‌های پرچمدار (\model{Qwen3-235B-A22B} و \model{Qwen3-32B}) یک فرآیند جامع چهارمرحله‌ای را طی می‌کنند، در حالی که مدل‌های سبک‌وزن (\model{Qwen3-30B-A3B} و مدل‌های چگال از \model{0.6B} تا \model{14B}) از طریق خط‌لوله تقطیر دانش دومرحله‌ای آموزش می‌بینند.
+
+% =========================================================================
+% دیاگرام جامع فرآیند پس‌آموزش Qwen3 (طراحی استاندارد بدون تداخل و رنگ‌های پایه)
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.1cm and 1.2cm,
+    base/.style={draw, rounded corners=5pt, align=center, line width=1pt, drop shadow},
+    flagship_base/.style={base, fill=blue!15, draw=blue!70!black, minimum width=6.2cm, minimum height=1.0cm, font=\bfseries},
+    stage_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=6.6cm, minimum height=1.45cm},
+    fusion_box/.style={base, fill=orange!15, draw=orange!80!black, minimum width=6.6cm, minimum height=1.5cm},
+    flagship_final/.style={base, fill=green!15, draw=green!60!black, minimum width=6.2cm, minimum height=1.0cm, font=\bfseries},
+    small_base/.style={base, fill=purple!12, draw=purple!70!black, minimum width=5.6cm, minimum height=1.0cm, font=\bfseries},
+    distill_box/.style={base, fill=yellow!25!orange!20, draw=orange!80!black, minimum width=5.8cm, minimum height=1.65cm},
+    small_final/.style={base, fill=cyan!15, draw=cyan!70!black, minimum width=5.8cm, minimum height=1.0cm, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black},
+    dash_arrow/.style={-{Stealth[scale=1.1]}, dashed, line width=1.2pt, draw=red!75!black}
+]
+
+    % --- مسیر مدل‌های پرچمدار (ستون راست) ---
+    \node[flagship_base] (f_base) {مدل‌های پایه پرچمدار\\ \en{Flagship Base (235B-A22B / 32B)}};
+    
+    \node[stage_box, below=0.9cm of f_base] (stage1) {
+        \textbf{مرحله اول: استارت سرد استدلال بلند}\\ \en{Stage 1: Long-CoT Cold Start}\\[3pt]
+        \scriptsize $\bullet$ فیلتر پرسش‌ها با \en{72B-Instruct} و غربالگری ۶ گانه پاسخ‌ها\\
+        \scriptsize $\bullet$ تزریق ساختار استدلال با حداقل گام‌های \en{SFT}
+    };
+    
+    \node[stage_box, below=0.9cm of stage1] (stage2) {
+        \textbf{مرحله دوم: یادگیری تقویتی استدلالی}\\ \en{Stage 2: Reasoning RL}\\[3pt]
+        \scriptsize $\bullet$ الگوریتم بهینه‌سازی نسبی گروهی (\en{GRPO}) \cite{shao2024deepseekmath}\\
+        \scriptsize $\bullet$ ۳,۹۹۵ جفت پرسش-تأییدکننده چالش‌برانگیز ریاضی و کدنویسی\\
+        \scriptsize $\bullet$ مهار پویای آنتروپی برای پایداری آموزش و حفظ کاوش
+    };
+    
+    \node[fusion_box, below=0.9cm of stage2] (stage3) {
+        \textbf{مرحله سوم: ادغام حالات تفکر}\\ \en{Stage 3: Thinking Mode Fusion}\\[3pt]
+        \scriptsize $\bullet$ ترکیب داده‌های فکری (\en{Rejection Sampling}) و مکالمه‌ای\\
+        \scriptsize $\bullet$ قالب مکالمه استاندارد با پرچم‌های \en{/think} و \en{/no\_think}\\
+        \scriptsize $\bullet$ پیدایش خودبه‌خودی کنترل بودجه تفکر (\en{Thinking Budget})
+    };
+    
+    \node[stage_box, below=0.9cm of stage3] (stage4) {
+        \textbf{مرحله چهارم: یادگیری تقویتی عمومی}\\ \en{Stage 4: General RL}\\[3pt]
+        \scriptsize $\bullet$ پاداش سه‌گانه: قاعده‌محور، مدلی با مرجع، و مدل ترجیحات\\
+        \scriptsize $\bullet$ ترازسازی بیش از ۲۰ تسک (پیروی از فرمت، ابزار و \en{RAG})
+    };
+    
+    \node[flagship_final, below=0.9cm of stage4] (f_final) {
+        مدل‌های پرچمدار نهایی تراز شده\\
+        \normalsize \model{Qwen3-235B-A22B} و \model{Qwen3-32B}
+    };
+
+    % --- مسیر مدل‌های سبک‌وزن (ستون چپ) ---
+    \node[small_base, right=2.2cm of f_base] (s_base) {مدل‌های پایه سبک‌وزن\\ \en{Lightweight Base (0.6B to 30B-A3B)}};
+    
+    \node[distill_box, below=2.8cm of s_base] (distill_off) {
+        \textbf{فاز ۱: تقطیر خارج از خط‌مشی}\\ \en{Off-Policy Distillation}\\[4pt]
+        \scriptsize $\bullet$ آموزش نظارت‌شده با خروجی‌های معلمان پرچمدار\\
+        \scriptsize $\bullet$ فراگیری هم‌زمان الگوهای فکری و پاسخ صریح
+    };
+    
+    \node[distill_box, below=2.2cm of distill_off] (distill_on) {
+        \textbf{فاز ۲: تقطیر حین خط‌مشی لاجیت‌ها}\\ \en{On-Policy Logit Distillation}\\[4pt]
+        \scriptsize $\bullet$ انطباق توزیع لاجیت‌ها با کمینه‌سازی واگرایی \en{KL}\\
+        \scriptsize $\bullet$ ۱۰ برابر صرفه‌جویی زمانی و جهش در شاخص \en{Pass@64}
+    };
+    
+    \node[small_final, below=2.8cm of distill_on] (s_final) {
+        مدل‌های سبک‌وزن نهایی تراز شده\\
+        \normalsize (\model{30B-A3B}، \model{14B}، \model{8B}، \model{4B}، \model{1.7B}، \model{0.6B})
+    };
+
+    % رسم خطوط جریان اصلی
+    \draw[arrow] (f_base) -- (stage1);
+    \draw[arrow] (stage1) -- (stage2);
+    \draw[arrow] (stage2) -- (stage3);
+    \draw[arrow] (stage3) -- (stage4);
+    \draw[arrow] (stage4) -- (f_final);
+
+    \draw[arrow] (s_base) -- (distill_off);
+    \draw[arrow] (distill_off) -- (distill_on);
+    \draw[arrow] (distill_on) -- (s_final);
+
+    % خطوط انتقال دانش از پرچمداران به تقطیر
+    \draw[dash_arrow] (f_final.east) to[out=0, in=270] node[pos=0.5, right, font=\scriptsize\bfseries, text=red!75!black] {هدایت تقطیر لاجیت‌ها} (distill_on.south);
+    \draw[dash_arrow] (stage3.east) to[out=15, in=190] node[pos=0.45, above, font=\scriptsize\bfseries, text=red!75!black] {انتقال ردپای تفکر} (distill_off.west);
+
+\end{tikzpicture}%
+}
+\caption{جریان‌کاری جامع پس‌آموزش در خانواده \model{Qwen3}: تمایز راهبردی مسیر چهارمرحله‌ای مدل‌های پرچمدار و تقطیر قوی‌به‌ضعیف دومرحله‌ای برای مدل‌های سبک‌وزن.}
+\label{fig:qwen3_post_training_pipeline}
+\end{figure}
+
+\paragraph*{مرحله اول: استارت سرد استدلال زنجیره‌ای بلند (\en{Long-CoT Cold Start})}
+هدف این مرحله، تزریق الگوهای تعمق و استدلال گام‌به‌گام (\en{Chain-of-Thought - CoT}) بدون محدود ساختن ظرفیت کاوش آزادانه مدل در مراحل پسین است. مجموعه‌داده این مرحله دامنه‌های ریاضیات، کدنویسی و مسائل علمی (\en{STEM}) را در بر می‌گیرد که دارای پاسخ نهایی قطعی هستند. پالایش داده‌ها در دو فاز انجام می‌شود:
+\begin{itemize}
+    \item \textbf{فاز نخست؛ پالایش پرسش‌ها (\en{Query Filtering}):} با کمک مدل \model{Qwen2.5-72B-Instruct} \cite{yang2024qwen25}، پرسش‌های بدون شیوه ارزیابی خودکار، پرسش‌های چندبخشی و همچنین مسائلی که بدون نیاز به تفکر گام‌به‌گام به درستی حل می‌شوند، حذف می‌گردند تا از شکل‌گیری حدس‌های سطحی در مدل ممانعت به عمل آید.
+    \item \textbf{فاز دوم؛ پالایش پاسخ‌ها (\en{Response Filtering}):} به ازای هر پرسش باقیمانده، تعداد $N$ پاسخ کاندید توسط مدل \model{QwQ-32B} \cite{qwq32b} تولید می‌شود. پاسخ‌های موفق تحت غربالگری شش‌گانه سخت‌گیرانه‌ای قرار می‌گیرند تا موارد دارای جواب اشتباه، تکرار بیهوده، حدس نامعتبر، عدم تطابق میان محتوای تفکر و پاسخ نهایی، ناهماهنگی زبانی و شباهت به آزمون‌ها حذف شوند.
+\end{itemize}
+تعداد نمونه‌ها و گام‌های به‌روزرسانی در این مرحله در حداقل مقدار ممکن نگه داشته می‌شود تا مدل در فاز یادگیری تقویتی انعطاف کافی برای کشف مسیرهای نو را داشته باشد.
+
+\paragraph*{مرحله دوم: یادگیری تقویتی متمرکز بر استدلال (\en{Reasoning RL})}
+در این مرحله، پارامترهای مدل با تکیه بر ۳,۹۹۵ جفت «پرسش-تأییدکننده» (\en{Query-Verifier Pairs}) ارتقا می‌یابند. این جفت‌ها بر مبنای چهار معیار انتخاب شده‌اند: در فاز استارت سرد استفاده نشده باشند، برای مدل قابل یادگیری باشند، بیشترین چالش و دشواری را داشته باشند، و زیرشاخه‌های موضوعی متنوع را پوشش دهند.
+
+بهینه‌سازی پارامترها با استفاده از الگوریتم «بهینه‌سازی خط‌مشی نسبی گروهی» (\en{Group Relative Policy Optimization - GRPO}) \cite{shao2024deepseekmath} صورت می‌گیرد که نیاز به مدل نقاد (\en{Value Network}) را منتفی می‌سازد.
+
+\paragraph*{اشتقاق کامل ریاضی و دیفرانسیلی گرادیان خط‌مشی و \en{GRPO}}
+یک توالی خروجی به صورت مسیر $\tau = (q, o)$ در نظر گرفته می‌شود که احتمال وقوع آن تحت مدل با پارامترهای $\theta$ برابر است با:
+\begin{equation}
+    P_\theta(o \mid q) = \prod_{t=1}^{T} \pi_\theta(o_t \mid q, o_{<t})
+\end{equation}
+تابع هدف کلی یادگیری تقویتی مبتنی بر بیشینه‌سازی امید ریاضی پاداش است:
+\begin{equation}
+    J(\theta) = \mathbb{E}_{q \sim \mathcal{D}, o \sim \pi_\theta(\cdot \mid q)} [R(q, o)] = \int_{\mathcal{Q}} \mathcal{D}(q) \left[ \int_{\mathcal{O}} P_\theta(o \mid q) R(q, o) \, do \right] dq
+\end{equation}
+با به کار بستن قاعده مشتق لگاریتمی (\en{Log-Derivative Trick}):
+\begin{equation}
+    \nabla_\theta P_\theta(o \mid q) = P_\theta(o \mid q) \nabla_\theta \log P_\theta(o \mid q)
+\end{equation}
+گرادیان تابع هدف به‌صورت زیر مشتق می‌شود:
+\begin{equation}
+    \nabla_\theta J(\theta) = \mathbb{E}_{q, o} \left[ \sum_{t=1}^T \nabla_\theta \log \pi_\theta(o_t \mid q, o_{<t}) R(q, o) \right]
+\end{equation}
+به منظور کاهش واریانس، یک تابع خط پایه $b(q)$ تفریق می‌گردد. اثبات عدم اریب بودن این تفریق بر مبنای حساب دیفرانسیل و انتگرال به‌صورت زیر است:
+\begin{equation}
+\begin{aligned}
+    \mathbb{E}_{o \sim \pi_\theta} \left[ \nabla_\theta \log P_\theta(o \mid q) b(q) \right] &= \int_{\mathcal{O}} P_\theta(o \mid q) \frac{\nabla_\theta P_\theta(o \mid q)}{P_\theta(o \mid q)} b(q) \, do \\
+    &= b(q) \nabla_\theta \left( \int_{\mathcal{O}} P_\theta(o \mid q) \, do \right) = b(q) \nabla_\theta (1) = \mathbf{0}
+\end{aligned}
+\end{equation}
+
+در الگوریتم \en{GRPO}، برای هر پرامپت $q \sim \mathcal{D}$، خط‌مشی پیشین $\pi_{\theta_{\text{old}}}$ تعداد $G$ پاسخ کاندید $\{o_1, \dots, o_G\}$ تولید می‌کند. پاداش هر پاسخ با تابع تأییدکننده قاعده‌محور ارزیابی شده و مزیت نسبی محاسبه می‌شود:
+\begin{equation}
+    \mu_q = \frac{1}{G} \sum_{i=1}^G r_i, \qquad \sigma_q = \sqrt{\frac{1}{G} \sum_{i=1}^G (r_i - \mu_q)^2 + \epsilon_{\text{eps}}}
+\end{equation}
+\begin{equation}
+    \hat{A}_i = \frac{r_i - \mu_q}{\sigma_q}
+\end{equation}
+با تعریف نسبت وزن‌های اهمیت توکنی به‌صورت $\rho_{i,t}(\theta) = \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}$، تابع هدف نهایی بهینه‌سازی به‌صورت زیر درمی‌آید:
+\begin{equation}
+\begin{aligned}
+    \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{\substack{q \sim \mathcal{D} \\ \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}}} \Bigg[ & \frac{1}{G} \sum_{i=1}^G \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \min \Big( \rho_{i,t}(\theta) \hat{A}_i, \, \text{clip}(\rho_{i,t}(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_i \Big) \\
+    & - \beta \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_{\text{ref}}) \Bigg]
+\end{aligned}
+\end{equation}
+جریمه واگرایی کولبک-لایبلر نسبت به مدل اولیه استارت سرد ($\pi_{\text{ref}}$) با تقریب نااریب شولمن \cite{schulman2020kl} محاسبه می‌شود:
+\begin{equation}
+    \mathbb{D}_{\text{KL}}^{\text{approx}}(\pi_\theta \parallel \pi_{\text{ref}}) = \frac{\pi_{\text{ref}}(o_{i,t} \mid s)}{\pi_\theta(o_{i,t} \mid s)} - \log \left( \frac{\pi_{\text{ref}}(o_{i,t} \mid s)}{\pi_\theta(o_{i,t} \mid s)} \right) - 1
+\end{equation}
+
+\paragraph*{تحلیل تئوری اطلاعات و مهار پویای آنتروپی شانون}
+برای پیشگیری از فروریزش خط‌مشی (\en{Policy Collapse})، آنتروپی شانون توزیع خروجی‌ها پایش می‌گردد:
+\begin{equation}
+    H(\pi_\theta(\cdot \mid s_t)) = - \sum_{w \in \mathcal{V}} \pi_\theta(w \mid s_t) \log \pi_\theta(w \mid s_t)
+\end{equation}
+مشتق آنتروپی نسبت به لاجیت پیش از سافت‌مکس $z_k$ (با توجه به $\frac{\partial \pi(w_i)}{\partial z_k} = \pi(w_i)(\delta_{ik} - \pi(w_k))$) برابر است با:
+\begin{equation}
+\begin{aligned}
+    \frac{\partial H}{\partial z_k} &= - \sum_{i \in \mathcal{V}} \left[ \frac{\partial \pi(w_i)}{\partial z_k} \log \pi(w_i) + \pi(w_i) \frac{1}{\pi(w_i)} \frac{\partial \pi(w_i)}{\partial z_k} \right] \\
+    &= - \sum_{i \in \mathcal{V}} \pi(w_i)(\delta_{ik} - \pi(w_k)) \log \pi(w_i) - 0 \\
+    &= - \pi(w_k) \left[ \log \pi(w_k) + H(\pi) \right]
+\end{aligned}
+\end{equation}
+در آموزش مرحله دوم \model{Qwen3}، استراتژی به‌روزرسانی به‌گونه‌ای کنترل شد که آنتروپی خط‌مشی ثابت مانده یا صعود ملایم داشته باشد. این امر موجب شد تا امتیاز مدل پرچمدار \model{Qwen3-235B-A22B} در بنچمارک المپیادی \en{AIME'24} در طول ۱۷۰ گام از **۷۰.۱ به ۸۵.۱** صعود کند.
+
+\paragraph*{مرحله سوم: ادغام حالات تفکر (\en{Thinking Mode Fusion})}
+در این مرحله، قابلیت‌های پاسخ سریع به مدل استدلال‌گر پیوند داده می‌شود. این فرآیند بر دو اصل استوار است:
+\begin{itemize}
+    \item \textbf{تلفیق داده‌های آموزشی (\en{SFT Data}):} داده‌های تفکری از طریق نمونه‌برداری دفعی (\en{Rejection Sampling}) توسط مدل مرحله دوم تولید می‌گردند تا توانمندی استدلال دچار افت نشود. داده‌های غیرتفکری نیز گستره وسیعی از کدنویسی، خلاقیت، مکالمات و ترجمه را پوشش می‌دهند.
+    \item \textbf{طراحی قالب مکالمه (\en{Chat Template Design}):} برای مدیریت حالات تفکر، قالب تعاملی استانداردی با پرچم‌های صریح طراحی شده است (جدول \ref{tab:qwen3_chat_templates}).
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{قالب تبادل پیام در فاز ادغام حالات تفکر \model{Qwen3}}
+\label{tab:qwen3_chat_templates}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{ll}
+\toprule
+\textbf{حالت تفکر (\en{Thinking Mode})} & \textbf{حالت عدم تفکر (\en{Non-Thinking Mode})} \\
+\midrule
+\en{<|im\_start|>user} & \en{<|im\_start|>user} \\
+\en{\{query\} /think<|im\_end|>} & \en{\{query\} /no\_think<|im\_end|>} \\
+\en{<|im\_start|>assistant} & \en{<|im\_start|>assistant} \\
+\en{<think>} & \en{<think>} \\
+\en{\{thinking\_content\}} & \en{</think>} \\
+\en{</think>} & \en{\{response\}<|im\_end|>} \\
+\en{\{response\}<|im\_end|>} & \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+رفتار پیش‌فرض مدل حالت تفکر است و در صورت عدم استفاده از پرچم \en{/think} نیز استدلال عمیق فراخوانی می‌شود. قرار دادن پرچم \en{/no\_think} بلوک تفکر خالی (\en{<think>\textbackslash n</think>}) تولید کرده و بلافاصله پاسخ صادر می‌گردد. در مکالمات چندنوبته با ورودی‌های گوناگون، مدل همواره بر اساس آخرین پرچم دیده‌شده عمل می‌کند.
+
+\paragraph*{کنترل بودجه استنتاج (\en{Thinking Budget Control})}
+به‌عنوان یک توانمندی نوظهور، مدل یاد می‌گیرد بر مبنای تفکر ناتمام پاسخ معتبر تولید کند. با تعیین سقف بودجه توکن، سیستم فرآیند تفکر را متوقف ساخته و رشته پرامپت زیر را تزریق می‌کند:
+\begin{center}
+\fcolorbox{gray!40}{gray!5}{%
+\begin{minipage}{0.92\textwidth}
+\small \raggedright
+\en{\textbf{Stop-Thinking Prompt Injection:}}\\
+\en{"Considering the limited time by the user, I have to give the solution based on the thinking directly now.\textbackslash n</think>.\textbackslash n\textbackslash n"}
+\end{minipage}
+}
+\end{center}
+سپس مدل فرآیند تولید را بر اساس پیش‌نویس استدلال انباشته‌شده تا همان نقطه پی می‌گیرد.
+
+\paragraph*{مرحله چهارم: یادگیری تقویتی عمومی (\en{General RL})}
+مرحله پایانی خط‌لوله مدل‌های پرچمدار، ترازسازی رفتار بر روی بیش از ۲۰ تسک عملیاتی است:
+\begin{itemize}
+    \item \textbf{پیروی از دستورات و فرمت (\en{Instruction \& Format Following}):} رعایت طول پاسخ، ارائه ساختارهای \en{JSON} و تفکیک دقیق تگ‌های تفکر.
+    \item \textbf{تراز ترجیحات (\en{Preference Alignment}):} صیقل دادن لحن، طبیعی‌سازی گفتگو و حذف ادبیات ماشینی.
+    \item \textbf{کنشگری عاملی (\en{Agent Ability}):} آموزش استفاده پایدار از ابزارها (\en{Tool Calling}) در محیط تعاملی چندنوبته.
+    \item \textbf{سناریوهای تخصصی (\en{RAG}):} کاهش خطا و توهم بر مبنای اسناد مرجع.
+\end{itemize}
+
+\paragraph*{سیستم پاداش سه‌گانه (\en{Tri-Reward Architecture})}
+سیگنال‌های پاداش از سه منبع استخراج می‌شوند:
+\begin{enumerate}
+    \item \textbf{پاداش مبتنی بر قاعده (\en{Rule-based}):} ارزیابی قطعی فرمت و صحت پاسخ‌های ریاضی و کد در سندباکس.
+    \item \textbf{پاداش مدلی با مرجع (\en{Model-based with Ref}):} داوری کیفی توسط \model{Qwen2.5-72B-Instruct} جهت جلوگیری از منفی کاذب.
+    \item \textbf{پاداش مدلی ترجیحی (\en{Preference RM}):} مبتنی بر مدل‌سازی ترجیحات مقایسه‌ای طبق رابطه بردلی-تری \cite{bradley1952}:
+    \begin{equation}
+        P_\psi(y_w \succ y_l \mid x) = \sigma(r_\psi(x, y_w) - r_\psi(x, y_l)) = \frac{1}{1 + e^{-(r_\psi(x, y_w) - r_\psi(x, y_l))}}
+    \end{equation}
+    \begin{equation}
+        \mathcal{L}_{\text{RM}}(\psi) = - \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}_{\text{pref}}} \left[ \log \sigma(r_\psi(x, y_w) - r_\psi(x, y_l)) \right]
+    \end{equation}
+\end{enumerate}
+
+\paragraph*{تقطیر قوی‌به‌ضعیف برای مدل‌های سبک‌وزن (\en{Strong-to-Weak Distillation})}
+مدل‌های سبک‌وزن (\model{30B-A3B} و مدل‌های چگال از \model{0.6B} تا \model{14B}) از طریق خط‌لوله تقطیر دانش دومرحله‌ای آموزش می‌بینند:
+\begin{itemize}
+    \item \textbf{تقطیر خارج از خط‌مشی (\en{Off-Policy Distillation}):} آموزش نظارت‌شده دانش‌آموز بر پایگاه داده خروجی‌های معلمان پرچمدار در هر دو حالت تفکر و عدم تفکر.
+    \item \textbf{تقطیر حین خط‌مشی (\en{On-Policy Logit Distillation}):} دانش‌آموز در یکی از دو حالت نمونه‌برداری کرده و توزیع لاجیت‌های آن با کمینه‌سازی واگرایی کولبک-لایبلر مستقیم (\en{Forward KL}) نسبت به معلمان پرچمدار (\model{Qwen3-32B} یا \model{Qwen3-235B-A22B}) هم‌تراز می‌گردد.
+\end{itemize}
+
+\paragraph*{اشتقاق دیفرانسیلی گرادیان تقطیر لاجیت‌ها}
+با در نظر گرفتن لاجیت‌های معلم با نماد $z_i^T$، لاجیت‌های دانش‌آموز با $z_i^S$ و دمای نرم‌سازی $\mathcal{T}$:
+\begin{equation}
+    P_i^\mathcal{T} = \frac{\exp(z_i^T / \mathcal{T})}{\sum_{k \in \mathcal{V}} \exp(z_k^T / \mathcal{T})}, \qquad Q_i^\mathcal{T} = \frac{\exp(z_i^S / \mathcal{T})}{\sum_{k \in \mathcal{V}} \exp(z_k^S / \mathcal{T})}
+\end{equation}
+تابع اتلاف تقطیر لاجیت‌ها به‌صورت زیر تعریف می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{distill}} = \mathcal{T}^2 \cdot \mathbb{D}_{\text{KL}}(P^\mathcal{T} \parallel Q^\mathcal{T}) = \mathcal{T}^2 \sum_{j \in \mathcal{V}} P_j^\mathcal{T} \left( \log P_j^\mathcal{T} - \log Q_j^\mathcal{T} \right)
+\end{equation}
+مشتق نسبت به لاجیت دانش‌آموز $z_i^S$ با استفاده از قاعده زنجیره‌ای به فرم زیر مشتق می‌گردد:
+\begin{equation}
+\begin{aligned}
+    \frac{\partial \mathcal{L}_{\text{distill}}}{\partial z_i^S} &= \sum_{j \in \mathcal{V}} \frac{\partial \mathcal{L}_{\text{distill}}}{\partial Q_j^\mathcal{T}} \frac{\partial Q_j^\mathcal{T}}{\partial z_i^S} = \sum_{j \in \mathcal{V}} \left( - \mathcal{T}^2 \frac{P_j^\mathcal{T}}{Q_j^\mathcal{T}} \right) \left[ \frac{1}{\mathcal{T}} Q_j^\mathcal{T} (\delta_{ji} - Q_i^\mathcal{T}) \right] \\
+    &= \mathcal{T} \sum_{j \in \mathcal{V}} P_j^\mathcal{T} (Q_i^\mathcal{T} - \delta_{ji}) = \mathcal{T} (Q_i^\mathcal{T} - P_i^\mathcal{T})
+\end{aligned}
+\end{equation}
+گرادیان حاصله مستقیماً متناسب با تفاضل چگالی احتمالات میان معلم و دانش‌آموز است.
+
+\paragraph*{تحلیل تجربی بازدهی تقطیر و شاخص $\text{Pass@}k$}
+برای سنجش ظرفیت حل مسئله، از تخمین‌گر نااریب چن و همکاران \cite{chen2021codex} استفاده شده است:
+\begin{equation}
+    \text{Pass@}k = \mathbb{E} \left[ 1 - \frac{\binom{n-c}{k}}{\binom{n}{k}} \right] = 1 - \prod_{j=0}^{k-1} \frac{n - c - j}{n - j}
+\end{equation}
+نتایج ارزیابی تقطیر در برابر یادگیری تقویتی مستقیم بر روی مدل \model{Qwen3-8B} در جدول \ref{tab:qwen3_distillation_comparison} ارائه شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه عملکرد و هزینه محاسباتی تقطیر حین خط‌مشی با یادگیری تقویتی روی مدل \model{Qwen3-8B} (اعداد داخل پرانتز نشان‌دهنده شاخص $\text{Pass@}64$ هستند)}
+\label{tab:qwen3_distillation_comparison}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{متدولوژی} & \textbf{\en{AIME'24}} & \textbf{\en{AIME'25}} & \textbf{\en{MATH500}} & \textbf{\en{LCB v5}} & \textbf{\en{MMLU-Redux}} & \textbf{\en{GPQA-Diam.}} & \textbf{هزینه محاسباتی (\en{GPUh})} \\
+\midrule
+تقطیر خارج از خط‌مشی & \lr{55.0 (90.0)} & \lr{42.8 (83.3)} & \lr{92.4} & \lr{42.0} & \lr{86.4} & \lr{55.6} & — \\
+$+$ یادگیری تقویتی مستقیم & \lr{67.6 (90.0)} & \lr{55.5 (83.3)} & \lr{94.8} & \lr{52.9} & \lr{86.9} & \lr{61.3} & \lr{17,920} \\
+$+$ تقطیر حین خط‌مشی لاجیت‌ها & \lr{\textbf{74.4 (93.3)}} & \lr{\textbf{65.5 (86.7)}} & \lr{\textbf{97.0}} & \lr{\textbf{60.3}} & \lr{\textbf{88.3}} & \lr{\textbf{63.3}} & \lr{\textbf{1,800}} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+تقطیر حین خط‌مشی لاجیت‌ها با صرف تنها **۱/۱۰ زمان محاسباتی**، افزون بر ارتقای $\text{Pass@}1$، سقف کاوش مدل ($\text{Pass@}64$) را در \en{AIME'24} به **۹۳.۳** و در \en{AIME'25} به **۸۶.۷** رسانده است، در حالی که \en{RL} مستقیم در این زمینه هیچ بهبودی ایجاد نکرده بود.
+
+\paragraph*{سیر تکاملی مدل \model{Qwen3-32B} و مالیات ترازسازی (\en{Alignment Tax})}
+تکامل گام‌به‌گام مدل ۳۲ میلیاردی (جدول \ref{tab:qwen3_stage_evolution}) نشان‌دهنده ارتقای قابلیت‌های کنشگری در کنار یک مصالحه عملکردی است.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی گام‌به‌گام مدل \model{Qwen3-32B} در مراحل مختلف پس‌آموزش (علامت * نشان‌دهنده آزمون‌های داخلی است)}
+\label{tab:qwen3_stage_evolution}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{llccccc}
+\toprule
+\multirow{2}{*}{\textbf{حوزه ارزیابی}} & \multirow{2}{*}{\textbf{نام بنچمارک}} & \textbf{مرحله ۲ (\en{Reasoning RL})} & \multicolumn{2}{c}{\textbf{مرحله ۳ (\en{Mode Fusion})}} & \multicolumn{2}{c}{\textbf{مرحله ۴ (\en{General RL})}} \\
+\cmidrule(lr){3-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+& & \textbf{حالت تفکر} & \textbf{حالت تفکر} & \textbf{بدون تفکر} & \textbf{حالت تفکر} & \textbf{بدون تفکر} \\
+\midrule
+\multirow{3}{*}{\textbf{وظایف عمومی}} 
+& \en{LiveBench 2024} & \lr{68.6} & \lr{70.9} & \lr{57.1} & \lr{\textbf{74.9}} & \lr{59.8} \\
+& \en{Arena-Hard} & \lr{86.8} & \lr{89.4} & \lr{88.5} & \lr{\textbf{93.8}} & \lr{92.8} \\
+& \en{CounterFactQA*} & \lr{50.4} & \lr{61.3} & \lr{64.3} & \lr{\textbf{68.1}} & \lr{66.4} \\
+\midrule
+\multirow{3}{*}{\textbf{دستورات و فرمت}} 
+& \en{IFEval strict} & \lr{73.0} & \lr{78.4} & \lr{78.4} & \lr{\textbf{85.0}} & \lr{83.2} \\
+& \en{LengthCtrl*} & \lr{62.6} & \lr{70.6} & \lr{84.9} & \lr{73.5} & \lr{\textbf{87.3}} \\
+& \en{ThinkFollow*} & — & \lr{88.7} & — & \lr{\textbf{98.9}} & — \\
+\midrule
+\multirow{2}{*}{\textbf{عاملیت}} 
+& \en{BFCL v3} & \lr{69.0} & \lr{68.4} & \lr{61.5} & \lr{\textbf{70.3}} & \lr{63.0} \\
+& \en{ToolUse*} & \lr{63.3} & \lr{70.4} & \lr{73.2} & \lr{85.5} & \lr{\textbf{86.5}} \\
+\midrule
+\multirow{2}{*}{\textbf{ریاضی و کد}} 
+& \en{AIME'24} & \lr{\textbf{83.8}} & \lr{81.9} & \lr{28.5} & \lr{81.4} & \lr{31.0} \\
+& \en{LiveCodeBench v5} & \lr{\textbf{68.4}} & \lr{67.2} & \lr{31.1} & \lr{65.7} & \lr{31.3} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+این ارزیابی‌ها دو نکته اساسی را تبیین می‌کنند:
+\begin{enumerate}
+    \item امتیاز آزمون \en{ThinkFollow} در مرحله چهارم به **۹۸.۹** ارتقا یافته که نشانگر پایبندی قطعی به سوییچ حالات تفکر است. همچنین شاخص استفاده از ابزار (\en{ToolUse}) از ۶۳.۳ به **۸۶.۵** جهش پیدا کرده است.
+    \item در وظایف محاسباتی نظیر \en{AIME'24}، امتیاز حالت تفکر پس از مراحل ۳ و ۴ با افتی معادل ۲.۴ نمره روبرو شده است. این افت به عنوان مالیات ترازسازی (\en{Alignment Tax}) برای دست‌یابی به یک مدل همه‌منظوره و منعطف پذیرفته شده است.
+\end{enumerate}

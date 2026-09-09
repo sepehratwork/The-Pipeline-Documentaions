@@ -1,1 +1,242 @@
-\item \textbf asd
+\item \model{NVIDIA Nemotron 3}
+
+\paragraph*{مقدمه و پارادایم پس‌آموزش عاملی (\en{Agentic Post-Training Paradigm})}
+فاز پس‌آموزش (\en{Post-Training}) در خانواده مدل‌های \model{NVIDIA Nemotron 3} (شامل مدل‌های \en{Nano}، \en{Super} و \en{Ultra}) بر پایه پارادایم آموزش هم‌زمان چندمحیطی (\en{Simultaneous Multi-Environment RL}) و بهینه‌سازی دقیق بودجه استدلال در زمان استنتاج پی‌ریزی شده است \cite{nemotron3_2025}. در مدل‌های نسل پیشین نظیر \en{Nemotron 2} \cite{nemotron_nano2_2025} یا کارهای مشابه نظیر \cite{deepseek2025v32}، به‌کارگیری رویکردهای مرحله‌ای (\en{Staged RL}) جهت ارتقای گام‌به‌گام توانمندی‌ها، به پدیده‌های مخربی همچون فراموشی فاجعه‌بار (\en{Catastrophic Degradation})، تداخل گرادیان‌ها و فریب پاداش (\en{Reward Hacking}) منجر می‌گردید. 
+
+در \model{Nemotron 3}، کل خط‌لوله پس‌آموزش در چهار گام منسجم یکپارچه شده است:
+\begin{enumerate}
+    \item \textbf{تنظیم دقیق نظارت‌شده برای بافت‌های کلان (\en{Long-Context SFT}):} هم‌ترازسازی مدل در پنجره بافت $256\text{k}$ توکن با تکیه بر داده‌های ترکیبی چندمرحله‌ای بدون نیاز به نشانگرهای موقعیتی روتاری (\en{RoPE}).
+    \item \textbf{یادگیری تقویتی چندمحیطی هم‌زمان (\en{Simultaneous Multi-Environment RL}):} بهینه‌سازی هم‌گام و موازی قابلیت‌های استدلال ریاضی، المپیادی، برنامه‌نویسی، کنشگری ابزارها و درک بافت طویل در چارچوب \en{NeMo-Gym}.
+    \item \textbf{بهینه‌سازی خط‌مشی گروهی با نمونه‌برداری اهمیت ماسک‌شده (\en{Asynchronous GRPO with Masked IS}):} حذف کامل شبکه نقاد (\en{Critic}) و تثبیت گرادیان‌های آف‌پالیسی در معماری نامتقارن تولید رول‌اوت.
+    \item \textbf{کنترل دانه‌بندی‌شده بودجه استدلال در زمان استنتاج (\en{Granular Reasoning Budget Control}):} مدیریت پویا و بلادرنگ طول افکار مدل با تزریق نشانه توقف \en{</think>}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع فرآیند پس‌آموزش Nemotron 3
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.4cm and 1.0cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1.1pt, drop shadow},
+    base_model/.style={base, fill=blue!15, draw=blue!75!black, minimum width=6cm, minimum height=1.1cm, font=\bfseries},
+    sft_box/.style={base, fill=cyan!12, draw=cyan!75!black, minimum width=15cm, minimum height=2cm},
+    env_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=3.3cm, minimum height=2.2cm},
+    rl_engine/.style={base, fill=orange!12, draw=orange!75!black, minimum width=15cm, minimum height=3cm},
+    worker_box/.style={base, fill=purple!12, draw=purple!75!black, minimum width=6.8cm, minimum height=2.3cm},
+    train_box/.style={base, fill=red!12, draw=red!75!black, minimum width=6.8cm, minimum height=2.3cm},
+    final_model/.style={base, fill=green!15, draw=green!60!black, minimum width=7cm, minimum height=1.2cm, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.2pt, draw=gray!80!black},
+    dash_arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, dashed, draw=blue!70!black}
+]
+
+    % Base Model
+    \node[base_model] (base) {مدل پایه پیش‌آموزش‌دیده\\ \en{Nemotron 3 Base (Hybrid Mamba-2/Transformer MoE)}};
+
+    % Long-Context SFT
+    \node[sft_box, below=1.2cm of base] (sft) {
+        \textbf{\large مرحله اول: تنظیم ظریف نظارت‌شده در بافت طویل (\en{Long-Context SFT Stage at 256k})}\\[4pt]
+        \scriptsize $\bullet$ پنجره بافت ورودی: \en{256,000} توکن بدون استفاده از \en{RoPE} در لایه‌های خودتوجهی \cite{puvvada2025swan}\\
+        \scriptsize $\bullet$ داده‌های ترکیبی سنتزی: بازیابی دوربرد (\en{Long-Range Retrieval}) و استدلال چندمرحله‌ای (\en{Multi-Hop Reasoning})\\
+        \scriptsize $\bullet$ تابع اتلاف واگرایی کمینه: $\mathcal{L}_{\mathrm{SFT}}(\theta) = - \mathbb{E}_{(x,y)}\left[\sum_{t=1}^T \log \pi_\theta(y_t \mid x, y_{<t})\right]$
+    };
+
+    % Environments Pool (NeMo-Gym)
+    \node[env_box, below left=1.3cm and 2.4cm of sft] (env1) {
+        \textbf{ریاضی و علم}\\ \en{Math / SciCode}\\[3pt]
+        \scriptsize $\bullet$ \en{AIME25} و \en{GPQA}\\
+        \scriptsize $\bullet$ وریفایرهای قطعی
+    };
+
+    \node[env_box, below left=1.3cm and -1.1cm of sft] (env2) {
+        \textbf{کدنویسی رقابتی}\\ \en{SWE / LCB v6}\\[3pt]
+        \scriptsize $\bullet$ اجرای کد در سندباکس\\
+        \scriptsize $\bullet$ تست‌کیس خودکار
+    };
+
+    \node[env_box, below right=1.3cm and -1.1cm of sft] (env3) {
+        \textbf{کنشگری عاملی}\\ \en{Agent / Tool Use}\\[3pt]
+        \scriptsize $\bullet$ بنچمارک $\text{T}^2\text{-Bench}$\\
+        \scriptsize $\bullet$ فراخوانی ابزار چندگامی
+    };
+
+    \node[env_box, below right=1.3cm and 2.4cm of sft] (env4) {
+        \textbf{بافت طویل \en{RL}}\\ \en{Long-Ctx (32k)}\\[3pt]
+        \scriptsize $\bullet$ تجمیع اسناد ترکیبی\\
+        \scriptsize $\bullet$ ارزیابی دقت بازیابی
+    };
+
+    % Gym Boundary
+    \node[draw=teal!70!black, dashed, rounded corners=7pt, fit=(env1) (env2) (env3) (env4), inner sep=8pt, label=above:\textbf{\textcolor{teal!80!black}{بستر تعاملی محیط‌های هم‌زمان تقویتی (\en{NeMo-Gym Collection})}}] (gym_pool) {};
+
+    % Distributed Async Engine
+    \node[worker_box, below left=1.5cm and -3.2cm of gym_pool] (workers) {
+        \textbf{خوشه رول‌اوت ناهمگام (\en{Inference Workers})}\\[3pt]
+        \scriptsize $\bullet$ لایه‌های پیش‌بینی چندتوکنی (\en{MTP}) با پذیرش ۹۷٪ \cite{gloeckle2024better}\\
+        \scriptsize $\bullet$ سرعت ۳.۳ برابری تولید توکن به دلیل حافظه ثابت \en{Mamba-2}\\
+        \scriptsize $\bullet$ تولید پاسخ‌های برون‌خط‌مشی: $\{y_i\}_{i=1}^G \sim \pi_{\text{rollout}}$
+    };
+
+    \node[train_box, below right=1.5cm and -3.2cm of gym_pool] (trainers) {
+        \textbf{خوشه آموزش و بهینه‌سازی (\en{NeMo-RL Nodes})}\\[3pt]
+        \scriptsize $\bullet$ الگوریتم بهینه‌سازی نسبی گروهی بدون منتقد (\en{GRPO})\\
+        \scriptsize $\bullet$ پایدارسازی گرادیان با نمونه‌برداری اهمیت ماسک‌شده (\en{Masked IS})\\
+        \scriptsize $\bullet$ مهار جابجایی سیاست با جریمه تحلیلی واگرایی \en{KL} شولمن
+    };
+
+    % Async Bridge Note
+    \node[draw=orange!80!black, fill=yellow!15, rounded corners=4pt, inner sep=4pt] at ($(workers)!0.5!(trainers)$) (async_bridge) {
+        \scriptsize \textbf{تبادل غیرمسدودکننده داده و پاداش}
+    };
+
+    % Final Model
+    \node[final_model, below=1.4cm of async_bridge] (final) {
+        مدل نهایی استدلالی \model{Nemotron 3}\\
+        \normalsize مجهز به کنترل دانه‌بندی‌شده بودجه تفکر با نشانگر \en{</think>}
+    };
+
+    % Connectors
+    \draw[arrow] (base) -- (sft);
+    \draw[arrow] (sft) -- (gym_pool);
+    \draw[arrow] (gym_pool.south) -- ++(0,-0.3) -| (workers.north);
+    \draw[arrow] (gym_pool.south) -- ++(0,-0.3) -| (trainers.north);
+    
+    \draw[dash_arrow] (workers.east) -- (async_bridge.west) node[midway, above, font=\tiny] {رول‌اوت‌ها};
+    \draw[dash_arrow] (trainers.west) -- (async_bridge.east) node[midway, above, font=\tiny] {به‌روزرسانی $\theta$};
+
+    \draw[arrow] (workers.south) |- (final.west);
+    \draw[arrow] (trainers.south) |- (final.east);
+
+\end{tikzpicture}%
+}
+\caption{پایپ‌لاین جامع پس‌آموزش در \model{Nemotron 3}: ترکیب \en{SFT} بافت طولانی، یادگیری تقویتی چندمحیطی ناهمگام و کنترل بودجه استنتاج.}
+\label{fig:nemotron3_post_training_flow}
+\end{figure}
+
+\paragraph*{تنظیم ظریف نظارت‌شده در پنجره بافت کلان (\en{Long-Context SFT})}
+پیش از ورود به بهینه‌سازی تقویتی، مدل پایه تحت آموزش نظارت‌شده در طول توالی $256\text{k}$ توکن قرار می‌گیرد. به دلیل آنکه لایه‌های ساختاریافته \en{Mamba-2} اطلاعات موقعیتی توکن‌ها را به‌طور ضمنی درون ماتریس حالت پنهان خود مدل‌سازی می‌کنند \cite{dao2024transformers}، نیازی به سیستم الحاق موقعیت دوار (\en{RoPE}) در لایه‌های توجه وجود ندارد. این امر مدل را در برابر خطاهای تعمیم طول و خروج از توزیع فرکانسی کاملاً ایمن می‌سازد \cite{puvvada2025swan}.
+
+داده‌های آموزشی این مرحله تماماً مصنوعی و شامل سه سناریوی محوری هستند: بازیابی متون پراکنده دوربرد (\en{Long-Range Retrieval})، استدلال چندمرحله‌ای (\en{Multi-Hop Reasoning}) و خلاصه‌سازی اسناد چندگانه. 
+
+از منظر تئوری اطلاعات، تابع هدف نظارت‌شده کمینه‌سازی واگرایی کولبک-لایبلر میان توزیع داده تجربی $P_{\text{data}}$ و خط‌مشی پارامتریک $\pi_\theta$ است:
+\begin{equation}
+    D_{\mathrm{KL}}(P_{\text{data}} \parallel \pi_\theta) = \sum_{y \in \mathcal{Y}} P_{\text{data}}(y \mid x) \log \left( \frac{P_{\text{data}}(y \mid x)}{\pi_\theta(y \mid x)} \right)
+\end{equation}
+با بسط جبری لگاریتم داریم:
+\begin{equation}
+    D_{\mathrm{KL}}(P_{\text{data}} \parallel \pi_\theta) = - \mathcal{H}(P_{\text{data}}) - \sum_{y \in \mathcal{Y}} P_{\text{data}}(y \mid x) \log \pi_\theta(y \mid x)
+\end{equation}
+از آنجا که آنتروپی شانون داده‌ها ($\mathcal{H}(P_{\text{data}})$) نسبت به وزن‌های مدل $\theta$ نامتغیر است ($\nabla_\theta \mathcal{H} = \mathbf{0}$)، کمینه‌سازی واگرایی به حداکثرسازی درست‌نمایی لگاریتمی (\en{MLE}) در طول توالی منتهی می‌شود:
+\begin{equation}
+    \mathcal{L}_{\mathrm{SFT}}(\theta) = - \mathbb{E}_{(x, y) \sim \mathcal{D}_{\mathrm{SFT}}} \left[ \sum_{t=1}^T \log \pi_\theta(y_t \mid x, y_{<t}) \right]
+\end{equation}
+
+\paragraph*{یادگیری تقویتی چندمحیطی هم‌زمان (\en{Simultaneous Multi-Environment RL})}
+بر خلاف رویه‌های سنتی که آموزش را به فازهای متوالی (ریاضی، سپس کدنویسی و سپس ابزارها) تقسیم می‌کردند، در \model{Nemotron 3} تمامی محیط‌ها به صورت هم‌زمان در قالب بسته متن‌باز \en{NeMo-Gym} آموزش داده می‌شوند. این رویکرد به مهار تداخل گرادیان‌ها و جلوگیری از پدیده فریب پاداش منجر شده و بهینه‌سازی همگن تمامی توانمندی‌ها را تضمین می‌کند.
+
+تابع هدف چندوظیفه‌ای بر روی $K$ محیط تعاملی به فرم زیر بیشینه می‌گردد:
+\begin{equation}
+    \max_\theta \mathcal{J}_{\text{Multi-Env}}(\theta) = \sum_{k=1}^K \omega_k \, \mathbb{E}_{x \sim \mathcal{D}_k} \left[ \mathbb{E}_{y \sim \pi_\theta(\cdot \mid x)} \left[ R_k(x, y) \right] \right]
+\end{equation}
+که در آن پاداش‌های $R_k(x, y)$ توسط بازبین‌های قطعی و محیط‌های واقعی برنامه‌نویسی و استدلال ارزیابی می‌شوند.
+
+\paragraph*{اثبات ریاضی قضیه گرادیان سیاست و برآوردگر مزیت گروهی (\en{GRPO})}
+برای اشتقاق گرادیان تابع هدف خط‌مشی $J(\theta) = \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta}[R(x, y)]$ از اصول اولیه دیفرانسیل و انتگرال، ابتدا فرم انتگرالی را تشکیل می‌دهیم:
+\begin{equation}
+    J(\theta) = \int_{\mathcal{X}} \mathcal{D}(x) \left( \sum_{y \in \mathcal{Y}} \pi_\theta(y \mid x) R(x, y) \right) dx
+\end{equation}
+با اعمال عملگر مشتق در زیر نماد انتگرال بر اساس قاعده لایبنیتس:
+\begin{equation}
+    \nabla_\theta J(\theta) = \int_{\mathcal{X}} \mathcal{D}(x) \sum_{y \in \mathcal{Y}} \nabla_\theta \pi_\theta(y \mid x) R(x, y) \, dx
+\end{equation}
+با استفاده از شگرد مشتق لگاریتمی (\en{Log-Derivative Trick}):
+\begin{equation}
+    \nabla_\theta \pi_\theta(y \mid x) = \pi_\theta(y \mid x) \frac{\nabla_\theta \pi_\theta(y \mid x)}{\pi_\theta(y \mid x)} = \pi_\theta(y \mid x) \nabla_\theta \log \pi_\theta(y \mid x)
+\end{equation}
+لذا گرادیان به‌صورت امید ریاضی بازنویسی می‌شود:
+\begin{equation}
+    \nabla_\theta J(\theta) = \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta} \left[ \nabla_\theta \log \pi_\theta(y \mid x) R(x, y) \right]
+\end{equation}
+با تفریق یک خط مبنای مستقل از کنش $b(x)$، نااریب بودن گرادیان حفظ می‌شود؛ زیرا:
+\begin{equation}
+    \mathbb{E}_{y \sim \pi_\theta} \left[ \nabla_\theta \log \pi_\theta(y \mid x) b(x) \right] = b(x) \sum_{y \in \mathcal{Y}} \nabla_\theta \pi_\theta(y \mid x) = b(x) \nabla_\theta \left( \sum_{y \in \mathcal{Y}} \pi_\theta(y \mid x) \right) = b(x) \nabla_\theta(1) = \mathbf{0}
+\end{equation}
+
+در الگوریتم \en{GRPO} \cite{shao2024deepseekmath}، جهت پرهیز از تخصیص حافظه برای شبکه سنگین نقاد (\en{Critic})، خط مبنا از طریق میانگین‌گیری گروهی از $G$ پاسخ نمونه‌برداری‌شده $\{y_1, \dots, y_G\}$ برای هر مسئله محاسبه می‌شود:
+\begin{equation}
+    \mu_G = \frac{1}{G} \sum_{i=1}^G R(x, y_i), \quad \sigma_G = \sqrt{ \frac{1}{G} \sum_{i=1}^G (R(x, y_i) - \mu_G)^2 + \epsilon }
+\end{equation}
+مقدار مزیت بهنجارشده درون‌گروهی برای پاسخ $i$-ام به‌صورت زیر تعیین می‌شود:
+\begin{equation}
+    \hat{A}_i = \frac{R(x, y_i) - \mu_G}{\sigma_G}
+\end{equation}
+
+\paragraph*{تحلیل نظریه اطلاعات جریمه \en{KL} شولمن}
+برای جلوگیری از فروپاشی خط‌مشی، واگرایی نسبت به مدل مرجع منجمد ($\pi_{\text{ref}}$) کنترل می‌گردد. برآوردگر نااریب شولمن \cite{schulman2020approximating} برای هر توکن به‌صورت زیر تعریف می‌شود:
+\begin{equation}
+    \mathbb{D}_{t}^{\mathrm{KL}}(\theta) = \frac{\pi_{\mathrm{ref}}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid x, y_{<t})} - \log \left( \frac{\pi_{\mathrm{ref}}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid x, y_{<t})} \right) - 1
+\end{equation}
+اگر نسبت دو توزیع را با متغیر اسکلار $u = \frac{\pi_{\mathrm{ref}}}{\pi_\theta} > 0$ نشان دهیم، تابع تلفات $h(u) = u - \log u - 1$ دارای مشتقات زیر است:
+\begin{equation}
+    h'(u) = 1 - \frac{1}{u}, \quad h''(u) = \frac{1}{u^2} > 0
+\end{equation}
+از آنجا که مشتق دوم در سراسر دامنه اکیداً مثبت است، تابع اکیداً محدب بوده و تنها کمینه سراسری آن در $u=1$ (انطباق کامل دو مدل) با مقدار صفر حاصل می‌شود.
+
+\paragraph*{نمونه‌برداری اهمیت ماسک‌شده در \en{RL} ناهمگام (\en{Masked Importance Sampling})}
+به‌منظور بهره‌وری حداکثری از توان پردازشی، سامانه تولید رول‌اوت از گره‌های بهینه‌سازی گرادیان تفکیک شده است. در نتیجه داده‌ها با خط‌مشی با تأخیر $\pi_{\text{rollout}}$ تولید می‌شوند. در فضاهای با بعد بالا، وزن اهمیت توالی کامل با انفجار واریانس روبرو می‌شود:
+\begin{equation}
+    w(y) = \prod_{t=1}^T \frac{\pi_\theta(y_t \mid x, y_{<t})}{\pi_{\text{rollout}}(y_t \mid x, y_{<t})} \implies \lim_{T \to \infty} \mathrm{Var}_{\pi_{\text{rollout}}}[w(y)] \to \infty
+\end{equation}
+برای مهار این ناپایداری، نسبت وزن‌ها در سطح هر توکن محاسبه شده:
+\begin{equation}
+    \rho_{i,t}(\theta) = \frac{\pi_\theta(y_{i,t} \mid x, y_{i,<t})}{\pi_{\text{rollout}}(y_{i,t} \mid x, y_{i,<t})}
+\end{equation}
+و یک ماسک پویای باینری بر مبنای مرزهای تغییرات مجاز اعمال می‌گردد:
+\begin{equation}
+    \mathcal{M}_{i, t} = \mathbb{I}\left( 1 - \delta_{\text{low}} \le \rho_{i,t}(\theta) \le 1 + \delta_{\text{high}} \right)
+\end{equation}
+بدین ترتیب، تابع اتلاف نهایی بهینه‌سازی در چارچوب \en{NeMo-RL} به‌صورت فرم بسته زیر حاصل می‌شود:
+\begin{equation}
+\begin{aligned}
+    \mathcal{L}_{\mathrm{GRPO-Masked}}(\theta) = - \frac{1}{G} \sum_{i=1}^G \frac{1}{|y_i|} \sum_{t=1}^{|y_i|} \Bigg[ & \mathcal{M}_{i, t} \cdot \min \left( \rho_{i, t}(\theta) \hat{A}_i, \, \operatorname{clip}\left(\rho_{i, t}(\theta), 1 - \epsilon, 1 + \epsilon\right) \hat{A}_i \right) \\
+    & - \beta \mathbb{D}_{t}^{\mathrm{KL}}(\theta) \Bigg]
+\end{aligned}
+\end{equation}
+
+\paragraph*{شتاب‌دهی رول‌اوت با معماری هیبریدی و لایه‌های \en{MTP}}
+سرعت بالای تولید رول‌اوت‌ها در پس‌آموزش \model{Nemotron 3} متکی بر دو نوآوری است:
+\begin{itemize}
+    \item \textbf{حافظه ثابت لایه‌های \en{Mamba-2}:} بر خلاف لایه‌های توجه ترنسفورمر که به نگهداری حافظه پنهان \en{KV Cache} با رشد خطی $\mathcal{O}(T)$ نیاز دارند، لایه‌های ساختاریافته \en{Mamba-2} از بردار وضعیت با حافظه ثابت $\mathcal{O}(1)$ در استنتاج بهره می‌برند که سرعت تولید را تا ۳.۳ برابر مدل‌های هم‌اندازه ارتقا می‌دهد \cite{nemotron3_2025}.
+    \item \textbf{لایه‌های پیش‌بینی چندتوکنی (\en{MTP}):} با پیش‌بینی موازی توکن‌های آتی در طول آموزش \cite{gloeckle2024better}، نرخ پذیرش توکن‌های حدسی در رمزگشایی گمانه‌زن (\en{Speculative Decoding}) به ۹۷٪ می‌رسد \cite{leviathan2023fast}.
+\end{itemize}
+
+\paragraph*{کنترل دانه‌بندی‌شده بودجه استدلال در زمان استنتاج (\en{Budget Control})}
+مدل‌های خانواده \model{Nemotron 3} امکان تخصیص بودجه محاسباتی دلخواه در زمان آزمون را فراهم می‌سازند. با تنظیم سقف تعداد توکن‌های تفکر، به محض رسیدن شمارنده به سقف معین، نشانه پایانی \en{</think>} به رشته الصاق شده و خط‌مشی مدل فوراً اقدام به استخراج پاسخ نهایی بر اساس ردپای استدلال تولیدشده تا آن لحظه می‌نماید (جدول \ref{tab:nemotron_budget_control}).
+
+\begin{table}[htbp]
+\centering
+\caption{تحلیل اثر بودجه توکن تفکر بر دقت وظایف استدلالی در مدل \model{Nemotron-3-Nano}}
+\label{tab:nemotron_budget_control}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lllll}
+\toprule
+\textbf{بودجه توکن (\en{Budget})} & \textbf{دقت ریاضی (\en{AIME25})} & \textbf{دقت علمی (\en{GPQA})} & \textbf{کدنویسی (\en{LCB v6})} & \textbf{دانش عمومی (\en{MMLU-Pro})} \\
+\midrule
+\textbf{۲ هزار توکن (\en{2k})} & \lr{18.4\%} & \lr{51.2\%} & \lr{50.1\%} & \lr{69.5\%} \\
+\textbf{۴ هزار توکن (\en{4k})} & \lr{42.6\%} & \lr{58.4\%} & \lr{58.3\%} & \lr{75.8\%} \\
+\textbf{۸ هزار توکن (\en{8k})} & \lr{68.9\%} & \lr{64.5\%} & \lr{64.2\%} & \lr{78.2\%} \\
+\textbf{۱۶ هزار توکن (\en{16k})} & \lr{84.0\%} & \lr{71.0\%} & \lr{68.2\%} & \lr{78.9\%} \\
+\textbf{۳۲ هزار توکن (\en{32k})} & \lr{89.1\%} (\lr{+tools: 99.2\%}) & \lr{74.5\%} & \lr{68.5\%} & \lr{79.1\%} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{زیرساخت نرم‌افزاری متن‌باز (\en{Open-Source Ecosystem})}
+انویدیا کل معماری پس‌آموزش این مدل را تحت پروانه آپاچی ۲.۰ (\en{Apache 2.0}) منتشر نموده است:
+\begin{itemize}
+    \item \textbf{\en{NeMo-RL}:} چارچوب مقیاس‌پذیر بهینه‌سازی خط‌مشی با پشتیبانی بومی از فرمت‌های محاسباتی نوین \en{NVFP4} و \en{MXFP8} و الگوریتم‌های \en{GRPO} \cite{nemotron3_2025}.
+    \item \textbf{\en{NeMo-Gym}:} جعبه‌ابزار استاندارد شامل صدها محیط تعاملی و وریفایرهای قطعی برای سنجش بلادرنگ برنامه‌ها و معادلات ریاضی \cite{nemotron3_2025}.
+\end{itemize}

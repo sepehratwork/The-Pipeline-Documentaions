@@ -1368,6 +1368,38 @@ Shishir~G Patil, Huanzhi Mao, Charlie Cheng-Jie Ji, Fanjia Yan, Vishnu Suresh,
 \newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
   2024.
 
+\bibitem{schulman2020approximating}
+John Schulman.
+\newblock Approximating kl divergence.
+\newblock \url{http://joschu.net/blog/kl-approx.html}, 2020.
+
+\bibitem{qwen3techreport}
+{Qwen Team}.
+\newblock {Qwen3 Technical Report}.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{qwq32b}
+{Qwen Team}.
+\newblock {QwQ-32B: Embracing the power of reinforcement learning}.
+\newblock \url{https://qwenlm.github.io/blog/qwq-32b/}, 2025.
+
+\bibitem{schulman2020kl}
+John Schulman.
+\newblock {Approximating KL Divergence}.
+\newblock \url{http://joschu.net/blog/kl-approx.html}, 2020.
+
+\bibitem{bradley1952}
+Ralph~Allan Bradley and Milton~E. Terry.
+\newblock {Rank Analysis of Incomplete Block Designs: I. The Method of Paired
+  Comparisons}.
+\newblock {\em Biometrika}, 39(3/4):324--345, 1952.
+
+\bibitem{chen2021codex}
+Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde de~Oliveira
+  Pinto, Jared Kaplan, et~al.
+\newblock {Evaluating Large Language Models Trained on Code}.
+\newblock {\em arXiv preprint arXiv:2107.03374}, 2021.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -1607,11 +1639,6 @@ Long Ouyang, Jeffrey Wu, Xu~Jiang, Diogo Almeida, Carroll Wainwright, Pamela
 \newblock Training language models to follow instructions with human feedback.
 \newblock {\em Advances in Neural Information Processing Systems},
   35:27730--27744, 2022.
-
-\bibitem{schulman2020approximating}
-John Schulman.
-\newblock Approximating kl divergence.
-\newblock \url{http://joschu.net/blog/kl-approx.html}, 2020.
 
 \bibitem{lightman2023let}
 Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Edwards, Bowen Baker, Teddy
