@@ -1,1 +1,288 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{مقدمه و پارادایم نوین پس‌آموزش (\en{Post-Training Paradigm})}
+مرحله پس‌آموزش (\en{Post-Training}) در مدل \model{Kimi K3} \cite{kimi2026k3} بر پایه تعمیم مقیاس‌پذیری محاسبات زمان استدلال (\en{Test-Time Computation Scaling}) \cite{openai2024o1, anthropic2025extended, guo2025deepseekr1, kimi2025k15} به طول بافت بی‌سابقه \en{1M} توکن بنا نهاده شده است. بر خلاف رویکردهای متداول که یک مدل پایه منفرد را تحت یک فاز یادگیری تقویتی چندمنظوره قرار می‌دهند، \model{Kimi K3} یک خط‌لوله منسجم، سه‌مرحله‌ای و چندمعلمه را به کار می‌بندد:
+\begin{enumerate}
+    \item \textbf{پیش‌تنظیم نظارت‌شده (\en{SFT}) و ایجاد خط‌مشی آغازین (\en{Cold-Start}):} پایه‌گذاری توانمندی‌های عاملی با خط‌سیرهای داده ساختاریافته در قالب نشانه‌گذاری زبان \en{XTML}، همراه با آموزش آگاه از کوانتیزاسیون میکرومقیاس (\en{MXFP4/MXFP8 QAT}) \cite{rouhani2023microscaling, jacob2018quantization}.
+    \item \textbf{یادگیری تقویتی چنددامنه‌ای و چندسطحی (\en{Multi-Domain, Multi-Effort RL}):} تربیت مستقل ۹ مدل متخصص دامنه‌ای در سطوح مختلف تلاش استدلالی با الگوریتم نمونه‌برداری ناهمگام رول‌اوت جزئی (\en{Partial Rollout}) \cite{kimi2025k15, kimi2026k25} و شبیه‌سازهای ایزوله \en{AgentENV} \cite{agache2020firecracker}.
+    \item \textbf{تقطیر برخط چنداستاده (\en{Multi-Teacher On-Policy Distillation - MOPD}):} یکپارچه‌سازی تخصص‌های ۹ مدل معلم درون یک مدل دانش‌آموز واحد بر مبنای پاداش چگال لگاریتم نسبت چگالی توزیع حین خط‌مشی \cite{lu2025onpolicy, xiao2026mimo, deepseek2026v4}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع فرآیند پس‌آموزش مدل Kimi K3
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.4cm and 0.8cm,
+    base/.style={draw, rounded corners=5pt, align=center, line width=1pt, drop shadow},
+    base_model/.style={base, fill=blue!15, draw=blue!70!black, minimum width=6.5cm, minimum height=1.1cm, font=\bfseries},
+    sft_box/.style={base, fill=cyan!12, draw=cyan!70!black, minimum width=15.6cm, minimum height=1.4cm},
+    specialist/.style={base, fill=teal!10, draw=teal!70!black, minimum width=4.7cm, minimum height=2.4cm},
+    mopd_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=15.6cm, minimum height=2.6cm},
+    infra_box/.style={base, fill=purple!10, draw=purple!70!black, minimum width=3.4cm, minimum height=1.9cm},
+    final_model/.style={base, fill=green!15, draw=green!60!black, minimum width=6.5cm, minimum height=1.2cm, font=\bfseries},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % Base Model
+    \node[base_model] (base) {مدل پایه پیش‌آموزش‌دیده \model{Kimi K3 Base}\\ \en{2.8T MoE (104B Active), KDA + Gated MLA, 1M Context}};
+
+    % SFT Stage
+    \node[sft_box, below=1.1cm of base] (sft) {
+        \textbf{\large فاز اول: پیش‌تنظیم نظارت‌شده (\en{Supervised Fine-Tuning - SFT}) و مقداردهی اولیه}\\
+        \scriptsize $\bullet$ سریال‌سازی داده‌ها با قالب نشانه‌گذاری صریح \en{XTML} (کانال‌های \en{think}، \en{response} و \en{tools}) \quad
+        $\bullet$ آغاز آموزش آگاه از کوانتیزاسیون (\en{QAT}) با وزن‌های \en{MXFP4} و اکتیویشن \en{MXFP8}
+    };
+
+    % Specialists (RL Stage)
+    \node[specialist, below left=1.3cm and 0.5cm of sft] (spec1) {
+        \textbf{متخصص وظایف عمومی}\\ \en{General Tasks Expert}\\[3pt]
+        \scriptsize $\bullet$ استدلال عمیق و بینایی ابزارمحور\\
+        \scriptsize $\bullet$ مدل پاداش زایشی عاملی (\en{GRM})\\
+        \scriptsize $\bullet$ سطوح تلاش: \en{\{low, high, max\}}
+    };
+    
+    \node[specialist, below=1.3cm of sft] (spec2) {
+        \textbf{متخصص عامل‌های بلندمدت}\\ \en{General Agents Expert}\\[3pt]
+        \scriptsize $\bullet$ محیط‌های تعاملی پایدار چندروزه\\
+        \scriptsize $\bullet$ پژوهش عمیق (\en{Deep Research})\\
+        \scriptsize $\bullet$ سطوح تلاش: \en{\{low, high, max\}}
+    };
+
+    \node[specialist, below right=1.3cm and 0.5cm of sft] (spec3) {
+        \textbf{متخصص کدنویسی و سیستم}\\ \en{Coding Agents Expert}\\[3pt]
+        \scriptsize $\bullet$ بهینه‌سازی کِرنل \en{CUDA/Triton}\\
+        \scriptsize $\bullet$ توسعه کامل وب و مهندسی \en{SWE}\\
+        \scriptsize $\bullet$ سطوح تلاش: \en{\{low, high, max\}}
+    };
+
+    % Teacher Pool Fitting
+    \node[draw=teal!60!black, dashed, rounded corners=6pt, fit=(spec1) (spec2) (spec3), inner sep=8pt, label=above:\textbf{\textcolor{teal!70!black}{استخر معلمان تخصصی یادگیری تقویتی ($3 \times 3 = 9$ مدل کارشناس تخصصی $\pi_{\text{teacher}}^{(d,e)}$)}}] (teacher_pool) {};
+
+    % MOPD Stage
+    \node[mopd_box, below=1.3cm of teacher_pool] (mopd) {
+        \textbf{\large فاز دوم: یکپارچه‌سازی با تقطیر حین خط‌مشی چندمعلمه (\en{Multi-Teacher OPD Stage})}\\[4pt]
+        \small $r_{\text{opd}}^d(y_t \mid e, x, y_{<t}) = \text{clip}\left( \operatorname{sg}\left( \log \frac{\pi_{\text{teacher}}^{(d,e)}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid e, x, y_{<t})} \right), -R_{\max}, R_{\max} \right)$\\[4pt]
+        \scriptsize $\bullet$ نمونه‌برداری برخط حین خط‌مشی ($y \sim \pi_\theta$) در بافت‌های تا سقف \en{1M} توکن \quad
+        $\bullet$ هدایت خط‌مشی با سیگنال پاداش متراکم توکنی معلمان تخصصی\\
+        $\bullet$ بهینه‌سازی خط‌مشی با عملگر گرادیان-ایست (\en{sg}) و مقیدسازی نوسانات واریانس در رژیم آف‌پالیسی
+    };
+
+    % Infra Elements
+    \node[infra_box, below left=1.2cm and -0.2cm of mopd] (infra_kv) {
+        \textbf{استخر خارجی \en{KV-Cache}}\\
+        \scriptsize $\bullet$ سازوکار تخلیه \en{Write-Back}\\
+        \scriptsize $\bullet$ نگهداری حالات \en{KDA}\\
+        \scriptsize $\bullet$ زمان‌بند خودکار \en{Throttling}
+    };
+
+    \node[infra_box, below=1.2cm of mopd] (infra_eagle) {
+        \textbf{مدل پیش‌نویس \en{EAGLE-3}}\\
+        \scriptsize $\bullet$ ادغام ویژگی‌های \en{AttnRes}\\
+        \scriptsize $\bullet$ بهینه‌سازی مستقیم نرخ پذیرش\\
+        \scriptsize $\bullet$ کمینه‌سازی تابع زیان \en{LK}
+    };
+
+    \node[infra_box, below right=1.2cm and -0.2cm of mopd] (infra_sandbox) {
+        \textbf{زیرساخت \en{AgentENV}}\\
+        \scriptsize $\bullet$ ماشین خرد \en{Firecracker}\\
+        \scriptsize $\bullet$ بازنشانی در \en{49ms}\\
+        \scriptsize $\bullet$ انشعاب وضعیت با \en{Fork}
+    };
+
+    % Final Model
+    \node[final_model, below=1.3cm of infra_eagle] (final) {
+        مدل نهایی یکپارچه \model{Kimi K3}\\
+        \normalsize (\en{Native Multimodal}، پنجره بافت \en{1M}، تراز هوش مرزی)
+    };
+
+    % Arrows
+    \draw[arrow] (base) -- (sft);
+    \draw[arrow] (sft) -- (spec1.north);
+    \draw[arrow] (sft) -- (spec2.north);
+    \draw[arrow] (sft) -- (spec3.north);
+
+    \draw[arrow] (teacher_pool.south) -- (mopd.north);
+
+    \draw[arrow] (mopd.south) -- ++(0,-0.3) -| (infra_kv.north);
+    \draw[arrow] (mopd.south) -- (infra_eagle.north);
+    \draw[arrow] (mopd.south) -- ++(0,-0.3) -| (infra_sandbox.north);
+
+    \draw[arrow] (infra_kv.south) |- (final.west);
+    \draw[arrow] (infra_eagle.south) -- (final.north);
+    \draw[arrow] (infra_sandbox.south) |- (final.east);
+
+\end{tikzpicture}%
+}
+\caption{فرآیند پس‌آموزش مدل \model{Kimi K3}: پیش‌تنظیم \en{SFT} با قالب \en{XTML}، پرورش ۹ متخصص دامنه‌ای-تلاشی با \en{RL}، یکپارچه‌سازی با \en{MOPD}، و شتاب‌دهی استنتاج بر مبنای زیان \en{LK}.}
+\label{fig:kimi_k3_post_training_pipeline}
+\end{figure}
+
+\paragraph*{قالب گفتگو: زبان نشانه‌گذاری بسط‌پذیر توکن (\en{XTML Chat Template})}
+به منظور برطرف‌سازی کاستی‌های ساختاری قالب‌های سنتی، بازنمایی خط‌سیرهای پیچیده عاملی در \model{Kimi K3} بر اساس زبان نشانه‌گذاری اختصاصی \en{XTML} پایه‌گذاری شده است. این قالب بر مبنای سه اصل اساسی طراحی گردیده است:
+\begin{itemize}
+    \item \textbf{بسط‌پذیری (\en{Extensibility}):} توسعه ویژگی‌های تعاملی بدون تغییر در گرامر بنیادین مدل.
+    \item \textbf{مالیات هم‌ترازی اندک (\en{Low Alignment Tax}):} یادگیری سریع فرمت ساخت‌یافته توسط مدل پیش‌آموزش‌دیده با حداقل داده‌های نظارت‌شده، جهت ورود بی‌درنگ به مرحله یادگیری تقویتی.
+    \item \textbf{سازگاری با کدگشایی ساخت‌یافته (\en{Decoding Friendliness}):} حذف ابهام نشانه‌گذاری (\en{Tokenization Ambiguity}) در مرز برچسب‌ها با جایگزینی براکت‌های زاویه‌ای با نشانه‌های اختصاصی \en{[open]}، \en{[sep]}، \en{[close]} و نشانه توقف پیام \en{[end\_of\_msg]}.
+\end{itemize}
+
+ساختار یک پیام دستیار به سه کانال محاسباتی تفکیک می‌شود:
+\begin{enumerate}
+    \item \textbf{کانال تفکر (\en{think}):} شامل ردپای استدلال درونی مدل. این کانال در حالت استدلالی همواره حفظ می‌شود (\en{Preserved Thinking}) تا ساختار پیام در نوبت‌های متوالی پایدار بماند.
+    \item \textbf{کانال پاسخ (\en{response}):} متن نهایی قابل مشاهده برای کاربر.
+    \item \textbf{کانال ابزارها (\en{tools}):} فراخوانی هم‌زمان ابزارها با شناسه اختصاصی (\en{Index}) و آرگومان‌های صریح نوع‌دار (\en{Typed Arguments}).
+\end{enumerate}
+
+همچنین چینش مؤلفه‌های پرامپت در حافظه میانگیر پیشوند (\en{Prefix KV-Cache}) بهینه‌سازی شده است؛ گزینه‌های سراسری پایدار نظیر اعلان ابزارها (\en{tool-declare}) و تنظیمات درجه تلاش فکری در صدر بافت قرار می‌گیرند تا بافت پیشوند در تمام طول گفتگو معتبر بماند و گزینه‌های تک‌نوبتی (\en{One-shot}) به انتهای بافت الصاق می‌شوند.
+
+\paragraph*{یادگیری تقویتی مقیاس‌پذیر چنددامنه‌ای و چندتلاشی (\en{Multi-Domain, Multi-Effort RL})}
+فاز یادگیری تقویتی مدل \model{Kimi K3} به سه دامنه عملیاتی کلان گسترش یافته که هر یک طیف وسیعی از زیرمسائل را پوشش می‌دهند:
+\begin{itemize}
+    \item \textbf{وظایف عمومی (\en{General Tasks}):} استدلال صوری، بینایی چندوجهی با مفسر کد، اعتبارسنجی حقیقت‌پژوهی، و امور تحلیل داده‌های علمی.
+    \item \textbf{عامل‌های عمومی (\en{General Agents}):} دستیارهای خودکار بلندمدت، پژوهش عمیق وب، و نگارش ساخت‌یافته متون طولانی.
+    \item \textbf{عامل‌های کدنویسی (\en{Coding Agents}):} مهندسی سیستم‌های بزرگ‌مقیاس (\en{SWE})، برنامه‌نویسی سطح کِرنل‌های شتاب‌دهنده، و توسعه برنامه‌های تعاملی وب.
+\end{itemize}
+
+با تقاطع این ۳ دامنه و ۳ سطح تلاش فکری $\mathcal{E} = \{\text{low}, \text{high}, \text{max}\}$، مجموعاً ۹ مدل کارشناس متخصص به موازات هم آموزش داده می‌شوند:
+\begin{equation}
+    \Pi_{\text{experts}} = \left\{ \pi_{\text{teacher}}^{(d,e)} \;\middle|\; d \in \{\text{General}, \text{Agent}, \text{Coding}\}, \; e \in \{\text{low}, \text{high}, \text{max}\} \right\}
+\end{equation}
+
+\paragraph*{الگوریتم رول‌اوت جزئی (\en{Partial Rollout}) و مهار داده‌های آف‌پالیسی}
+در تعاملات عاملی با بافت‌های بسیار طولانی، بروز تأخیرهای ناشی از مسیرهای کند (\en{Execution Stragglers}) بهره‌وری پردازنده‌های گرافیکی را تهدید می‌کند. برای رفع این چالش، Kimi K3 مکانیزم رول‌اوت همگام توسعه‌یافته را اتخاذ می‌کند:
+به ازای دسته‌ای شامل $N$ پرامپت، تعداد $K$ مسیر نمونه‌برداری می‌شود ($N \times K$ مسیر فعال). به محض تکمیل کسری از مسیرها نظیر $\lambda \in (0, 1)$ (تعداد $\lambda N K$ مسیر)، فاز تولید متوقف شده و بهینه‌سازی خط‌مشی آغاز می‌گردد. مسیرهای ناتمام در وضعیت تعلیق قرار گرفته و در تکرار بعدی با اولویت بالا از سر گرفته می‌شوند.
+
+توقف و ازسرگیری مسیرها در طول چندین مرحله آموزش، داده‌ها را در معرض پدیده «کهنگی خط‌مشی» (\en{Policy Staleness}) قرار می‌دهد. الگوریتم بهینه‌سازی خط‌مشی با اعمال یک قید تنظیم‌گری موضعی در سطح توکن (\en{Per-Token Regularization})، فضای تغییرات خط‌مشی را مقید می‌سازد. از منظر نظریه اطلاعات، اگر خط‌مشی قدیمی با $\pi_{\theta_{\text{old}}}$ و خط‌مشی در حال به‌روزرسانی با $\pi_\theta$ نشان داده شود، گرادیان ارتقا با مهار نسبت درست‌نمایی $\rho_t(\theta) = \frac{\pi_\theta(y_t \mid x, y_{<t})}{\pi_{\theta_{\text{old}}}(y_t \mid x, y_{<t})}$ در یک همسایگی مجاز به صورت زیر محاسبه می‌شود:
+\begin{equation}
+    g_t(\theta) = \min \left( \rho_t(\theta) \hat{A}_t, \; \operatorname{clip}(\rho_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right)
+\end{equation}
+این قید از واگرایی کولبک-لایبلر شدید میان توزیع‌های متوالی در طول تکرارهای ناهمگام ممانعت به عمل می‌آورد.
+
+\paragraph*{کنترل بودجه توکن و تلاش استدلالی (\en{Reasoning Effort \& Budget Control})}
+به منظور شکل‌دهی دقیق رفتار مدل در سطوح تلاش مختلف فکری و پیشگیری از تفکر بیهوده (\en{Overthinking})، یک مکانیزم کنترلی پویا در طول یادگیری تقویتی اعمال می‌شود \cite{kimi2026k25}. برای هر پرامپت ورودی $x$، بودجه اولیه توکن $b_0(x)$ توسط مدل پایه برآورد می‌گردد. مقدار مصرف واقعی توکن خروجی $y$ با تابع $T(y)$ سنجیده می‌شود (شامل توکن‌های تفکر برای وظایف استدلالی، و مجموع توکن‌های تفکر و آرگومان‌های فراخوانی ابزار برای وظایف عاملی). 
+
+در صورتی که طول پاسخ از آستانه ضریب بودجه $\tau \cdot b_0(x)$ تجاوز نماید، سیگنال پاداش وظیفه بازنویسی شده و مقدار جریمه قطعی $-1$ جایگزین آن می‌گردد:
+\begin{equation}
+    \widetilde{R}(x, y) = \begin{cases} 
+        R_{\text{task}}(x, y) & \text{اگر } T(y) \le \tau \cdot b_0(x) \\
+        -1 & \text{اگر } T(y) > \tau \cdot b_0(x)
+    \end{cases}
+\end{equation}
+آموزش مدل‌ها از یک برنامه آموزشی مرحله‌ای (\en{Stage-wise Curriculum}) بر روی ضریب $\tau$ پیروی می‌کند: ابتدا مدل با ضریب $\tau$ بزرگ آموزش داده شده تا استدلال عمیق شکل گیرد و سپس مقدار $\tau$ بازپخت (\en{Anneal}) شده و به مقادیر کوچک‌تر برای سطوح تلاش متوسط و پایین تقلیل می‌یابد.
+
+\paragraph*{مدل پاداش زایشی عاملی (\en{Agentic Generative Reward Model - GRM})}
+در وظایف باز و کیفی که فاقد اعتبارسنج‌های صلب هستند، یک قاضی زایشی مبتنی بر مقایسه‌های دودویی تورنمنت به کار گرفته می‌شود \cite{kimi2025k2, kimi2026k25}. داور عاملی موظف به رعایت یک پروتکل چهارمرحله‌ای اجباری است:
+\begin{enumerate}
+    \item بررسی دقیق صورت مسئله و خروجی‌های نامزدها،
+    \item تولید رابریک جامع ارزیابی (\en{Rubric Generation})،
+    \item نمره‌دهی به هر نامزد در برابر معیارهای رابریک،
+    \item درج ممیزی در دفترچه امتیازات (\en{Scorepad}) و تعیین پاسخ برتر.
+\end{enumerate}
+برای جلوگیری از پدیده «هک پاداش از طریق اطناب کلام» (\en{Verbosity Bias})، اگر طول پاسخ نامزدی از ضریب طول مرجع پایه ($\sigma \cdot \ell_0$) فراتر رود، آن گزینه به‌طور خودکار بازنده مقایسه زوجی اعلام می‌گردد.
+
+\paragraph*{محیط‌های شبیه‌سازی و سنتز وظایف عاملی (\en{Agentic Environments})}
+یادگیری رفتارهای پایدار نیازمند بسترهای تعاملی غنی و ایزوله است (بخش 4.2 گزارش فنی):
+\begin{itemize}
+    \item \textbf{سنتز وظایف مبتنی بر گراف دانش (\en{DAG-Guided Task Synthesis}):} یک گراف جهت‌دار بدون دور از مفاهیم علمی، برنامه‌نویسی و استدلالی توسط عامل‌های کاوشگر وب به صورت خودکار توسعه یافته است. با نمونه‌برداری از گره‌های مفهومی در سطوح دانه‌بندی گوناگون و ره‌گیری اجداد در گراف، داده‌های آموزشی با ترکیبی غنی از مفاهیم بین‌رشته‌ای سنتز می‌شوند.
+    \item \textbf{بهینه‌سازی کِرنل‌های گرافیکی (\en{GPU Kernel Tasks}):} مدل در محیط‌های مبتنی بر \en{CUDA}، \en{Triton}، \en{CuTe}، \en{ThunderKittens} \cite{spector2025thunderkittens} و \en{TileLang} \cite{wang2025tilelang} آموزش داده می‌شود. پاداش‌دهی مبتنی بر دو شاخص است: خطای عددی نسبت به مرجع \en{PyTorch} و میزان نزدیکی بازدهی اجرایی به مدل سقف سخت‌افزار (\en{Roofline Model}). سامانه پیشرفته ضدتقلب مانع از ترفندهایی چون کش‌کردن ورودی یا افت عمدی دقت می‌گردد.
+    \item \textbf{وظایف اجرای خودمختار (\en{Autonomous Execution Tasks - AET}):} عامل در محیط‌های پیچیده نظیر بازسازی بلادرنگ سیستم‌ها، کشف فاکتورهای مالی و ممیزی مالیاتی بدون دسترسی به دستورالعمل‌های از پیش‌آماده عمل می‌کند. پاداش صرفاً بر مبنای بازبین‌های مستقل روی وضعیت نهایی محیط تخصیص می‌یابد و عامل‌ها به اعتبارسنج‌های عمومی (جهت عیب‌یابی) و پنهان (جهت نمره‌دهی نهایی) متصل می‌شوند.
+    \item \textbf{دستیارهای تعاملی ماندگار (\en{Personal Assistant Tasks}):} پیاده‌سازی ماک نرم‌افزارهای \en{Gmail}، \en{Notion}، \en{Slack} و \en{Canvas} جهت شبیه‌سازی تعاملات درازمدت کاری در طول چندین روز مجازی با ثبت هزاران فراخوانی ابزار.
+\end{itemize}
+
+\paragraph*{تقطیر برخط چنداستاده (\en{Multi-Teacher On-Policy Distillation - MOPD})}
+برای تجمیع توانمندی‌های ۹ مدل متخصص در یک مدل واحد $\pi_\theta$، روش تقطیر حین خط‌مشی چنداستاده اتخاذ می‌گردد \cite{lu2025onpolicy, xiao2026mimo, deepseek2026v4}. برای پرسش ورودی $x$ با دامنه تخصصی $d$ و سطح تلاش $e \in \{\text{low}, \text{high}, \text{max}\}$، هدایت آموزشی توسط مدل معلم متناظر $\pi_{\text{teacher}}^{(d,e)}$ صورت می‌پذیرد.
+
+\paragraph*{اشتقاق ریاضی پاداش \en{MOPD} بر مبنای نظریه اطلاعات}
+در نظریه اطلاعات، واگرایی کولبک-لایبلر معکوس (\en{Reverse KL}) به صورت زیر تعریف می‌شود:
+\begin{equation}
+    \mathbb{D}_{\text{KL}}\left( \pi_\theta \parallel \pi_{\text{teacher}} \right) = \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x, e) \log \left( \frac{\pi_\theta(y \mid x, e)}{\pi_{\text{teacher}}^{(d,e)}(y \mid x)} \right)
+\end{equation}
+این واگرایی دارای ویژگی مدجویی (\en{Mode-Seeking}) است و مدل دانش‌آموز را ملزم می‌سازد تا در بخش‌هایی از فضا که احتمال معلم ناچیز است، احتمال خود را صفر کند. در چارچوب گرادیان خط‌مشی (\en{Policy Gradient})، تابع هدف بهینه‌سازی امید ریاضی مجموع پاداش‌های تولیدی حین خط‌مشی است:
+\begin{equation}
+    \mathcal{J}(\theta) = \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta(\cdot \mid x, e)} \left[ \sum_{t=1}^T r(y_t \mid e, x, y_{<t}) \right]
+\end{equation}
+طبق قضیه گرادیان خط‌مشی، مشتق نسبت به بردار پارامترهای $\theta$ برابر است با:
+\begin{equation}
+    \nabla_\theta \mathcal{J}(\theta) = \mathbb{E}_{y \sim \pi_\theta} \left[ \sum_{t=1}^T \nabla_\theta \log \pi_\theta(y_t \mid e, x, y_{<t}) \cdot Q(y_t) \right]
+\end{equation}
+برای آن‌که این بهینه‌سازی دقیقاً معادل با کمینه‌سازی واگرایی کولبک-لایبلر باشد، تابع پاداش توکن $y_t$ باید بر اساس لگاریتم نسبت درست‌نمایی تعریف شود:
+\begin{equation}
+    r(y_t) \propto \log \left( \frac{\pi_{\text{teacher}}^{(d,e)}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid e, x, y_{<t})} \right)
+\end{equation}
+به منظور جلوگیری از ناپایداری‌های عددی ناشی از توکن‌های نادر که در آن‌ها نسبت احتمالات به بی‌نهایت میل می‌کند، فرمولاسیون پاداش متراکم مدل به صورت زیر تعریف می‌گردد (معادله ۱۵ گزارش مرجع):
+\begin{equation}
+    r_{\text{opd}}^d(y_t \mid e, x, y_{<t}) = \operatorname{clip}\left( \operatorname{sg}\left( \log \frac{\pi_{\text{teacher}}^{(d,e)}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid e, x, y_{<t})} \right), \; -R_{\max}, \; R_{\max} \right)
+\end{equation}
+در این رابطه:
+\begin{itemize}
+    \item $\operatorname{sg}(\cdot)$ عملگر گرادیان-ایست (\en{Stop-Gradient}) است؛ یعنی $\operatorname{sg}(u) = u$ ولی $\frac{\partial \operatorname{sg}(u)}{\partial u} = 0$. این عملگر تضمین می‌کند که سیگنال پاداش صرفاً به عنوان یک مقدار تراز عددی عمل کرده و تداخل گرادیانی میان مخرج نسبت و مشتقات خط‌مشی ایجاد نگردد.
+    \item عملگر $\operatorname{clip}(\cdot, -R_{\max}, R_{\max})$ پاداش را در یک بازه متقارن معین مهار می‌کند که معادل با ایجاد کران بالا بر روی واگرایی رنی (\en{Rényi Divergence}) میان دو توزیع بوده و واریانس گرادیان را به شدت تثبیت می‌نماید.
+\end{itemize}
+
+\paragraph*{پس‌آموزش آگاه از استقرار و مدل پیش‌نویس (\en{Deployment-Aware Post-Training})}
+بهینه‌سازی کارایی زمان استنتاج برای سرویس‌دهی مدل در بافت‌های یک میلیون توکنی دارای دو رکن کلیدی است:
+\begin{itemize}
+    \item \textbf{آموزش آگاه از کوانتیزاسیون (\en{MXFP4 QAT}):} وزن‌های کارشناسان \en{MoE} که بخش غالب حافظه را تشکیل می‌دهند به فرمت ریزمقیاس \en{MXFP4} \cite{rouhani2023microscaling} نگاشته شده و اکتیویشن‌ها در فرمت \en{MXFP8} پردازش می‌شوند. لایه‌های حساس غیرکارشناس (طرح‌ریزی‌های توجه، کارشناسان مشترک و روترها) در دقت بالاتر حفظ می‌گردند. اجرای پیوسته \en{QAT} در هر دو مرحله \en{SFT} و \en{RL} مانع از ایجاد شکاف دقت میان آموزش و استنتاج می‌شود.
+    \item \textbf{تنظیم دقیق مدل پیش‌نویس با معماری \en{EAGLE-3}:} لایه پیش‌بینی چندتوکنی (\en{MTP}) مدل که در فاز پیش‌آموزش وجود داشته، در این مرحله به عنوان مدل پیش‌نویس برای رمزگشایی گمانه‌زن (\en{Speculative Decoding}) \cite{li2025eagle3} تنظیم می‌گردد. در طول آموزش مدل پیش‌نویس، پارامترهای مدل اصلی منجمد (\en{Frozen}) بوده و تنها لایه پیش‌نویس و ماتریس تصویرسازی ویژگی‌های آن به‌روزرسانی می‌شوند.
+\end{itemize}
+
+\paragraph*{اتصال لایه‌های پس‌ماند توجه (\en{AttnRes}) و طرح‌ریزی $W_{\text{E3}}$}
+ورودی لایه پیش‌نویس ترکیبی از ویژگی‌های سطوح پایین، میانی و بالای مدل اصلی است که به ترتیب از خروجی بلوک‌های اول، چهارم و نهایی مکانیزم پس‌ماند توجه (\en{Attention Residuals - AttnRes}) استخراج می‌گردند. این ویژگی‌ها با هم الحاق شده و توسط ماتریس بدون بایاس $W_{\text{E3}}$ تصویر می‌شوند:
+\begin{equation}
+    h_{\text{draft}} = W_{\text{E3}} \begin{bmatrix} h_{\text{low}} \\ h_{\text{mid}} \\ h_{\text{high}} \end{bmatrix}, \quad \text{با مقداردهی اولیه: } W_{\text{E3}} = \begin{bmatrix} \mathbf{0} & \mathbf{0} & I \end{bmatrix}
+\end{equation}
+این شیوه مقداردهی موجب می‌شود که در گام اول آموزش، بردار ویژگی منطبق بر $h_{\text{high}}$ (ورودی اصلی فاز پیش‌آموزش \en{MTP}) باشد و سپس به مرور ویژگی‌های سطوح دیگر جذب شوند.
+
+\paragraph*{اشتقاق تحلیلی تابع زیان درست‌نمایی \en{LK Loss}}
+در رمزگشایی گمانه‌زن بدون اتلاف، فرض کنید $p(x)$ توزیع مدل هدف و $q(x)$ توزیع مدل پیش‌نویس روی دایره واژگان $\mathcal{V}$ باشد. یک توکن پیشنهادی نمونه‌برداری‌شده از $q(x)$ با احتمال زیر پذیرفته می‌شود:
+\begin{equation}
+    P(\text{accept} \mid x \sim q) = \min \left( 1, \; \frac{p(x)}{q(x)} \right)
+\end{equation}
+امید ریاضی نرخ پذیرش تحت توزیع $q$ برابر است با:
+\begin{equation}
+    \alpha = \mathbb{E}_{x \sim q}\left[ \min\left( 1, \frac{p(x)}{q(x)} \right) \right] = \sum_{x \in \mathcal{V}} q(x) \min\left( 1, \frac{p(x)}{q(x)} \right) = \sum_{x \in \mathcal{V}} \min(p(x), q(x))
+\end{equation}
+از منظر نظریه اطلاعات و فاصله احتمالاتی، این نرخ با فاصله تغییر کل (\en{Total Variation Distance}) رابطه مستقیم دارد:
+\begin{equation}
+    D_{\mathrm{TV}}(p, q) = \frac{1}{2} \sum_{x \in \mathcal{V}} |p(x) - q(x)| = 1 - \sum_{x \in \mathcal{V}} \min(p(x), q(x)) = 1 - \alpha
+\end{equation}
+بنابراین، بیشینه‌سازی نرخ پذیرش توکن مستقیماً معادل کمینه‌سازی فاصله تغییر کل است:
+\begin{equation}
+    \max_q \alpha \iff \min_q D_{\mathrm{TV}}(p, q)
+\end{equation}
+رویکردهای مرسوم که واگرایی کولبک-لایبلر یا خطای آنتروپی متقاطع را بهینه‌سازی می‌کنند، همپوشانی مساحت توزیع‌ها را بیشینه نمی‌سازند. لذا \model{Kimi K3} تابع زیان بر مبنای درست‌نمایی \en{LK} \cite{samarin2026lk} را مستقیماً به عنوان منفی لگاریتم نرخ پذیرش بهینه‌سازی می‌کند (معادله ۱۶ گزارش مرجع):
+\begin{equation}
+    \mathcal{L}_{\text{LK}} = - \log \sum_{x \in \mathcal{V}} \min(p(x), q(x))
+\end{equation}
+
+برای استخراج مشتق نسبت به لاجیت‌های خروجی مدل پیش‌نویس ($z_k$ با رابطه $q(x_i) = \frac{e^{z_i}}{\sum_j e^{z_j}}$)، قاعده زنجیره‌ای دیفرانسیل را به کار می‌بندیم:
+\begin{equation}
+    \frac{\partial \mathcal{L}_{\text{LK}}}{\partial z_k} = - \frac{1}{\sum_{x \in \mathcal{V}} \min(p(x), q(x))} \cdot \frac{\partial}{\partial z_k} \left[ \sum_{x \in \mathcal{V}} \min(p(x), q(x)) \right]
+\end{equation}
+چون جمله $\min(p(x), q(x))$ برای $q(x) < p(x)$ برابر با $q(x)$ و برای $q(x) \ge p(x)$ برابر با مقدار ثابت $p(x)$ است:
+\begin{equation}
+    \frac{\partial}{\partial z_k} \min(p(x), q(x)) = \begin{cases} 
+        \frac{\partial q(x)}{\partial z_k} & \text{اگر } q(x) < p(x) \\
+        0 & \text{اگر } q(x) \ge p(x)
+    \end{cases}
+\end{equation}
+با جایگذاری مشتق تابع بیشینه هموار ($\frac{\partial q(x_i)}{\partial z_k} = q(x_i)(\delta_{ik} - q(x_k))$):
+\begin{equation}
+\begin{aligned}
+    \frac{\partial \mathcal{L}_{\text{LK}}}{\partial z_k} &= - \frac{1}{\alpha} \sum_{x_i: q(x_i) < p(x_i)} q(x_i) \left( \delta_{ik} - q(x_k) \right) \\
+    &= \frac{q(x_k)}{\alpha} \left( \sum_{x_i: q(x_i) < p(x_i)} q(x_i) - \mathbb{I}_{q(x_k) < p(x_k)} \right)
+\end{aligned}
+\end{equation}
+این گرادیان به صراحت نشان می‌دهد که در صورت عقب‌ماندن احتمال پیش‌نویس نسبت به مدل اصلی ($q(x_k) < p(x_k)$)، شیب گرادیان به سوی تقویت لاجیت $z_k$ متمایل می‌شود تا سطح مشترک دو توزیع بیشینه گردد.
+
+\paragraph*{نوآوری‌های زیرساختی پس‌آموزش در بافت ۱ میلیون توکن (\en{System Infrastructures})}
+اجرای الگوریتم‌های پس‌آموزش روی مدلی با ابعاد \en{2.8T} و طول بافت \en{1M} توکن با راهکارهای زیرساختی پیشرفته میسر شده است (بخش 5.3 گزارش فنی):
+\begin{itemize}
+    \item \textbf{استخر حافظه میانگیر خارجی (\en{External KV-Cache Pool}):} اتخاذ راهبرد نوشتن-پس‌انداز (\en{Write-Back}) برای پیشوندهای حافظه؛ بلوک‌های فعال در حافظه \en{VRAM} باقی مانده و پیشوندهای بیکار به حافظه رم پردازنده اصلی (\en{CPU DRAM}) منتقل می‌شوند. حالات بازگشتی \en{KDA} نیز همگام با کَش \en{MLA} مدیریت می‌شوند. همچنین در طول فاز رول‌اوت، حالات آموزشی وزن‌ها و بهینه‌سازها به دیسک‌های \en{NVMe} تخلیه می‌شوند تا فضای رم برای بافت‌های میلیونی مهیا گردد.
+    \item \textbf{زمان‌بند خودکار مهار ترافیک (\en{Rollout Auto-Throttling}):} پایش بی‌درنگ نرخ اشغال کَش حافظه و تعداد درخواست‌های فعال به منظور تعدیل پویای تعداد پرامپت‌های ارسالی به موتور استنتاج، جهت جلوگیری از وقوع خطای سرریز حافظه یا توقف ناخواسته پردازش (\en{Preemption}).
+    \item \textbf{بازاستفاده از بافر گرادیان (\en{Gradient-Buffer Reuse}):} اجرای مدل‌های مرجع فاقد گرادیان با استریم تکه‌به‌تکه وزن‌ها از حافظه \en{CPU} به داخل بافر گرادیان \en{FP32} مدل در حال آموزش، که نیاز به تخصیص حافظه گرافیکی مازاد را به صفر می‌رساند.
+    \item \textbf{زیرساخت سندباکس عاملی \en{AgentENV}:} سیستم ایزولاسیون سبک‌وزن مبتنی بر ماشین‌های مجازی خرد \en{Firecracker} \cite{agache2020firecracker} با قابلیت ایجاد بیش از ۵۱ میلیون سندباکس پایدار. ویژگی‌های برجسته این بستر شامل ثبت نقطه بازرسی تفاضلی در \en{133ms}، بازیابی در \en{49ms}، تعلیق و ازسرگیری (\en{Pause \& Resume}) جهت صفر کردن مصرف منابع در زمان انتظار پاسخ مدل، و انشعاب ایزوله (\en{Fork}) جهت قضاوت مدل پاداش است.
+\end{itemize}

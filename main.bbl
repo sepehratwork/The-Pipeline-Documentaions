@@ -1216,6 +1216,44 @@ J.~Wei, Z.~Sun, S.~Papay, S.~McKinney, J.~Han, I.~Fulford, H.~W. Chung, A.~T.
 \newblock {BrowseComp}: A simple yet challenging benchmark for browsing agents.
 \newblock {\em arXiv preprint arXiv:2504.12516}, 2025.
 
+\bibitem{openai2024o1}
+{OpenAI}.
+\newblock Learning to reason with llms.
+\newblock {\em OpenAI Blog}, 2024.
+
+\bibitem{anthropic2025extended}
+{Anthropic}.
+\newblock Claude's extended thinking.
+\newblock {\em Anthropic Research}, 2025.
+
+\bibitem{kimi2025k15}
+{Kimi Team}.
+\newblock Kimi k1.5: Scaling reinforcement learning with llms.
+\newblock {\em arXiv preprint arXiv:2501.12599}, 2025.
+
+\bibitem{xiao2026mimo}
+B.~Xiao et~al.
+\newblock Mimo-v2-flash technical report.
+\newblock {\em arXiv preprint arXiv:2601.02780}, 2026.
+
+\bibitem{deepseek2026v4}
+{DeepSeek-AI}.
+\newblock Deepseek-v4: Towards highly efficient million-token context
+  intelligence.
+\newblock {\em arXiv preprint arXiv:2606.19348}, 2026.
+
+\bibitem{li2025eagle3}
+Yuhui Li et~al.
+\newblock Eagle-3: Scaling up inference acceleration of large language models
+  via training-time test.
+\newblock {\em arXiv preprint arXiv:2503.01840}, 2025.
+
+\bibitem{samarin2026lk}
+Alexander Samarin et~al.
+\newblock Lk losses: Direct acceptance rate optimization for speculative
+  decoding.
+\newblock {\em arXiv preprint arXiv:2602.23881}, 2026.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
