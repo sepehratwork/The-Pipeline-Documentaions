@@ -1,1 +1,277 @@
-\item \textbf asd
+\item \model{Magistral}
+
+% تعریف ایمن رنگ برای ممانعت از خطای Undefined Color
+\providecolor{amberCustom}{RGB}{245, 180, 50}
+
+\paragraph*{مقدمه و پارادایم پس‌آموزش استدلالی (\en{Reasoning Post-Training Paradigm})}
+مدل استدلالی \model{Magistral} \cite{magistral2025} نخستین مدل استدلال عمیق شرکت \en{Mistral AI} است که در دو نسخه \model{Magistral Medium} (بر پایه \model{Mistral Medium 3} \cite{mistralmedium3}) و \model{Magistral Small} (بر پایه \model{Mistral Small 3} با \en{24B} پارامتر) معرفی شده است. این مدل اثبات می‌کند که بدون نیاز به تقطیر از مدل‌های استدلالی پیشین نظیر سری \en{o1} \cite{jaech2024o1} یا \en{DeepSeek-R1} \cite{deepseek2025r1}، می‌توان با یادگیری تقویتی برخط خالص (\en{Pure Online RLVR}) به توان استدلال سطح بالا دست یافت.
+
+% =========================================================================
+% دیاگرام فرآیند پس‌آموزش Magistral (کاملاً اصلاح‌شده و با ابعاد هماهنگ)
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.2cm and 0.8cm,
+    base/.style={draw, rounded corners=5pt, align=center, line width=1pt, drop shadow},
+    data_node/.style={base, fill=blue!10, draw=blue!70!black, text width=4.5cm, minimum height=1.3cm},
+    rollout_node/.style={base, fill=cyan!12, draw=cyan!80!black, text width=15.2cm, minimum height=1.5cm},
+    verifier_node/.style={base, fill=amberCustom!20, draw=orange!80!black, text width=15.2cm, minimum height=2cm},
+    trainer_node/.style={base, fill=teal!15, draw=teal!80!black, text width=15.2cm, minimum height=2.2cm},
+    medium_box/.style={base, fill=purple!12, draw=purple!80!black, text width=7.2cm, minimum height=2.4cm},
+    small_box/.style={base, fill=green!12, draw=green!70!black, text width=7.2cm, minimum height=2.4cm},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black},
+    comm_arrow/.style={dashed, -{Stealth[scale=1.1]}, line width=1.2pt, draw=red!70!black}
+]
+
+    % Row 1: Data Curation Sources
+    \node[data_node] (math_data) {
+        \textbf{ریاضیات زرین (\en{38k})}\\[2pt]
+        \scriptsize فیلتر دوسطحی با ارزیاب \en{RL}
+    };
+    
+    \node[data_node, right=0.8cm of math_data] (code_data) {
+        \textbf{کدنویسی الگوریتمی (\en{35k})}\\[2pt]
+        \scriptsize آزمون‌های متقابل در \en{Python} و \en{C++}
+    };
+
+    \node[data_node, right=0.8cm of code_data] (multi_data) {
+        \textbf{داده‌های چندزبانه (\en{10\%})}\\[2pt]
+        \scriptsize ترجمه به ۶ زبان زنده
+    };
+
+    % Data Pool Fit
+    \node[draw=blue!60!black, dashed, rounded corners=6pt, fit=(math_data) (code_data) (multi_data), inner sep=5pt, label=above:\textbf{\textcolor{blue!80!black}{استخر داده‌های پالایش‌شده با پاداش‌های ارزیابی‌پذیر قطعی (\en{RLVR Data Pool})}}] (data_pool) {};
+
+    % Row 2: Rollout Generators
+    \node[rollout_node, below=1.0cm of data_pool] (generators) {
+        \textbf{\large تولیدکنندگان ناهمگام نامسدود (\en{Continuous Asynchronous Generators})}\\[3pt]
+        \scriptsize $\bullet$ تولید پیوسته با حداکثر توان بدون وقفه مربیان \quad
+        $\bullet$ نمونه‌برداری دمایی ($\tau \in [0.7, 1.0]$) و پایداری انتروپی با \en{Clip-Higher}\\[2pt]
+        \scriptsize $\bullet$ به‌روزرسانی برخط وزن‌ها حین تولید فعال توالی‌ها (\en{Mid-generation Updates}) بدون ابطال حافظه \en{KV-Cache}
+    };
+
+    % Row 3: Verifiers
+    \node[verifier_node, below=1.0cm of generators] (verifiers) {
+        \textbf{\large ارزیاب‌های پاداش ترکیبی چندمعیاره (\en{Multi-Objective Reward Verifiers})}\\[3pt]
+        \scriptsize
+        \begin{tabular}{p{3.4cm}p{3.4cm}p{3.4cm}p{3.4cm}}
+            \centering \textbf{قالب و نشانه‌گذاری} & 
+            \centering \textbf{صحت ریاضیات} & 
+            \centering \textbf{صحت برنامه‌نویسی} & 
+            \centering \textbf{تجانس زبانی و طول} \tabularnewline
+            \centering تگ‌های \en{<think>} و \en{\textbackslash boxed\{\}} & 
+            \centering اعتبارسنجی نمادین \en{SymPy} & 
+            \centering سندباکس ایزوله \en{C++20} & 
+            \centering دسته‌بند سبک \en{FastText} \tabularnewline
+            \centering پاداش اولیه: $0.1$ & 
+            \centering پاداش تکمیلی: $0.9$ & 
+            \centering ارزیابی ۲۰ آزمون با سقف زمان & 
+            \centering جریمه پیوسته طول نرم
+        \end{tabular}
+    };
+
+    % Row 4: Trainers with Modified GRPO
+    \node[trainer_node, below=1.0cm of verifiers] (trainers) {
+        \textbf{\large مربیان بهینه‌سازی خط‌مشی گروهی نسبی بهینه‌شده (\en{Optimized GRPO Trainers})}\\[3pt]
+        \small $J_{\text{Magistral}}(\theta) = \mathbb{E} \left[ \frac{1}{\sum |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \min \left( \rho_{i,t} \hat{A}^{\text{norm}}_{i,t}, \; \text{clip}(\rho_{i,t}, 1 - \epsilon_{\text{low}}, 1 + \epsilon_{\text{high}}) \hat{A}^{\text{norm}}_{i,t} \right) \right]$\\[3pt]
+        \scriptsize $\bullet$ حذف کامل واگرایی کولبک-لایبلر ($\beta D_{\text{KL}} = 0$) \quad
+        $\bullet$ حذف دسته‌های فاقد تنوع مزیت ($r_m = r_n$) \quad
+        $\bullet$ بهنجارسازی مزیت در سطح مینی‌بچ\\
+        \scriptsize $\bullet$ نرمال‌سازی طول بر کل توکن‌های گروه \quad
+        $\bullet$ بسته‌بندی حریصانه ریزبچ‌ها با چینش نزولی توالی‌ها (کاهش ۱۹٪ اتلاف حافظه)
+    };
+
+    % Row 5: Outcomes
+    \node[medium_box, below left=1.1cm and -0.2cm of trainers] (medium) {
+        \textbf{\large \model{Magistral Medium}}\\[2pt]
+        \small یادگیری تقویتی خالص بر پایه \model{Mistral Medium 3}\\[2pt]
+        \scriptsize $\bullet$ بسط چندمرحله‌ای طول: $16\text{k} \to 24\text{k} \to 32\text{k}$\\
+        \scriptsize $\bullet$ کاهش پله‌ای دسته: $8\text{k} \to 4\text{k} \to 2\text{k}$ جهت مدیریت حافظه\\
+        \scriptsize $\bullet$ جهش ۵۰٪ در \en{AIME-24} بدون هرگونه تقطیر اولیه\\
+        \scriptsize $\bullet$ ارتقای خودبه‌خودی دید چندوجهی (\en{MMMU: 70.0\%})
+    };
+
+    \node[small_box, below right=1.1cm and -0.2cm of trainers] (small) {
+        \textbf{\large \model{Magistral Small (24B)}}\\[2pt]
+        \small بوت‌استرپ \en{SFT} و تکمیل با \en{RL} بر پایه \model{Small 3}\\[2pt]
+        \scriptsize $\bullet$ استخراج ردهای بلند و موفق از \model{Magistral Medium}\\
+        \scriptsize $\bullet$ ۴ دور آموزش نظارت‌شده (\en{SFT}) به همراه داده عمومی\\
+        \scriptsize $\bullet$ اعمال \en{RL} با دمای بالا ($\tau = 1.0$) و $\epsilon_{\text{high}} = 0.3$\\
+        \scriptsize $\bullet$ برتری قطعی ترکیب \en{SFT+RL} نسبت به تقطیر محض
+    };
+
+    % Arrows Connection
+    \draw[arrow] (data_pool) -- (generators);
+    \draw[arrow] (generators) -- node[right, font=\scriptsize] {توالی‌های برخط} (verifiers);
+    \draw[arrow] (verifiers) -- node[right, font=\scriptsize] {محاسبه پاداش و فیلتر} (trainers);
+
+    % NCCL Broadcast Arrow
+    \draw[comm_arrow] (trainers.east) -- ++(0.6,0) |- node[near end, right, font=\scriptsize, text=red!70!black] {توزیع مستقیم وزن‌ها با \en{NCCL} ($< 5\text{s}$)} (generators.east);
+
+    % Delivery to Final Models
+    \draw[arrow] (trainers.south) -- ++(0,-0.3) -| (medium.north);
+    \draw[arrow] (trainers.south) -- ++(0,-0.3) -| (small.north);
+    \draw[dashed, -{Stealth[scale=1.1]}, line width=1pt, draw=purple!70!black] (medium.east) -- node[above, font=\scriptsize] {تقطیر ردهای استدلالی} (small.west);
+
+\end{tikzpicture}%
+}
+\caption{معماری یکپارچه پس‌آموزش در \model{Magistral}: چرخه ناهمگام تولید و آموزش، پالایش پاداش و مقیاس‌پذیری مدل‌ها.}
+\label{fig:magistral_post_training_pipeline}
+\end{figure}
+
+\paragraph*{مبانی ریاضی، اشتقاق گرادیان خط‌مشی و نظریه اطلاعات}
+فرآیند تولید متن در مدل‌های زبانی خودهمبسته، یک فرآیند تصمیم‌گیری متوالی روی دایره واژگان گسسته است. فرض کنید به ازای پرامپت ورودی $q \sim \mathcal{P}(Q)$، توالی خروجی $o = (y_1, y_2, \dots, y_T)$ توسط خط‌مشی مدل با توزیع احتمالاتی زیر تولید شود:
+\begin{equation}
+    \pi_\theta(o \mid q) = \prod_{t=1}^T \pi_\theta(y_t \mid q, y_{<t})
+\end{equation}
+هدف در یادگیری تقویتی، بیشینه‌سازی امید ریاضی پاداش اسکالر $r(q, o) \in \mathbb{R}$ بر روی توزیع داده‌ها است:
+\begin{equation}
+    J(\theta) = \mathbb{E}_{q \sim \mathcal{P}(Q), \, o \sim \pi_\theta(\cdot \mid q)} \left[ r(q, o) \right] = \sum_{q} \mathcal{P}(q) \sum_{o} \pi_\theta(o \mid q) r(q, o)
+\end{equation}
+با استفاده از اتحاد مشتق لگاریتمی (\en{Log-derivative trick}):
+\begin{equation}
+    \nabla_\theta \pi_\theta(o \mid q) = \pi_\theta(o \mid q) \frac{\nabla_\theta \pi_\theta(o \mid q)}{\pi_\theta(o \mid q)} = \pi_\theta(o \mid q) \nabla_\theta \log \pi_\theta(o \mid q)
+\end{equation}
+گرادیان تابع هدف نسبت به بردار پارامترهای $\theta \in \mathbb{R}^d$ به‌دست می‌آید:
+\begin{equation}
+\begin{aligned}
+    \nabla_\theta J(\theta) &= \sum_{q} \mathcal{P}(q) \sum_{o} \nabla_\theta \pi_\theta(o \mid q) r(q, o) \\
+    &= \sum_{q} \mathcal{P}(q) \sum_{o} \pi_\theta(o \mid q) \nabla_\theta \log \pi_\theta(o \mid q) r(q, o) \\
+    &= \mathbb{E}_{q \sim \mathcal{P}(Q), \, o \sim \pi_\theta(\cdot \mid q)} \left[ \nabla_\theta \log \pi_\theta(o \mid q) \, r(q, o) \right]
+\end{aligned}
+\end{equation}
+برای کاهش واریانس، یک خط مبنای مستقل از عمل $b(q)$ تفریق می‌شود. از آنجا که $\sum_o \pi_\theta(o \mid q) = 1$ است:
+\begin{equation}
+    \sum_{o} \pi_\theta(o \mid q) \nabla_\theta \log \pi_\theta(o \mid q) b(q) = b(q) \nabla_\theta \sum_{o} \pi_\theta(o \mid q) = b(q) \nabla_\theta (1) = \mathbf{0}
+\end{equation}
+تفریق خط مبنا، امید ریاضی گرادیان را بدون تورش نگه داشته و واریانس تخمین‌گر را مهار می‌کند. مقدار $A(q, o) = r(q, o) - b(q)$ بیانگر تابع مزیت (\en{Advantage}) است.
+
+در نظریه اطلاعات، انتروپی خط‌مشی به صورت $\mathcal{H}(\pi_\theta(\cdot \mid q)) = -\sum_o \pi_\theta(o \mid q) \log \pi_\theta(o \mid q)$ تعریف می‌شود. اگر خط‌مشی به سرعت قطعی شود، انتروپی به سمت صفر سقوط کرده و مدل دچار پدیده «فروپاشی انتروپی» (\en{Entropy Collapse}) می‌گردد که مانع از جستجوی استدلال‌های جدید می‌شود.
+
+\paragraph*{الگوریتم \en{GRPO} بهینه‌شده در \model{Magistral}}
+الگوریتم بهینه‌سازی خط‌مشی گروهی نسبی (\en{GRPO}) \cite{shao2024deepseekmath} مدل نقاد را حذف کرده و به ازای هر پرسش $q$، یک گروه $G$ تایی از پاسخ‌ها $\{o_1, o_2, \dots, o_G\}$ توسط خط‌مشی پیشین $\pi_{\theta_{\text{old}}}$ تولید می‌کند:
+\begin{equation}
+    \mu = \frac{1}{G} \sum_{i=1}^G r_i, \quad \sigma = \sqrt{\frac{1}{G} \sum_{i=1}^G (r_i - \mu)^2}
+\end{equation}
+در مدل \model{Magistral} پنج اصلاح اساسی بر این ساختار اعمال شده است:
+\begin{enumerate}
+    \item \textbf{حذف کامل واگرایی کولبک-لایبلر ($\beta D_{\text{KL}} = 0$):} حضور مدل مرجع و جریمه \en{KL} مانع از شکل‌گیری استدلال‌های عمیق می‌شد و بار حافظه گرافیکی را به شدت افزایش می‌داد؛ لذا این ترم به‌طور کامل حذف گردید.
+    \item \textbf{نرمال‌سازی اتلاف بر مبنای کل توکن‌های گروه:} اتلاف تمام توکن‌های تمامی توالی‌ها با هم جمع شده و بر مجموع طول کل توکن‌های حاضر در گروه ($\sum_{i=1}^G |o_i|$) تقسیم می‌شود تا از سوگیری به سمت پاسخ‌های کوتاه جلوگیری شود.
+    \item \textbf{نرمال‌سازی مزیت در سطح مینی‌بچ:} پس از محاسبه اختلاف مزیت خام $\hat{A}_i = r_i - \mu$، مقادیر مزیت بر مبنای میانگین و انحراف معیار کل نمونه‌های مینی‌بچ بر مبنای \cite{andrychowicz2020matters} باز-مقیاس‌گذاری می‌شوند:
+    \begin{equation}
+        \hat{A}^{\text{norm}}_{i,t} = \frac{\hat{A}_i - \hat{A}_{\text{mean}}}{\hat{A}_{\text{std}} + \epsilon}
+    \end{equation}
+    \item \textbf{گسترش نامتقارن کران بالای ناحیه اعتماد (\en{Clip-Higher}):} بر اساس راهبرد \cite{yu2025cliphigher}، کران بالا تا $\epsilon_{\text{high}}$ توسعه داده شد ($0.26$ تا $0.28$ در مدل \en{Medium} و $0.3$ در مدل \en{Small}) تا از افت انتروپی جلوگیری شود:
+    \begin{equation}
+        \text{بازه برش} = [1 - \epsilon_{\text{low}}, \, 1 + \epsilon_{\text{high}}]
+    \end{equation}
+    \item \textbf{حذف گروه‌های فاقد تنوع مزیت:} دسته‌هایی که پاسخ‌های آن‌ها همگی صحیح یا همگی غلط باشند فاقد سیگنال یادگیری هستند و پیش از تشکیل مینی‌بچ حذف می‌شوند.
+\end{enumerate}
+
+با تلفیق این موارد، تابع هدف نهایی بهینه‌سازی به فرم چندخطی و دقیق زیر تعریف می‌شود:
+\begin{equation}
+\begin{aligned}
+    J_{\text{Magistral}}(\theta) = \mathbb{E}_{\substack{q \sim \mathcal{P}(Q), \\ \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}}} \Bigg[ & \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \min \Big( \rho_{i,t}(\theta) \hat{A}^{\text{norm}}_{i,t}, \\
+    & \text{clip}\left(\rho_{i,t}(\theta), 1 - \epsilon_{\text{low}}, 1 + \epsilon_{\text{high}}\right) \hat{A}^{\text{norm}}_{i,t} \Big) \Bigg]
+\end{aligned}
+\end{equation}
+مشروط بر اینکه شرط تنوع درون‌گروهی برقرار باشد:
+\begin{equation}
+    \exists \, 1 \le m < n \le G \quad \text{s.t.} \quad r_m \neq r_n
+\end{equation}
+که در آن نسبت درست‌نمایی توکنی برابر است با:
+\begin{equation}
+    \rho_{i,t}(\theta) = \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}
+\end{equation}
+
+\paragraph*{مهندسی پاداش چندمعیاره (\en{Reward Shaping})}
+تابع پاداش نهایی از ترکیب چهار مؤلفه تشکیل می‌شود:
+\begin{itemize}
+    \item \textbf{پاداش قالب ($R_{\text{format}}$):} پاسخ باید حتماً دارای یک جفت تگ \en{<think>} و \en{</think>} باشد. در ریاضیات باید عبارت نهایی در \en{\textbackslash boxed\{...\}} و در کدنویسی بلوک کد \en{Markdown} درج گردد. نقض این ساختار موجب صفر شدن پاداش کل ($R=0$) می‌شود و در صورت تطابق، پاداش اولیه $0.1$ اعطا می‌گردد.
+    \item \textbf{پاداش صحت علمی ($R_{\text{correct}}$):} در ریاضیات از ارزیاب نمادین \en{SymPy} جهت تایید هم‌ارزی جبری استفاده شده و در صورت صحت، پاداش $0.9$ اضافه می‌شود. در کدنویسی، برنامه تحت استاندارد \en{C++20} کامپایل شده و روی ۲۰ آزمون تصادفی با مهلت ۴ ثانیه و سقف حافظه \en{300MB} ارزیابی می‌گردد؛ قبولی در همه آزمون‌ها پاداش $0.9$ به همراه دارد.
+    \item \textbf{جریمه طول نرم (\en{Soft Length Penalty}):} برای هشدار به مدل در نزدیکی سقف حافظه بدون بریدگی تند گرادیان، جریمه زیر اعمال می‌شود:
+    \begin{equation}
+        R_{\text{length}}(y) = \begin{cases} 
+        0, & |y| \le l_{\max} - l_{\text{cache}} \\
+        -0.1 \times \left( \frac{|y| - (l_{\max} - l_{\text{cache}})}{l_{\text{cache}}} \right), & l_{\max} - l_{\text{cache}} < |y| \le l_{\max} \\
+        -0.1, & |y| > l_{\max} 
+        \end{cases}
+    \end{equation}
+    \item \textbf{پاداش تجانس زبانی ($R_{\text{lang}}$):} متن مسئله، زنجیره تفکر و پاسخ نهایی توسط دسته‌بند سریع \en{FastText} \cite{joulin2016fasttext} ارزیابی شده و در صورت همخوانی با زبان کاربر، پاداش تشویقی $0.1$ اعطا می‌شود.
+\end{itemize}
+
+\paragraph*{پرامپت سیستمی و هدایت انتروپی}
+پرامپت سیستمی مدل برای هدایت ساختار و سطح انتروپی به صورت زیر در محیط اختصاصی لاتین تعریف شده است:
+\begin{center}
+\fcolorbox{gray!40}{gray!5}{%
+\begin{minipage}{0.95\columnwidth}
+\begin{latin}
+\small
+\textbf{Magistral System Prompt:} \\
+"A user will ask you to solve a task. You should first draft your thinking process (inner monologue) until you have derived the final answer. Afterwards, write a self-contained summary of your thoughts... Write both your thoughts and summary in the same language as the task posed by the user. \\
+Your thinking process must follow the template below: \\
+\texttt{<think>} \\
+Your thoughts or/and draft, like working through an exercise on scratch paper. Be as casual and as long as you want until you are confident to generate a correct answer. \\
+\texttt{</think>} \\
+Here, provide a concise summary that reflects your reasoning and presents a clear final answer to the user."
+\end{latin}
+\end{minipage}
+}
+\end{center}
+استفاده از عبارت \textit{"Be as casual and as long as you want"} انتروپی اولیه مدل را افزایش داده و ظرفیت اکتشاف را تقویت می‌نماید.
+
+\paragraph*{زیرساخت توزیع‌شده ناهمگام (\en{Asynchronous Infrastructure})}
+برای مهار ناهماهنگی زمانی ناشی از اختلاف طول توالی‌ها:
+\begin{itemize}
+    \item واحدهای تولیدکننده (\en{Generators}) به‌صورت کاملاً ناهمگام و مداوم خروجی تولید می‌کنند.
+    \item انتقال وزن‌ها پس از هر گام گرادیان با کتابخانه ارتباطی \en{NCCL} مستقیماً میان حافظه کارت‌های گرافیک در کمتر از ۵ ثانیه انجام می‌شود.
+    \item \textbf{به‌روزرسانی در میانه تولید (\en{Mid-generation Updates}):} توالی‌های در حال تولید، وزن‌های جدید را بلافاصله دریافت می‌کنند بدون آنکه حافظه کش \en{KV} بازنشانی شود.
+    \item \textbf{مهار انحراف از خط‌مشی:} پایداری آموزش با قید $\frac{n_{\text{async}}}{n_{\text{batch}}} \le 2$ و برابری $n_{\text{batch}} = n_{\text{minibatch}}$ تضمین گردید.
+    \item \textbf{بسته‌بندی حریصانه ریزبچ‌ها:} توالی‌ها بر مبنای طول مرتب شده و به شکل حریصانه در ریزبچ‌ها قرار گرفتند که اتلاف حافظه (\en{Padding}) را ۱۹٪ کاهش داد.
+\end{itemize}
+
+\paragraph*{تحلیل هندسه وزن‌ها با الگوریتم لانچوز-آرنولدی (\en{Lanczos-Arnoldi PCA})}
+با تشکیل ماتریس وزن‌های چک‌پوینت‌ها در طول زمان ($X \in \mathbb{R}^{T \times W}$) و محاسبه دو بردار ویژه اول ماتریس کوواریانس $X^T X$ توسط روش تکراری لانچوز-آرنولدی \cite{saad2003iterative}، ابرصفحه تغییرات با بردارهای یکه $c_1, c_2$ بر طبق \cite{li2018visualizing} به‌دست آمد:
+\begin{equation}
+    w(\alpha_1, \alpha_2) = w^* + \alpha_1 c_1 + \alpha_2 c_2
+\end{equation}
+این تحلیل نشان داد که مسیر بهینه‌سازی مدل دقیقاً در امتداد جهت افزایش طول زنجیره تفکر حرکت می‌کند و پاداش با لگاریتم طول توالی رابطه خطی مستقیم دارد ($R_{\text{raw}} \propto a \cdot \log(\text{Length}) + b$).
+
+\paragraph*{پدیده نوظهور استدلال دیداری چندوجهی (\en{Multimodal Free Lunch})}
+با وجود آنکه در طول مرحله \en{RL} حتی یک داده تصویری استفاده نشد، توانایی استدلال مرحله‌به‌مرحله به انکودر بینایی مدل سرایت کرد. مدل در بنچمارک \en{MMMU} \cite{yue2024mmmu} به دقت \textbf{۷۰.۰٪} (ارتقای ۵٪) و در بنچمارک دشوار \en{MMMU-Pro (Vision)} \cite{yue2025mmmupro} به دقت \textbf{۵۲.۱٪} (جهش ۱۲٪) دست یافت.
+
+\paragraph*{رویکردهای ناموفق (\en{Unsuccessful Approaches})}
+نویسندگان نشان دادند که:
+\begin{itemize}
+    \item \textbf{پاداش جزئی در کدنویسی:} پاداش‌دهی بر مبنای کسری از آزمون‌های موفق موجب افت ۲ درصدی در \en{LiveCodeBench} شد؛ چرا که سیگنال‌های مثبت کاذب به راه‌حل‌های غلط اما با انطباق تصادفی تزریق می‌کرد.
+    \item \textbf{ترم پاداش انتروپی سنتی:} اضافه کردن ضریب انتروپی به تابع اتلاف موجب ناپایداری و انفجار انتروپی گردید.
+    \item \textbf{جریمه \en{KL} با میانگین متحرک:} استفاده از هر شکلی از جریمه واگرایی \en{KL} مانع از تغییر رفتار مدل به سمت تفکر عمیق شد.
+\end{itemize}
+
+\paragraph*{ارزیابی‌های تجربی و نتایج}
+نتایج مدل‌های خانواده \model{Magistral} در مقایسه با سایر مدل‌ها در جدول \ref{tab:magistral_eval_results} ارائه شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی جامع عملکرد مدل‌های خانواده \model{Magistral} در بنچمارک‌های استدلالی}
+\label{tab:magistral_eval_results}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{مدل} & \textbf{رویکرد آموزش} & \textbf{AIME '24} & \textbf{AIME '25} & \textbf{MATH-500} & \textbf{GPQA} & \textbf{LiveCodeBench} \\
+\midrule
+\model{Mistral Medium 3} & پایه دستوری & 26.8\% & 21.2\% & 91.0\% & 59.6\% & 29.1\% \\
+\model{Magistral Medium} & \en{RL} خالص & \textbf{73.6\%} & \textbf{64.9\%} & \textbf{94.3\%} & \textbf{70.8\%} & \textbf{59.4\%} \\
+\model{DeepSeek-R1-Zero} & \en{RL} خالص & 71.0\% & - & 95.9\% & 73.3\% & 50.0\% \\
+\model{DeepSeek-R1} & \en{SFT} استدلالی $+$ \en{RL} & 79.8\% & 70.0\% & 97.3\% & 71.5\% & 65.9\% \\
+\midrule
+\model{Mistral Small 24B} & تقطیر \en{SFT} & 65.4\% & 55.6\% & 93.2\% & 63.4\% & 52.2\% \\
+\model{Mistral Small 24B} & \en{RL} خالص & 65.8\% & 51.9\% & 95.4\% & 68.8\% & 46.4\% \\
+\model{Magistral Small (24B)} & ترکیب \en{SFT+RL} & \textbf{70.7\%} & \textbf{62.8\%} & \textbf{95.9\%} & \textbf{68.2\%} & \textbf{55.8\%} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

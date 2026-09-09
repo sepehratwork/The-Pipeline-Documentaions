@@ -1254,6 +1254,42 @@ Alexander Samarin et~al.
   decoding.
 \newblock {\em arXiv preprint arXiv:2602.23881}, 2026.
 
+\bibitem{magistral2025}
+Abhinav Rastogi, Albert~Q. Jiang, Andy Lo, Gabrielle Berrada, Guillaume Lample,
+  Jason Rute, Joep Barmentlo, Karmesh Yadav, Kartik Khandelwal, Khyathi~Raghavi
+  Chandu, et~al.
+\newblock Magistral.
+\newblock {\em arXiv preprint arXiv:2506.10910}, 2025.
+
+\bibitem{mistralmedium3}
+{Mistral AI}.
+\newblock Mistral medium 3.
+\newblock \url{https://mistral.ai/news/mistral-medium-3}, 2025.
+
+\bibitem{andrychowicz2020matters}
+Marcin Andrychowicz, Anton Raichuk, Piotr Sta{\'n}czyk, Manu Orsini, Sertan
+  Girgin, Raphael Marinier, L{\'e}onard Hussenot, Matthieu Geist, Olivier
+  Pietquin, Marcin Michalski, et~al.
+\newblock What matters in on-policy reinforcement learning? a large-scale
+  empirical study.
+\newblock {\em arXiv preprint arXiv:2006.05990}, 2020.
+
+\bibitem{yu2025cliphigher}
+Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan, Xiaochen Zuo, Yu~Yue, Tiantian
+  Fan, Gaohong Liu, Lingjun Liu, Xin Liu, et~al.
+\newblock Dapo: An open-source llm reinforcement learning system at scale.
+\newblock {\em arXiv preprint arXiv:2503.14476}, 2025.
+
+\bibitem{saad2003iterative}
+Youcef Saad.
+\newblock {\em Iterative Methods for Sparse Linear Systems}.
+\newblock SIAM, 2003.
+
+\bibitem{li2018visualizing}
+Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, and Tom Goldstein.
+\newblock Visualizing the loss landscape of neural nets.
+\newblock {\em arXiv preprint arXiv:1712.09913}, 2018.
+
 \bibitem{shazeer2017outrageously}
 Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc~V. Le,
   Geoffrey~E. Hinton, and Jeff Dean.
@@ -1884,5 +1920,16 @@ Z.~Lu, C.~Li, Y.~Shi, W.~Shen, et~al.
 \newblock Deepseek-v3.2-exp: Boosting long-context efficiency with deepseek
   sparse attention.
 \newblock {\em arXiv preprint}, 2025.
+
+\bibitem{penedo2025openr1}
+Guilherme Penedo, Anton Lozhkov, Hynek Kydl{\'i}{\v{c}}ek, Loubna~Ben Allal,
+  Edward Beeching, et~al.
+\newblock Codeforces cots (open-r1).
+\newblock \url{https://huggingface.co/datasets/open-r1/codeforces-cots}, 2025.
+
+\bibitem{mistrallarge2}
+{Mistral AI}.
+\newblock Mistral large 2.
+\newblock \url{https://mistral.ai/news/mistral-large-2407}, 2024.
 
 \end{thebibliography}
