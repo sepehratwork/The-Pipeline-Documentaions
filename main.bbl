@@ -1188,6 +1188,34 @@ F.~Bellard.
 \newblock In {\em USENIX Annual Technical Conference, FREENIX Track}, page~41,
   2005.
 
+\bibitem{glm2026glm5}
+{GLM-5 Team}, {Zhipu AI}, and {Tsinghua University}.
+\newblock {GLM-5}: from vibe coding to agentic engineering.
+\newblock {\em arXiv preprint arXiv:2602.15763v2}, 2026.
+
+\bibitem{anthropic2025claude45}
+{Anthropic}.
+\newblock System card: Claude opus 4.5.
+\newblock {\em Technical Report, Anthropic}, 2025.
+
+\bibitem{zhang2025repolaunch}
+L.~Zhang, S.~He, C.~Zhang, Y.~Kang, B.~Li, C.~Xie, J.~Wang, M.~Wang, Y.~Huang,
+  S.~Fu, E.~Nallipogu, Q.~Lin, Y.~Dang, S.~Rajmohan, and D.~Zhang.
+\newblock {SWE-bench} goes live!
+\newblock {\em arXiv preprint arXiv:2505.23419}, 2025.
+
+\bibitem{harbor2026team}
+{Harbor Framework Team}.
+\newblock Harbor: A framework for evaluating and optimizing agents and models
+  in container environments.
+\newblock {\em Technical Report}, 2026.
+
+\bibitem{wei2025browsecomp}
+J.~Wei, Z.~Sun, S.~Papay, S.~McKinney, J.~Han, I.~Fulford, H.~W. Chung, A.~T.
+  Passos, W.~Fedus, and A.~Glaese.
+\newblock {BrowseComp}: A simple yet challenging benchmark for browsing agents.
+\newblock {\em arXiv preprint arXiv:2504.12516}, 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.

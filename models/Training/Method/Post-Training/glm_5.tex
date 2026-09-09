@@ -1,1 +1,269 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{مقدمه و پارادایم نوین: گذار از کدنویسی حسی به مهندسی عامل‌محور (\en{From Vibe Coding to Agentic Engineering})}
+مدل \model{GLM-5} \cite{glm2026glm5} با هدف شکستن مرزهای سنتی مدل‌های زبانی و بازتعریف مرحله پس‌آموزش (\en{Post-Training})، گذار از «کدنویسی حسی متکی بر پرامپت انسانی» (\en{Vibe Coding}) به «مهندسی نرم‌افزار خودگردان عامل‌محور» (\en{Agentic Engineering}) را پایه‌گذاری کرده است. در حالی که در نسل‌های پیشین (نظیر \en{GLM-4.5} و \en{GLM-4.7}) تمرکز بر ادغام قابلیت‌های استدلال و کدنویسی درون معماری متعارف \en{MoE} بود، چالش‌های بنیادینی نظیر حباب‌های محاسباتی ناشی از افق‌های زمانی بلندمدت (\en{Long-Horizon Trajectories})، واگرایی توزیع استنتاج و آموزش، و پدیده فراموشی فاجعه‌بار (\en{Catastrophic Forgetting}) مانع از حل مستقل مسائل پیچیده مهندسی می‌گردید.
+
+در پس‌آموزش \model{GLM-5}، یک خط‌لوله پیش‌رونده و چندمرحله‌ای تعبیه شده است:
+\begin{enumerate}
+    \item \textbf{تنظیم دقیق نظارت‌شده پیشرفته (\en{Overall SFT}):} برقراری سه الگوی تفکر بنیادین (درهم‌تنیده، حفظ‌شده و در سطح نوبت)، آموزش کوانتیزاسیون‌آگاه \en{INT4 QAT}، و یادگیری اصلاح خطا از طریق تابع زیان پوشش‌دار (\en{Masked Loss}).
+    \item \textbf{یادگیری تقویتی استدلال (\en{Reasoning RL}):} به‌کارگیری نسخه ارتقایافته الگوریتم \en{IcePop} بدون جریمه \en{KL} جهت رفع عدم انطباق توزیع آموزش-استنتاج، تثبیت عملگرهای قطعی \en{Top-K} در بستر توجه پراکنده \en{DSA}، و آموزش چند دامنه‌ای متوازن.
+    \item \textbf{یادگیری تقویتی عامل‌محور ناهمگام (\en{Asynchronous Agentic RL}):} تفکیک فیزیکی موتورهای تولید و آموزش بر بستر چارچوب \en{slime}، دروازه توکن‌محور (\en{TITO})، و برش دوطرفه سخت با نمونه‌برداری ترجیحی مستقیم.
+    \item \textbf{یادگیری تقویتی عمومی (\en{General RL}):} هم‌ترازی سه‌بعدی با سامانه‌های پاداش ترکیبی (\en{Rule + ORM + GRM}) و مهار رفتار فرمولی با لنگرهای انسانی.
+    \item \textbf{تقطیر درون‌خط‌مشی میان‌مرحله‌ای (\en{On-Policy Cross-Stage Distillation}):} بازیابی و تثبیت مهارت‌های استدلال و عمومی پس از بهینه‌سازی‌های متوالی بدون افت در ظرفیت‌های عاملی.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع فرآیند پس‌آموزش GLM-5
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.2cm and 0.8cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1.1pt, drop shadow},
+    base_model/.style={base, fill=blue!12, draw=blue!75!black, minimum width=6cm, minimum height=1.1cm, font=\bfseries},
+    stage_sft/.style={base, fill=cyan!12, draw=cyan!75!black, minimum width=15.2cm, minimum height=2.0cm},
+    stage_rl/.style={base, fill=teal!10, draw=teal!70!black, minimum width=4.6cm, minimum height=3.4cm},
+    distill_box/.style={base, fill=orange!12, draw=orange!75!black, minimum width=15.2cm, minimum height=2.2cm},
+    final_model/.style={base, fill=green!15, draw=green!65!black, minimum width=6.5cm, minimum height=1.2cm, font=\bfseries},
+    infra_tag/.style={base, fill=purple!10, draw=purple!70!black, minimum width=3.3cm, minimum height=1.2cm, font=\scriptsize},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.2pt, draw=gray!75!black},
+    dash_arrow/.style={-{Stealth[scale=1.0]}, line width=1.0pt, dashed, draw=orange!80!black}
+]
+
+    % Base Model Node
+    \node[base_model] (base) {مدل پایه پیش‌آموزش‌دیده \model{GLM-5 Base}\\ \footnotesize (۷۴۴ میلیارد پارامتر کل / ۴۰ میلیارد پارامتر فعال با کانتکست \en{200K})};
+
+    % SFT Stage
+    \node[stage_sft, below=1.2cm of base] (sft) {
+        \textbf{\large مرحله تنظیم دقیق نظارت‌شده چندمنظوره (\en{Overall SFT Stage})}\\[3pt]
+        \small $\bullet$ کانتکست تا سقف ۲۰۲,۷۵۲ توکن \quad $\bullet$ سه پارادایم تفکر: درهم‌تنیده (\en{Interleaved})، حفظ‌شده (\en{Preserved}) و در سطح نوبت\\
+        \small $\bullet$ آموزش کوانتیزاسیون‌آگاه \en{INT4 QAT} با کرنل یکسان در آموزش و استنتاج \quad $\bullet$ یادگیری تصحیح خطا با ماسک زیان
+    };
+
+    % Sequential RL Stages
+    \node[stage_rl, below left=1.4cm and 0.4cm of sft] (rl_reason) {
+        \textbf{یادگیری تقویتی استدلال}\\ \en{Reasoning RL}\\[4pt]
+        \scriptsize $\bullet$ الگوریتم بهینه‌شده \en{IcePop}\\
+        \scriptsize $\bullet$ حذف ترم جریمه \en{KL}\\
+        \scriptsize $\bullet$ عملگر قطعی \en{torch.topk}\\
+        \scriptsize $\bullet$ فریز کردن نمایه‌ساز \en{DSA}\\
+        \scriptsize $\bullet$ آموزش دامنه‌ای ترکیبی\\
+        \scriptsize (ریاضی، علم، کد، ابزار \en{TIR})
+    };
+
+    \node[stage_rl, right=0.7cm of rl_reason] (rl_agent) {
+        \textbf{یادگیری تقویتی عامل‌محور}\\ \en{Agentic RL}\\[4pt]
+        \scriptsize $\bullet$ معماری ناهمگام (\en{Asynchronous})\\
+        \scriptsize $\bullet$ درگاه توکن‌محور (\en{TITO Gateway})\\
+        \scriptsize $\bullet$ برش دوطرفه متقارن (\en{Double-IS})\\
+        \scriptsize $\bullet$ حذف نمونه‌های بیات ($w'-w_0 > \tau$)\\
+        \scriptsize $\bullet$ مسیریابی \en{DP-Aware} برای کش\\
+        \scriptsize $\bullet$ محیط‌های \en{SWE} و \en{Terminal}
+    };
+
+    \node[stage_rl, right=0.7cm of rl_agent] (rl_general) {
+        \textbf{یادگیری تقویتی عمومی}\\ \en{General RL}\\[4pt]
+        \scriptsize $\bullet$ هم‌ترازی ابعاد سه‌گانه\\
+        \scriptsize (صحت، هوش هیجانی، کیفیت)\\
+        \scriptsize $\bullet$ پاداش ترکیبی هیبریدی:\\
+        \scriptsize $\mathcal{R} = w_1\text{Rule} + w_2\text{ORM} + w_3\text{GRM}$\\
+        \scriptsize $\bullet$ لنگرهای سبک‌شناختی انسانی\\
+        \scriptsize جهت مهار لحن‌های مصنوعی
+    };
+
+    % RL Grouping Box
+    \node[draw=teal!65!black, dashed, rounded corners=8pt, fit=(rl_reason) (rl_agent) (rl_general), inner sep=10pt, label=above:\textbf{\textcolor{teal!75!black}{مراحل ترتیبی و پیش‌رونده یادگیری تقویتی تخصصی (\en{Specialized RL Pipeline})}}] (rl_group) {};
+
+    % Distillation Stage
+    \node[distill_box, below=1.5cm of rl_group] (distill) {
+        \textbf{\large تقطیر درون‌خط‌مشی میان‌مرحله‌ای (\en{On-Policy Cross-Stage Distillation})}\\[4pt]
+        \small $\hat{A}_{i,t} = \operatorname{sg}\left[ \log \frac{\pi_{\theta_{\text{teacher}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}{\pi_\theta^{\text{train}}(y_{i,t} \mid x, y_{i,<t})} \right] \qquad \text{با اندازه گروه } G=1 \text{ و دسته } 1024$\\[4pt]
+        \footnotesize بازیابی بلادرنگ مهارت‌های استدلال و عمومی پیشین بر مبنای لاجیت‌های ذخیره‌شده از معلمان مراحل گذشته جهت مهار قطعی فراموشی فاجعه‌بار
+    };
+
+    % Infrastructures
+    \node[infra_tag, below left=1.2cm and -0.8cm of distill] (infra_pd) {
+        \textbf{تفکیک \en{Prefill-Decode}}\\
+        \en{PD Disaggregation}\\
+        مهار تاخیر در کانتکست‌های بلند
+    };
+
+    \node[infra_tag, below=1.2cm of distill] (infra_fp8) {
+        \textbf{شتاب‌بخشی \en{FP8 + MTP}}\\
+        پیش‌بینی چندتوکنی\\
+        کاهش زمان استنتاج دنباله
+    };
+
+    \node[infra_tag, below right=1.2cm and -0.8cm of distill] (infra_fault) {
+        \textbf{تحمل خطای ضربان قلب}\\
+        \en{Heartbeat Recovery}\\
+        پاکسازی خودکار سندباکس‌ها
+    };
+
+    % Final Model
+    \node[final_model, below=1.3cm of infra_fp8] (final) {
+        مدل نهایی یکپارچه \model{GLM-5}\\
+        \normalsize مهندسی خودگردان عامل‌محور (\en{Agentic Engineering})
+    };
+
+    % Connecting Arrows
+    \draw[arrow] (base) -- (sft);
+    \draw[arrow] (sft) -- (rl_group);
+    \draw[arrow] (rl_reason) -- (rl_agent);
+    \draw[arrow] (rl_agent) -- (rl_general);
+    \draw[arrow] (rl_group) -- (distill);
+
+    % Teacher Logits Cross-Arrows
+    \draw[dash_arrow] (rl_reason.south) -- ++(0,-0.4) -| ([xshift=2.0cm]distill.north west) 
+        node[pos=0.25, right, font=\scriptsize] {معلم ۱ (\en{Logits})};
+    \draw[dash_arrow] (rl_general.south) -- ++(0,-0.4) -| ([xshift=-2.0cm]distill.north east) 
+        node[pos=0.25, left, font=\scriptsize] {معلم ۲ (\en{Logits})};
+
+    \draw[arrow] (distill.south) -- ++(0,-0.3) -| (infra_pd.north);
+    \draw[arrow] (distill.south) -- (infra_fp8.north);
+    \draw[arrow] (distill.south) -- ++(0,-0.3) -| (infra_fault.north);
+
+    \draw[arrow] (infra_pd.south) |- (final.west);
+    \draw[arrow] (infra_fp8.south) -- (final.north);
+    \draw[arrow] (infra_fault.south) |- (final.east);
+
+\end{tikzpicture}%
+}
+\caption{جریان کاری جامع پس‌آموزش در مدل \model{GLM-5}: تنظیم دقیق با الگوهای تفکر سه‌گانه، یادگیری تقویتی ناهمگام، پاداش ترکیبی و تقطیر درون‌خط‌مشی میان‌مرحله‌ای.}
+\label{fig:glm5_post_training_pipeline}
+\end{figure}
+
+\paragraph*{تنظیم دقیق نظارت‌شده و ساختار سه‌گانه تفکر (\en{Supervised Fine-Tuning - SFT})}
+در فاز نخست پس‌آموزش، مقیاس داده‌های تعامل عاملی و کدنویسی به‌طور چشمگیری گسترش یافته است. این مجموعه سه شاخه کلیدی را پوشش می‌دهد: گفتگوی عمومی، استدلال تحلیلی، و وظایف عاملی-کدنویسی مهندسی. در این مرحله، پنجره بافت به ۲۰۲,۷۵۲ توکن افزایش یافته و ساختار گفتگوی جدید مدل، سه خصیصه استدلالی نوین را پشتیبانی می‌کند:
+\begin{itemize}
+    \item \textbf{تفکر درهم‌تنیده (\en{Interleaved Thinking}):} مدل پیش از تولید هر پاسخ نهایی یا فراخوانی هر ابزار بیرونی (\en{Tool Call})، یک بلوک تحلیلی تفکر تولید می‌کند. این امر موجب پیش‌بینی اثرات فراخوانی و کاهش خطاهای صدور دستور می‌گردد \cite{anthropic2025claude45}.
+    \item \textbf{تفکر حفظ‌شده (\en{Preserved Thinking}):} در حل مسائل چندنوبته در محیط‌های نرم‌افزاری طولانی، تمامی بلوک‌های تفکر نوبت‌های گذشته در حافظه کانتکست نگه‌داری می‌شوند. این ساختار از تحلیل مجدد پیش‌فرض‌ها جلوگیری کرده و ثبات تصمیم‌گیری در افق‌های زمانی وسیع را تقویت می‌نماید.
+    \item \textbf{تفکر در سطح نوبت (\en{Turn-level Thinking}):} امکان کنترل پویا بر فعال یا غیرفعال بودن پردازش استدلالی در هر نوبت به فراخور پیچیدگی وظیفه؛ غیرفعال‌سازی برای درخواست‌های عادی جهت کاهش تأخیر و فعال‌سازی برای چالش‌های پیچیده.
+    \item \textbf{آموزش اصلاح خطا با ماسک‌گذاری تابع زیان (\en{Masked Loss}):} در مسیرهای حل مسئله که شامل گام‌های نادرست و اصلاحات متوالی هستند، توکن‌های مربوط به تصمیمات ناصحیح حذف نمی‌شوند؛ بلکه تنها در محاسبه تابع زیان بازگشت کراس‌آنتروپی ضریب صفر دریافت می‌کنند ($m_t = 0$):
+    \begin{equation}
+        \mathcal{L}_{\text{SFT}}(\theta) = -\sum_{t=1}^{|y|} m_t \log P_\theta(y_t \mid x, y_{<t}), \quad m_t \in \{0, 1\}
+    \end{equation}
+    این فرمولاسیون سبب می‌شود مدل رفتار خود-اصلاحی (\en{Self-Correction}) را از خطاهای گذشته بیاموزد بی آنکه اقدامات خطا تقویت شوند.
+    \item \textbf{کوانتیزاسیون \en{INT4 QAT} در مرحله \en{SFT}:} به منظور دستیابی به حداکثر کارایی استنتاج بر روی سخت‌افزارهای داخلی و لبه، فاز \en{SFT} مجهز به کوانتیزاسیون آگاه از آموزش \en{INT4} است. با بهره‌گیری از یک کرنل محاسباتی یکپارچه، تطابق دقیق بیتی (\en{Bitwise-Identical}) میان فرایند آموزش و استنتاج تضمین شده است.
+\end{itemize}
+
+\paragraph*{یادگیری تقویتی استدلال (\en{Reasoning RL}) و مهار واگرایی توزیع}
+ستون فقرات الگوریتم استدلال در \model{GLM-5} بر مبنای «بهینه‌سازی خط‌مشی نسبی گروهی» (\en{GRPO}) \cite{shao2024deepseekmath} پی‌ریزی شده است. برای مهار مسئله بنیادین عدم تطابق میان توزیع استنتاج حین نمونه‌برداری و توزیع آموزش گرادیان، نوآوری \en{IcePop} \cite{zhao2025icepop} با بازطراحی ساختاری به خدمت گرفته شده است.
+
+\subparagraph*{اشتقاق ریاضیاتی عدم تطابق آموزش-استنتاج (\en{Training-Inference Discrepancy}):}
+در سامانه‌های استنتاج توزیع‌شده با دقت‌های پایین یا بهینه‌سازهای ناهمگام، توزیع سیاست حین نمونه‌برداری ($\pi_{\theta_{\text{old}}}^{\text{infer}}$) دقیقاً با سیاست موتور آموزش ($\pi_{\theta_{\text{old}}}^{\text{train}}$) یکسان نیست. لذا نسبت عدم تطابق آماری به‌صورت زیر تعریف می‌گردد:
+\begin{equation}
+    \rho_{i,t} = \frac{\pi_{\theta_{\text{old}}}^{\text{train}}(y_{i,t} \mid x, y_{i,<t})}{\pi_{\theta_{\text{old}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}
+\end{equation}
+برای مهار نوسانات شدید آماری، عملگر سرکوب $\operatorname{pop}(\cdot)$ به ازای کران $\beta > 1$ روی نسبت توزیع‌ها اعمال می‌شود:
+\begin{equation}
+    \operatorname{pop}(\rho_{i,t}, 1/\beta, \beta) = \begin{cases} 
+    \rho_{i,t}, & \text{if } \frac{1}{\beta} \le \rho_{i,t} \le \beta \\ 
+    0, & \text{otherwise} 
+    \end{cases}
+\end{equation}
+در پیاده‌سازی \model{GLM-5}، برخلاف ساختار سنتی \en{IcePop}، به منظور شتاب‌بخشی حداکثری به بهبود استدلال، ترم رگولاریزاسیون واگرایی \en{KL} حذف شده است. تابع زیان بهینه‌سازی نهایی استدلال با نسبت اهمیت $r_{i,t} = \frac{\pi_\theta^{\text{train}}(y_{i,t} \mid x, y_{i,<t})}{\pi_{\theta_{\text{old}}}^{\text{train}}(y_{i,t} \mid x, y_{i,<t})}$ به‌صورت زیر فرمول‌بندی می‌گردد:
+\begin{equation}
+\begin{aligned}
+    \mathcal{L}_{\text{Reasoning}}(\theta) = -\mathbb{E}_{\substack{x \sim \mathcal{D} \\ \{y_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}^{\text{infer}}}} \Bigg[ \frac{1}{G} \sum_{i=1}^G \frac{1}{|y_i|} \sum_{t=1}^{|y_i|} & \operatorname{pop}\left(\rho_{i,t}, \frac{1}{\beta}, \beta\right) \times \\
+    & \min\left( r_{i,t}\hat{A}_{i,t}, \, \operatorname{clip}(r_{i,t}, 1-\epsilon_{\text{low}}, 1+\epsilon_{\text{high}})\hat{A}_{i,t} \right) \Bigg]
+\end{aligned}
+\end{equation}
+که در آن مزیت نرمال‌سازی‌شده گروهی پاسخ $i$-ام برابر است با:
+\begin{equation}
+    \hat{A}_{i,t} = \frac{R_i - \operatorname{mean}(R_1, \dots, R_G)}{\operatorname{std}(R_1, \dots, R_G) + \epsilon}
+\end{equation}
+ابَرپارامترهای بهینه‌سازی در این مرحله شامل $\beta = 2$، $\epsilon_{\text{low}} = 0.2$، $\epsilon_{\text{high}} = 0.28$، با اندازه گروه نمونه‌برداری $G = 32$ و اندازه دسته داده ۳۲ به صورت کاملاً برخط (\en{On-policy}) تنظیم شده‌اند.
+
+\subparagraph*{پایداری در معماری توجه پراکنده \en{DSA} و مهار فروپاشی آنتروپی:}
+مدل \model{GLM-5} مجهز به سازوکار توجه پراکنده دیپ‌سیک (\en{DeepSeek Sparse Attention - DSA}) \cite{deepseek2025v32} است که در آن نمایه‌ساز (\en{Indexer}) تعداد $k=2048$ عنصر کلید-مقدار را برای بافت‌های طویل فراخوانی می‌کند. پیاده‌سازی‌های غیراقطعی (\en{Non-deterministic}) عملگر \en{Top-K} مبتنی بر کرنل‌های متداول، حین اجرای \en{RL} پس از گام‌های معدودی به افت ناگهانی و فاجعه‌بار آنتروپی (\en{Entropy Collapse}) و واگرایی شدید خط‌مشی می‌انجامیدند. در \model{GLM-5} با جایگزینی عملگر قطعی \en{torch.topk} در موتور آموزش و انجماد کامل (\en{Freeze}) پارامترهای نمایه‌ساز در فاز \en{RL}، پایداری محاسباتی مطلق حاصل گردید.
+
+\subparagraph*{آموزش چند دامنه‌ای (\en{Mixed Domain Reasoning RL}):}
+داده‌های استدلال به صورت هم‌زمان و متوازن بر روی چهار قلمرو بهینه‌سازی می‌شوند: ریاضیات، علوم، برنامه‌نویسی الگوریتمی، و استدلال متکی بر ابزار (\en{Tool-Integrated Reasoning - TIR}). پاداش‌ها به صورت دودویی ($R \in \{0, 1\}$) و با سیستم‌های داوری دقیق دامنه‌محور ارزیابی می‌گردند.
+
+\paragraph*{یادگیری تقویتی عامل‌محور ناهمگام (\en{Asynchronous Agentic RL})}
+مسیرهای طولانی در وظایف عاملی (نظیر اجرای کدهای ترمینال و مهندسی معکوس) و عدم تعادل شدید در زمان خاتمه تعاملات، اجرای همگام \en{RL} را با حباب‌های بیکاری گسترده مواجه می‌سازد. \model{GLM-5} برای نخستین بار یک زیرساخت کاملاً ناهمگام را پیاده‌سازی نموده است:
+\begin{itemize}
+    \item \textbf{تفکیک فیزیکی موتورها و ارکستریتور چندوظیفه‌ای:} موتور تولید مسیرها و موتور به‌روزرسانی گرادیان روی خوشه‌های \en{GPU} مجزا قرار دارند. ارکستریتور مرکزی بیش از ۱۰۰۰ مسیر موازی هم‌زمان را از وظایف گوناگون به صورت یکپارچه مدیریت می‌کند. وزن‌های مدل هر $K$ گام آپدیت گرادیان به موتور استنتاج منتقل شده و وضعیت بهینه‌ساز پس از همگام‌سازی ریست می‌گردد.
+    \item \textbf{درگاه توکن‌محور (\en{TITO Gateway}):} در پردازش سنتی متنی (\en{Text-in-Text-out})، تبدیل مکرر متن خروجی به توکن در موتور آموزش باعث ناهماهنگی در مرز توکن‌ها و اختلال در تخصیص پاداش به اقدامات می‌گردد. درگاه \en{Token-in-Token-out (TITO)} شناسه‌های عددی توکن‌ها و فراداده‌ها را مستقیماً ثبت و منتقل می‌کند.
+    \item \textbf{نمونه‌برداری ترجیحی دوطرفه مستقیم (\en{Direct Double-Sided IS}):} در شرایط ناهمگام، ثبت چک‌پوینت‌های قدیمی برای محاسبه $\pi_{\theta_{\text{old}}}$ به لحاظ حافظه ناممکن است. \model{GLM-5} لگاریتم احتمالات ثبت‌شده حین تولید را مستقیماً به عنوان تقریب رفتار به کار می‌گیرد:
+    \begin{equation}
+        r_t(\theta) = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\text{rollout}}(a_t \mid s_t)} = \exp\left( \log \pi_\theta(a_t \mid s_t) - \log \pi_{\text{rollout}}(a_t \mid s_t) \right)
+    \end{equation}
+    سپس تابع کالیبراسیون دوطرفه سخت با بازه $[1-\epsilon_\ell, 1+\epsilon_h]$ اعمال می‌شود:
+    \begin{equation}
+        f(x; \epsilon_\ell, \epsilon_h) = \begin{cases} 
+        x, & \text{if } 1 - \epsilon_\ell < x < 1 + \epsilon_h \\ 
+        0, & \text{otherwise} 
+        \end{cases}
+    \end{equation}
+    که تابع هدف را به‌صورت زیر درمی‌آورد:
+    \begin{equation}
+        \mathcal{L}_{\text{Agentic}}(\theta) = \mathbb{E}_t \left[ f(r_t(\theta), \epsilon_\ell, \epsilon_h) \hat{A}_t \log \pi_\theta(a_t \mid s_t) \right]
+    \end{equation}
+    اگر نسبت $r_t(\theta)$ از بازه اطمینان خارج شود، گرادیان آن توکن صفر می‌شود که پایداری بی‌نظیری را در مقابل خط‌مشی‌های بسیار کهنه پدید می‌آورد.
+    \item \textbf{فیلتر مسیرهای کهنه و خطاهای زیرساختی:} مسیرهایی که با کهنه‌ترین نسخه خط‌مشی تولید شده و تاخیر آنها از آستانه مجاز فراتر رود ($w' - w_0 > \tau$) از دور آموزش حذف می‌شوند. همچنین رخدادهای ناشی از کرش کانتینرهای نرم‌افزاری ایزوله و نادیده گرفته می‌شوند.
+    \item \textbf{مسیریابی آگاه از داده‌موازی (\en{DP-Aware Routing}):} برای حفظ لوکالیتی و استفاده حداکثری از \en{KV-Cache} در طول نوبت‌های متوالی یک عامل، تمام تعاملات یک جلسه از طریق هشینگ سازگار (\en{Consistent Hashing}) به یک رنک ثابت \en{DP} تخصیص می‌یابند.
+\end{itemize}
+
+\paragraph*{مقیاس‌پذیری محیط‌های اعتبارسنجی عاملی (\en{Environment Scaling})}
+یادگیری عاملی بدون محیط‌های تعاملی تاییدپذیر بی‌اثر است. \model{GLM-5} زیرساخت‌های محیطی زیر را بنا نهاده است:
+\begin{itemize}
+    \item \textbf{محیط‌های مهندسی نرم‌افزار (\en{RepoLaunch SWE}):} بیش از ۱۰,۰۰۰ محیط اجرایی اعتبارسنجی‌شده در ۹ زبان برنامه‌نویسی به همراه کانتینرهای داکر مستقل و آزمون‌های \en{F2P} و \en{P2P} برای سنجش دقیق اصلاح کد \cite{zhang2025repolaunch}.
+    \item \textbf{محیط‌های ترمینال بر پایه استاندارد \en{Harbor}:} سنتز هزاران وظیفه پوسته فرمان با عامل‌های دوقلوی ساخت و ارزیابی در قالب استاندارد هاربر \cite{harbor2026team} با نرخ صحت ساخت فراتر از ۹۰٪.
+    \item \textbf{مدیریت سلسله‌مراتبی کانتکست برای عامل‌های جستجو (\en{HCM}):} در ارزیابی‌های جستجوی وب نظیر \en{BrowseComp} \cite{wei2025browsecomp}، تراکم تاریخچه ابزارها موجب سردرگمی مدل می‌شود. با ادغام راهکار حفظ ۵ نوبت اخیر (\en{Keep-recent-5}) و بازنشانی سراسری کانتکست (\en{Discard-all}) در آستانه ۳۲ هزار توکن، امتیاز مدل به **۷۵.۹٪** ارتقا یافته است.
+    \item \textbf{سامانه پاداش سه‌سطحی و مهار هک پاداش در تولید اسلاید:} سیستم تولید کدهای فرانت‌اند و اسلاید به پاداش‌های سطح ۱ (نشانه‌گذاری استاتیک)، سطح ۲ (رندرینگ زمان اجرا و ابعاد المان‌های \en{DOM})، و سطح ۳ (ادراک تعادل بصری) مجهز شد تا مانع از تقلب مدل از طریق ویژگی‌هایی نظیر پنهان‌سازی محتوا با \en{overflow:hidden} گردد.
+\end{itemize}
+
+\paragraph*{یادگیری تقویتی عمومی (\en{General RL}) و هم‌ترازی با ترجیحات انسانی}
+فاز یادگیری عمومی به عنوان لایه متعادل‌کننده رفتار نهایی عمل می‌کند:
+\begin{itemize}
+    \item \textbf{اهداف سه‌بعدی:} صحت بنیادین، هوش هیجانی در مکالمه، و غنای نگارشی.
+    \item \textbf{سیستم پاداش هیبریدی:} تجمیع پاداش‌های قاعده‌محور، مدل‌های پاداش پیامدمحور (\en{ORM})، و مدل‌های پاداش زایشی (\en{GRM}):
+    \begin{equation}
+        \mathcal{R}_{\text{Hybrid}}(x, y) = w_1 \mathcal{R}_{\text{Rule}}(y) + w_2 \mathcal{R}_{\text{ORM}}(x, y) + w_3 \mathcal{R}_{\text{GRM}}(x, y)
+    \end{equation}
+    \item \textbf{لنگرهای سبک‌شناختی انسانی (\en{Human Style Anchors}):} تزریق متون تألیف‌شده توسط متخصصان زبده انسانی به جریان گرادیان جهت پیشگیری از تولید ساختارهای کلیشه‌ای و متکلف ناشی از بهینه‌سازی صرفاً ماشینی.
+\end{itemize}
+
+\paragraph*{تقطیر درون‌خط‌مشی میان‌مرحله‌ای (\en{On-Policy Cross-Stage Distillation})}
+بهینه‌سازی متوالی برای اهداف متعامد در مراحل پیشین، خطر زوال برخی از مهارت‌های استدلال را به همراه دارد. برای غلبه بر این پدیده، مدل‌های نهایی هر فاز به عنوان معلمان متخصص تعیین می‌شوند. با بهره‌گیری از تقطیر برخط مبتنی بر واگرایی \en{KL} معکوس \cite{lu2025onpolicy}، متغیر مزیت در الگوریتم بهینه‌سازی با اختلاف لاگ-احتمال خروجی‌ها جایگزین می‌شود:
+\begin{equation}
+    \hat{A}_{i,t} = \operatorname{sg}\left[ \log \frac{\pi_{\theta_{\text{teacher}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}{\pi_\theta^{\text{train}}(y_{i,t} \mid x, y_{i,<t})} \right]
+\end{equation}
+در این گام نهایی، به دلیل حذف نیاز به تخمین واریانس گروهی، اندازه گروه $G=1$ تنظیم شده و اندازه دسته داده تا ۱۰۲۴ افزایش می‌یابد که دستیابی به همگرایی سریع و بازیابی کامل مهارت‌ها بدون تداخل گرادیان را میسر می‌سازد.
+
+\paragraph*{زیرساخت مقیاس‌پذیر پس‌آموزش: چارچوب \en{slime}}
+تمام فرآیندهای یادگیری تقویتی بر بستر چارچوب اختصاصی \en{slime} به اجرا درآمده‌اند:
+\begin{itemize}
+    \item \textbf{تفکیک کامل پیش‌محاسبه و رمزگشایی (\en{PD Disaggregation}):} جداسازی منابع پردازشی کانتکست‌های پیشوند طویل (\en{Prefill}) از مراحل تولید توکن (\en{Decode}) به منظور ریشه‌کن کردن تداخل بار کاری و مهار تأخیر در نمونه‌های کند.
+    \item \textbf{شتاب‌بخشی تأخیر دنباله با \en{FP8} و \en{MTP}:} کاهش زمان استنتاج خط سیرهای طولانی با کوانتیزاسیون هشت‌بیتی و به‌کارگیری پیش‌بینی چندتوکنی (\en{Multi-Token Prediction}).
+    \item \textbf{تحمل خطای مبتنی بر ضربان قلب (\en{Heartbeat-Driven Fault Tolerance}):} ارزیابی سلامت سرورهای سندباکس و هدایت پویای وظایف جهت تداوم بی‌وقفه آموزش.
+\end{itemize}
+
+\paragraph*{ارزیابی تجربی پس‌آموزش}
+نتایج مدل \model{GLM-5} پس از اتمام خط‌لوله پس‌آموزش، بیانگر برتری قاطع آن در میان تمامی مدل‌های متن‌باز و رقابت شانه به شانه با پرچمداران تجاری جهان است (جدول \ref{tab:glm5_post_training_eval}).
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه عملکرد \model{GLM-5} پس از اعمال کامل خط‌لوله پس‌آموزش در برابر مدل‌های رقیب}
+\label{tab:glm5_post_training_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{شاخص / بنچمارک ارزیابی} & \model{GLM-4.7} & \model{DeepSeek-V3.2} & \model{Kimi-K2.5} & \model{Gemini 3 Pro} & \model{Claude Opus 4.5} & \model{GLM-5} \\
+\midrule
+\textbf{شاخص هوشمندی (\en{AA Intelligence Index v4.0})} & 42 & -- & -- & -- & -- & \textbf{50} \\
+\textbf{آزمون نهایی بشریت (\en{HLE w/ Tools})} & 42.8\% & 40.8\% & 51.8\% & 45.8\% & 43.4\% & \textbf{50.4\%} \\
+\textbf{مهندسی نرم‌افزار (\en{SWE-bench Verified})} & 73.8\% & 73.1\% & 76.8\% & 76.2\% & \textbf{80.9\%} & \underline{77.8\%} \\
+\textbf{مهندسی چندزبانه (\en{SWE-bench Multilingual})} & 66.7\% & 70.2\% & 73.0\% & 65.0\% & \textbf{77.5\%} & \underline{73.3\%} \\
+\textbf{محیط خط فرمان (\en{Terminal-Bench 2.0})} & 41.0\% & 39.3\% & 50.8\% & 54.2\% & \underline{59.3\%} & \textbf{60.7\%}$^\dagger$ \\
+\textbf{عامل وب‌گردی (\en{BrowseComp w/ HCM})} & 67.5\% & 67.6\% & 74.9\% & 59.2\% & 57.8\% & \textbf{75.9\%} \\
+\textbf{عامل کسب‌وکار (\en{Vending-Bench 2 Balance})} & \$2,377 & \$1,034 & \$1,198 & \textbf{\$5,478} & \underline{\$4,967} & \$4,432 \\
+\textbf{پایداری ساخت فرانت‌اند (\en{CC-Bench-V2 BSR})} & 65.0\% & -- & -- & -- & 95.0\% & \textbf{100.0\%} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
