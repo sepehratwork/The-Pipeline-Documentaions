@@ -1088,6 +1088,106 @@ R.~Shao, S.~S. Li, R.~Xin, S.~Geng, Y.~Wang, S.~Oh, S.~S. Du, N.~Lambert,
 \newblock Spurious rewards: Rethinking training signals in rlvr.
 \newblock {\em arXiv preprint arXiv:2506.10947}, 2025.
 
+\bibitem{glm5_2026}
+{GLM-5 Team}.
+\newblock Glm-5: from vibe coding to agentic engineering.
+\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
+
+\bibitem{kimi_k3_2026}
+{Kimi Team}.
+\newblock Kimi k3: Open frontier intelligence.
+\newblock {\em arXiv preprint arXiv:2607.24653}, 2026.
+
+\bibitem{magistral_2025}
+{Mistral AI}.
+\newblock Magistral: Scalable reinforcement learning for frontier reasoning.
+\newblock {\em arXiv preprint arXiv:2506.10910}, 2025.
+
+\bibitem{minimax_m2_2026}
+{MiniMax Team}.
+\newblock The minimax-m2 series: Mini activations unleashing max real-world
+  intelligence.
+\newblock {\em arXiv preprint arXiv:2605.26494}, 2026.
+
+\bibitem{mobilellm_pro_2025}
+Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, et~al.
+\newblock Mobilellm-pro technical report.
+\newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
+
+\bibitem{nemotron3_2025}
+{NVIDIA}.
+\newblock {NVIDIA Nemotron 3: Efficient and Open Intelligence}.
+\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
+
+\bibitem{qwen3_2025}
+{Qwen Team}.
+\newblock Qwen3 technical report.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{olmo3_2025}
+{Olmo Team}.
+\newblock Olmo 3: Fully open language and thinking models.
+\newblock {\em Technical Report, Allen Institute for AI}, 2025.
+
+\bibitem{lu2025onpolicy}
+K.~Lu and T.~M. Lab.
+\newblock {On-Policy Distillation}, 2025.
+\newblock \url{https://thinkingmachines.ai/blog/on-policy-distillation}.
+
+\bibitem{jacob2018quantization}
+B.~Jacob, S.~Kligys, B.~Chen, M.~Zhu, M.~Tang, A.~Howard, H.~Adam, and
+  D.~Kalenichenko.
+\newblock {Quantization and Training of Neural Networks for Efficient
+  Integer-Arithmetic-Only Inference}.
+\newblock In {\em Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition (CVPR)}, 2018.
+
+\bibitem{rouhani2023microscaling}
+B.~D. Rouhani, R.~Zhao, A.~More, M.~Hall, A.~Khodamoradi, S.~Deng,
+  D.~Choudhary, M.~Cornea, et~al.
+\newblock {Microscaling Data Formats for Deep Learning}.
+\newblock {\em arXiv preprint arXiv:2310.10537}, 2023.
+
+\bibitem{wang2026tilelang}
+L.~Wang, Y.~Cheng, Y.~Shi, Z.~Mo, et~al.
+\newblock Tilelang: Bridge programmability and performance in modern neural
+  kernels.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{deepseek20253fs}
+{DeepSeek-AI}.
+\newblock {Fire-Flyer File System (3FS)}, 2025.
+\newblock \url{https://github.com/deepseek-ai/3FS}.
+
+\bibitem{gao2019erofs}
+X.~Gao, M.~Dong, X.~Miao, W.~Du, C.~Yu, and H.~Chen.
+\newblock {EROFS: A Compression-Friendly Readonly File System for
+  Resource-Scarce Devices}.
+\newblock In {\em 2019 USENIX Annual Technical Conference (USENIX ATC 19)},
+  pages 149--162, 2019.
+
+\bibitem{agache2020firecracker}
+A.~Agache, M.~Brooker, A.~Florescu, A.~Iordache, A.~Liguori, R.~Neugebauer,
+  P.~Piwonka, and D.-M. Popa.
+\newblock {Firecracker: Lightweight Virtualization for Serverless
+  Applications}.
+\newblock In {\em 17th USENIX Conference on Networked Systems Design and
+  Implementation (NSDI 20)}, pages 419--434, 2020.
+
+\bibitem{li2020dadi}
+H.~Li, Y.~Yuan, R.~Du, K.~Ma, L.~Liu, and W.~Hsu.
+\newblock {DADI: Block-Level Image Service for Agile and Elastic Application
+  Deployment}.
+\newblock In {\em 2020 USENIX Annual Technical Conference (USENIX ATC 20)},
+  pages 727--740, 2020.
+
+\bibitem{bellard2005qemu}
+F.~Bellard.
+\newblock {QEMU, a Fast and Portable Dynamic Translator}.
+\newblock In {\em USENIX Annual Technical Conference, FREENIX Track}, page~41,
+  2005.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -1645,18 +1745,6 @@ Bruno Scherrer and Matthieu Geist.
 \newblock In {\em European Conference on Machine Learning (ECML)}, pages
   35--50, 2014.
 
-\bibitem{nemotron3_2025}
-{NVIDIA}.
-\newblock {NVIDIA Nemotron 3: Efficient and Open Intelligence}.
-\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
-
-\bibitem{wang2026tilelang}
-L.~Wang, Y.~Cheng, Y.~Shi, Z.~Mo, et~al.
-\newblock Tilelang: Bridge programmability and performance in modern neural
-  kernels.
-\newblock {\em International Conference on Learning Representations (ICLR)},
-  2026.
-
 \bibitem{haas2025simpleqa}
 L.~Haas, G.~Yona, G.~D'Antonio, S.~Goldshtein, and D.~Das.
 \newblock Simpleqa verified: A reliable factuality benchmark to measure
@@ -1694,42 +1782,6 @@ Z.~Lu, C.~Li, Y.~Shi, W.~Shen, et~al.
 \bibitem{openai2024swe}
 {OpenAI}.
 \newblock Introducing swe-bench verified, 2024.
-
-\bibitem{glm5_2026}
-{GLM-5 Team}.
-\newblock Glm-5: from vibe coding to agentic engineering.
-\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
-
-\bibitem{kimi_k3_2026}
-{Kimi Team}.
-\newblock Kimi k3: Open frontier intelligence.
-\newblock {\em arXiv preprint arXiv:2607.24653}, 2026.
-
-\bibitem{magistral_2025}
-{Mistral AI}.
-\newblock Magistral: Scalable reinforcement learning for frontier reasoning.
-\newblock {\em arXiv preprint arXiv:2506.10910}, 2025.
-
-\bibitem{minimax_m2_2026}
-{MiniMax Team}.
-\newblock The minimax-m2 series: Mini activations unleashing max real-world
-  intelligence.
-\newblock {\em arXiv preprint arXiv:2605.26494}, 2026.
-
-\bibitem{mobilellm_pro_2025}
-Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, et~al.
-\newblock Mobilellm-pro technical report.
-\newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
-
-\bibitem{olmo3_2025}
-{Olmo Team}.
-\newblock Olmo 3: Fully open language and thinking models.
-\newblock {\em Technical Report, Allen Institute for AI}, 2025.
-
-\bibitem{qwen3_2025}
-{Qwen Team}.
-\newblock Qwen3 technical report.
-\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
 
 \bibitem{deepseek2025dsa}
 {DeepSeek-AI}.

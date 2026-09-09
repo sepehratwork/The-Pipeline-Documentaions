@@ -1,1 +1,284 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مقدمه و پارادایم نوین پس‌آموزش (\en{Post-Training Paradigm})}
+مرحله پس‌آموزش (\en{Post-Training}) در مدل‌های سری \model{DeepSeek-V4} دستخوش یک دگرگونی بنیادین شده است. در نسل‌های پیشین (نظیر \en{DeepSeek-V3.2} \cite{deepseek2025v32})، ارتقای هم‌زمان قابلیت‌های چندگانه از طریق یک مرحله یادگیری تقویتی ترکیبی (\en{Mixed Reinforcement Learning}) انجام می‌شد. این رویکرد به دلیل تداخل گرادیان‌ها (\en{Gradient Interference}) و رقابت سیگنال‌های پاداش میان حوزه‌های مختلف، به پدیده فراموشی فاجعه‌بار و افت کیفیت در برخی وظایف منجر می‌گردید. 
+
+در \model{DeepSeek-V4}، مرحله یادگیری تقویتی ترکیبی به‌طور کامل با یک خط‌لوله دومرحله‌ای جایگزین شده است:
+\begin{enumerate}
+    \item \textbf{پرورش مستقل مدل‌های متخصص (\en{Specialist Training}):} بهینه‌سازی مستقل مدل پایه برای هر دامنه (ریاضیات، برنامه‌نویسی، کنشگری عاملی و پیروی از دستورات) از طریق تنظیم دقیق نظارت‌شده (\en{SFT}) و سپس یادگیری تقویتی متمرکز با الگوریتم \en{GRPO} \cite{deepseek2025r1}.
+    \item \textbf{ادغام یکپارچه با تقطیر حین خط‌مشی چندمعلمه (\en{Multi-Teacher On-Policy Distillation - OPD}):} تجمیع هوشمندی متخصصان در یک مدل واحد دانش‌آموز از طریق تقطیر دقیق توزیع لاجیت‌های کل دایره واژگان (\en{Full-Vocabulary Logit Distillation}) بر مبنای واگرایی کولبک-لایبلر معکوس (\en{Reverse KL}) \cite{lu2025onpolicy}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع فرآیند پس‌آموزش
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.3cm and 0.8cm,
+    base/.style={draw, rounded corners=5pt, align=center, line width=1pt, drop shadow},
+    base_model/.style={base, fill=blue!15, draw=blue!70!black, minimum width=4.5cm, minimum height=1cm, font=\bfseries},
+    specialist/.style={base, fill=teal!10, draw=teal!70!black, minimum width=3.4cm, minimum height=2.2cm},
+    opd_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=15.2cm, minimum height=2.8cm},
+    final_model/.style={base, fill=green!15, draw=green!60!black, minimum width=5.5cm, minimum height=1.1cm, font=\bfseries},
+    infra_box/.style={base, fill=purple!10, draw=purple!70!black, minimum width=3.3cm, minimum height=1.6cm},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % Base Model
+    \node[base_model] (base) {مدل پایه پیش‌آموزش‌دیده\\ \en{DeepSeek-V4 Base (32T/33T Tokens)}};
+
+    % Specialists
+    \node[specialist, below left=1.4cm and 2.5cm of base] (spec1) {
+        \textbf{متخصص ریاضی}\\ \en{Math Specialist}\\[3pt]
+        \scriptsize $\bullet$ \en{SFT} با اثبات‌های صوری\\
+        \scriptsize $\bullet$ \en{RL} با بازبین‌های قاعده‌محور
+    };
+    
+    \node[specialist, below left=1.4cm and -1.0cm of base] (spec2) {
+        \textbf{متخصص کدنویسی}\\ \en{Code Specialist}\\[3pt]
+        \scriptsize $\bullet$ \en{SFT} با آزمون‌های نرم‌افزاری\\
+        \scriptsize $\bullet$ \en{RL} با اجرای کد زنده
+    };
+
+    \node[specialist, below right=1.4cm and -1.0cm of base] (spec3) {
+        \textbf{متخصص عاملی}\\ \en{Agent Specialist}\\[3pt]
+        \scriptsize $\bullet$ ردپای تعامل ابزار\\
+        \scriptsize $\bullet$ پاداش زایشی (\en{GRM})
+    };
+
+    \node[specialist, below right=1.4cm and 2.5cm of base] (spec4) {
+        \textbf{متخصص دستورات}\\ \en{IF Specialist}\\[3pt]
+        \scriptsize $\bullet$ هم‌ترازی با ترجیحات\\
+        \scriptsize $\bullet$ پاداش زایشی درون‌زا
+    };
+
+    % Teacher Pool Annotation
+    \node[draw=teal!60!black, dashed, rounded corners=6pt, fit=(spec1) (spec2) (spec3) (spec4), inner sep=8pt, label=above:\textbf{\textcolor{teal!70!black}{استخر معلمان تخصصی دامنه‌محور ($N > 10$ معلم)}}] (teacher_pool) {};
+
+    % OPD Engine
+    \node[opd_box, below=1.4cm of teacher_pool] (opd) {
+        \textbf{\large ادغام چندمعلمه از طریق تقطیر حین خط‌مشی (\en{Multi-Teacher OPD Stage})}\\[4pt]
+        \small $\mathcal{L}_{\text{OPD}}(\theta) = \sum_{i=1}^N w_i \cdot \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_{E_i})$\\[4pt]
+        \scriptsize $\bullet$ نمونه‌برداری برخط از خط‌مشی دانش‌آموز ($y \sim \pi_\theta$) \quad
+        $\bullet$ بازیابی حالت‌های مخفی لایه آخر معلمان \quad
+        $\bullet$ بازسازی بلادرنگ لاجیت‌های واژگان کامل ($|\mathcal{V}| > 100\text{K}$)\\
+        \scriptsize $\bullet$ محاسبه معکوس \en{KL} تحلیلی جهت حذف کامل واریانس نمونه‌برداری واژگان با کرنل سفارشی \en{TileLang}
+    };
+
+    % Infrastructures Surrounding OPD
+    \node[infra_box, below left=1.4cm and -0.2cm of opd] (infra_wal) {
+        \textbf{سرویس \en{Rollout} ضدوقفه}\\
+        \scriptsize $\bullet$ لاگ توکنی پیش‌نویس (\en{WAL})\\
+        \scriptsize $\bullet$ مهار سوگیری طول (\en{Length Bias})
+    };
+
+    \node[infra_box, below=1.4cm of opd] (infra_qat) {
+        \textbf{کوانتایزاسیون \en{FP4 QAT}}\\
+        \scriptsize $\bullet$ دکوانتایزاسیون بدون اتلاف\\
+        \scriptsize $\bullet$ ضرب \en{QK} در نمایه‌ساز \en{CSA}
+    };
+
+    \node[infra_box, below right=1.4cm and -0.2cm of opd] (infra_dsec) {
+        \textbf{بستر جعبه‌شنی \en{DSec}}\\
+        \scriptsize $\bullet$ چهار لایه اجرا (\en{Firecracker})\\
+        \scriptsize $\bullet$ بازیابی قطعی تاریخچه
+    };
+
+    % Final Model
+    \node[final_model, below=1.3cm of infra_qat] (final) {
+        مدل یکپارچه نهایی \model{DeepSeek-V4}\\
+        \normalsize (\en{Pro-Max / Flash-Max} با پنجره بافت \en{1M})
+    };
+
+    % Arrows
+    \draw[arrow] (base) -- (spec1.north);
+    \draw[arrow] (base) -- (spec2.north);
+    \draw[arrow] (base) -- (spec3.north);
+    \draw[arrow] (base) -- (spec4.north);
+
+    \draw[arrow] (teacher_pool.south) -- (opd.north);
+
+    \draw[arrow] (opd.south) -- ++(0,-0.3) -| (infra_wal.north);
+    \draw[arrow] (opd.south) -- (infra_qat.north);
+    \draw[arrow] (opd.south) -- ++(0,-0.3) -| (infra_dsec.north);
+
+    \draw[arrow] (infra_wal.south) |- (final.west);
+    \draw[arrow] (infra_qat.south) -- (final.north);
+    \draw[arrow] (infra_dsec.south) |- (final.east);
+
+\end{tikzpicture}%
+}
+\caption{جریان کاری دومرحله‌ای پس‌آموزش در \model{DeepSeek-V4}: پرورش متخصصان مجزا و ادغام برخط با تقطیر واژگان کامل.}
+\label{fig:deepseek_v4_post_training_pipeline}
+\end{figure}
+
+\paragraph*{فاز اول: پرورش مستقل مدل‌های متخصص (\en{Specialist Training})}
+در این فاز، چندین مدل متخصص به موازات هم برای دامنه‌های گوناگون تربیت می‌شوند:
+\begin{itemize}
+    \item \textbf{تنظیم دقیق نظارت‌شده (\en{SFT}):} هر متخصص با مجموعه‌داده‌های باکیفیت و ساختاریافته در دامنه هدف مقداردهی اولیه می‌شود تا شالوده رفتاری و دانش پایه را کسب نماید.
+    \item \textbf{یادگیری تقویتی با \en{GRPO}:} الگوریتم «بهینه‌سازی خط‌مشی نسبی گروهی» (\en{Group Relative Policy Optimization - GRPO}) \cite{deepseek2025r1} برای ارتقای توانایی حل مسئله اعمال می‌شود. بر خلاف \en{PPO}، این الگوریتم مدل نقاد (\en{Critic}) را حذف کرده و مزیت هر خروجی را از روی میانگین و انحراف معیار گروهی از پاسخ‌های نمونه‌برداری‌شده برآورد می‌کند. فرض کنید به ازای پرامپت $q \sim \mathcal{D}$، دسته‌ای شامل $G$ پاسخ $\{o_1, o_2, \dots, o_G\}$ توسط خط‌مشی پیشین $\pi_{\theta_{\text{old}}}$ تولید شود. مزیت بهنجارشده پاسخ $i$-ام به‌صورت زیر تعریف می‌شود:
+    \begin{equation}
+        A_i = \frac{r_i - \frac{1}{G} \sum_{j=1}^G r_j}{\sqrt{\frac{1}{G} \sum_{j=1}^G \left( r_j - \frac{1}{G} \sum_{k=1}^G r_k \right)^2} + \epsilon}
+    \end{equation}
+    سپس تابع هدف بهینه‌سازی خط‌مشی به‌صورت زیر بیشینه می‌گردد:
+    \begin{equation}
+    \begin{aligned}
+        \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{\substack{q \sim \mathcal{D} \\ \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}}} \Bigg[ \frac{1}{G} \sum_{i=1}^G \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \min \Bigg( & \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})} A_i, \\
+        & \text{clip}\left( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}, 1-\epsilon, 1+\epsilon \right) A_i \Bigg) \\
+        & - \beta \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_{\text{ref}}) \Bigg]
+    \end{aligned}
+    \end{equation}
+\end{itemize}
+
+\paragraph*{تنظیمات سطوح تلاش استدلالی (\en{Reasoning Efforts})}
+عملکرد مدل در حل مسائل عمیقاً وابسته به میزان توان محاسباتی اختصاص‌یافته در زمان آزمون (\en{Test-Time Compute}) است. بدین منظور، سه حالت استدلالی با جریمه‌های طول و پنجره‌های بافت متفاوت در طول آموزش \en{RL} توسعه داده شده است (جدول \ref{tab:reasoning_modes}).
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات و فرمت پاسخ‌دهی حالات مختلف تلاش استدلالی در \model{DeepSeek-V4}}
+\label{tab:reasoning_modes}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+\textbf{حالت استدلال (\en{Mode})} & \textbf{ویژگی‌های رفتاری} & \textbf{کاربردهای معمول} & \textbf{فرمت پاسخ (\en{Response Format})} \\
+\midrule
+\textbf{غیرتفکری (\en{Non-think})} & سریع و شهودی بر مبنای عادات زبانی & وظایف روتین روزمره، تصمیمات کم‌ریسک & \en{</think> summary} \\
+\textbf{تفکر عمیق (\en{Think High})} & تحلیل منطقی آگاهانه، دقیق‌تر و زمان‌بر & حل مسائل تحلیلی، برنامه‌ریزی & \en{<think> thinking tokens </think> summary} \\
+\textbf{حداکثر تفکر (\en{Think Max})} & واکاوی کامل مرزهای استدلال مدل & مسائل ریاضی المپیادی، اثبات‌های صوری & پرامپت ویژه $+$ \en{<think> ... </think> summary} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+برای فعال‌سازی حالت \en{Think Max}، دستورالعمل زیر به ابتدای پرامپت سیستمی مدل اضافه می‌گردد:
+\begin{center}
+\fcolorbox{gray!50}{gray!5}{%
+\begin{minipage}{0.95\textwidth}
+\small
+\textbf{Injected Instruction for Think Max:} \\
+\textit{"Reasoning Effort: Absolute maximum with no shortcuts permitted. You MUST be very thorough in your thinking and comprehensively decompose the problem to resolve the root cause, rigorously stress-testing your logic against all potential paths, edge cases, and adversarial scenarios. Explicitly write out your entire deliberation process, documenting every intermediate step, considered alternative, and rejected hypothesis to ensure absolutely no assumption is left unchecked."}
+\end{minipage}
+}
+\end{center}
+
+\paragraph*{مدل پاداش زایشی (\en{Generative Reward Model - GRM})}
+در وظایف پیچیده که بازبین‌های قاعده‌محور (\en{Rule-based verifiers}) برای آن‌ها وجود ندارد، سیستم‌های پیشین به مدل‌های پاداش اسکالر (\en{Scalar RMs}) وابسته بودند که نیازمند حجم بالایی از برچسب‌گذاری انسانی بوده و توانایی تحلیل گام‌به‌گام استدلال‌ها را نداشتند. در \model{DeepSeek-V4}، مدل پاداش اسکالر حذف شده و نوآوری‌های زیر جایگزین شده است:
+\begin{itemize}
+    \item داده‌های مبتنی بر اصول ارزیابی دقیق (\en{Rubric-guided RL}) تدوین گردید.
+    \item \textbf{آموزش مستقیم \en{RL} بر روی خود مدل پاداش زایشی:} شبکه عصبی بازیگر (\en{Actor Network}) در عین حال نقش \en{GRM} را نیز بر عهده دارد. با تلفیق وظیفه تولید پاسخ و ارزیابی پاسخ‌ها درون یک معماری واحد، توانمندی استدلال درونی مدل در داوری کیفی دخیل شده و با کمترین برچسب‌گذاری انسانی، ارزیابی‌هایی با ثبات فوق‌العاده بالا به دست می‌آید.
+\end{itemize}
+
+\paragraph*{اسکیمای فراخوانی ابزار و تفکر درهم‌تنیده (\en{Interleaved Thinking})}
+به منظور برقراری تعامل استاندارد و مقاوم در برابر خطا در محیط‌های عاملی، پروتکل‌های زیر تعبیه شده‌اند:
+\begin{itemize}
+    \item \textbf{اسکیمای مبتنی بر \en{XML} و نشانه \en{|DSML|}:} استفاده از تگ‌های صریح \en{XML} به همراه توکن اختصاصی \en{|DSML|} مانع از خطاهای گریز نویسه‌ها (\en{Escaping failures}) در مفسر ابزارها می‌شود:
+\begin{center}
+\fcolorbox{gray!40}{gray!5}{%
+\begin{minipage}{0.9\textwidth}
+\scriptsize
+\en{<|DSML|tool\_calls>}\\
+\en{<|DSML|invoke name="\$TOOL\_NAME">}\\
+\en{<|DSML|parameter name="\$PARAM" string="true|false">\$VALUE</|DSML|parameter>}\\
+\en{</|DSML|invoke>}\\
+\en{</|DSML|tool\_calls>}
+\end{minipage}
+}
+\end{center}
+    \item \textbf{تفکر درهم‌تنیده در بافت‌های یک میلیون توکنی:} بر خلاف روش‌های سنتی که با ارسال پیام جدید توسط کاربر کل تاریخچه تفکر مراحل قبل را دور می‌ریختند، در سناریوهای فراخوانی ابزار در \model{DeepSeek-V4}، تمامی ردپاهای تفکر (\en{CoT}) در سراسر طول مکالمه حفظ می‌شوند تا زنجیره استدلال پیوسته در حل مسائل طولانی حفظ گردد. در سناریوهای گفتگوی عمومی، برای فشردگی بافت، ردپای تفکر پس از دریافت پیام جدید کاربر حذف می‌گردد.
+\end{itemize}
+
+\paragraph*{مکانیزم دستورالعمل سریع (\en{Quick Instruction})}
+به منظور حذف سربار مدل‌های فرعی کمکی برای اموری نظیر تشخیص وب‌گردی یا نام‌گذاری مکالمه، نشانه‌های اختصاصی مستقیماً به بافت متنی الصاق شده و از حافظه میانگیر پیش‌محاسبه‌شده (\en{KV Cache}) به صورت بلادرنگ و موازی استفاده می‌کنند (جدول \ref{tab:quick_instruction_tokens}).
+
+\begin{table}[htbp]
+\centering
+\caption{نشانه‌های اختصاصی دستورالعمل سریع (\en{Quick Instruction}) در \model{DeepSeek-V4}}
+\label{tab:quick_instruction_tokens}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{نشانه‌ اختصاصی (\en{Token})} & \textbf{شرح وظیفه} & \textbf{فرمت قرارگیری در توالی} \\
+\midrule
+\en{<|action|>} & تعیین لزوم انجام جستجوی وب یا پاسخ مستقیم & \en{...<|User|>{prompt}<|Assistant|><think><|action|>} \\
+\en{<|title|>} & تولید خلاصه عنوان پس از اولین پاسخ سیستم & \en{...<|Assistant|>{response}<|end\_of\_sentence|><|title|>} \\
+\en{<|query|>} & استخراج عبارت‌های جستجوی دقیق از متن کاربر & \en{...<|User|>{prompt}<|query|>} \\
+\en{<|authority|>} & ارزیابی درجه اعتبار مورد نیاز برای منابع پاسخ & \en{...<|User|>{prompt}<|authority|>} \\
+\en{<|domain|>} & رده‌بندی حوزه موضوعی سوال کاربر & \en{...<|User|>{prompt}<|domain|>} \\
+\en{<|extracted\_url|>} / \en{<|read\_url|>} & بررسی لزوم واکشی و خواندن پیوندهای وب & \en{...<|User|>{prompt}<|extracted\_url|>{url}<|read\_url|>} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{فاز دوم: تقطیر حین خط‌مشی چندمعلمه (\en{On-Policy Distillation - OPD})}
+برای ادغام توانایی متخصصان مستقل $\{\pi_{E_1}, \pi_{E_2}, \dots, \pi_{E_N}\}$ (شامل بیش از ده مدل معلم با صدها میلیارد یا تریلیون‌ها پارامتر) درون مدل دانش‌آموز واحد $\pi_\theta$، از روش تقطیر حین خط‌مشی استفاده می‌شود \cite{lu2025onpolicy}. تابع هدف تقطیر با ضرایب وزنی $w_i$ به‌صورت زیر تعریف می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{OPD}}(\theta) = \sum_{i=1}^N w_i \cdot \mathbb{D}_{\text{KL}}\left(\pi_\theta \parallel \pi_{E_i}\right)
+\end{equation}
+
+\paragraph*{تحلیل تئوری اطلاعات و برتری واگرایی \en{KL} معکوس}
+در تئوری اطلاعات، واگرایی کولبک-لایبلر مستقیم (\en{Forward KL}) به‌صورت $\mathbb{D}_{\text{KL}}(\pi_E \parallel \pi_\theta) = \mathbb{E}_{y \sim \pi_E}\left[\log \frac{\pi_E(y)}{\pi_\theta(y)}\right]$ یک سنجه میانگین‌طلب (\en{Mean-Seeking}) است؛ بدین معنا که اگر معلم احتمالی بزرگ‌تر از صفر به خروجی تخصیص دهد، دانش‌آموز ناچار است برای دوری از جریمه نامتناهی، چگالی خود را پخش کند که به تاری و عدم قطعیت در مدل می‌انجامد. 
+
+در مقابل، \textbf{واگرایی کولبک-لایبلر معکوس (\en{Reverse KL})}:
+\begin{equation}
+    \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_E) = \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) \log \left( \frac{\pi_\theta(y \mid x)}{\pi_E(y \mid x)} \right)
+\end{equation}
+دارای خاصیت مدجویی (\en{Mode-Seeking}) است. هرگاه $\pi_E(y) \to 0$ باشد، مدل دانش‌آموز اکیداً مقید می‌شود که احتمال خود را صفر کند ($\pi_\theta(y) \to 0$). این ویژگی سبب می‌شود مدل دانش‌آموز خروجی‌های دقیق و قاطع در مسائل ریاضی و کد تولید کند. افزوده بر این، امید ریاضی نسبت به توزیع خود دانش‌آموز تعریف شده و امکان نمونه‌برداری حین خط‌مشی (\en{On-Policy}) را فراهم می‌سازد.
+
+\paragraph*{اشتقاق ریاضی و دیفرانسیلی گرادیان \en{OPD}}
+برای اشتقاق گرادیان تابع اتلاف یک معلم منفرد $L(\theta) = \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_E)$ نسبت به بردار پارامترهای $\theta \in \mathbb{R}^d$، بسط مشتق ضربی را می‌نویسیم:
+\begin{equation}
+    \nabla_\theta L(\theta) = \nabla_\theta \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) \left[ \log \pi_\theta(y \mid x) - \log \pi_E(y \mid x) \right]
+\end{equation}
+با اعمال قاعده ضرب در دیفرانسیل‌گیری:
+\begin{equation}
+    \nabla_\theta L(\theta) = \sum_{y \in \mathcal{V}} \left\{ \nabla_\theta \pi_\theta(y \mid x) \left[ \log \frac{\pi_\theta(y \mid x)}{\pi_E(y \mid x)} \right] + \pi_\theta(y \mid x) \nabla_\theta \left[ \log \pi_\theta(y \mid x) - \log \pi_E(y \mid x) \right] \right\}
+\end{equation}
+از آنجا که توزیع معلم $\pi_E$ به پارامترهای دانش‌آموز وابسته نیست، $\nabla_\theta \log \pi_E(y \mid x) = \mathbf{0}$ است. برای جمله دوم داریم:
+\begin{equation}
+    \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) \nabla_\theta \log \pi_\theta(y \mid x) = \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) \frac{\nabla_\theta \pi_\theta(y \mid x)}{\pi_\theta(y \mid x)} = \sum_{y \in \mathcal{V}} \nabla_\theta \pi_\theta(y \mid x) = \nabla_\theta \left( \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) \right)
+\end{equation}
+چون مجموع احتمالات روی فضای گسسته واژگان برابر یک است ($\sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) = 1$):
+\begin{equation}
+    \nabla_\theta (1) = \mathbf{0}
+\end{equation}
+لذا مشتق به فرم بسته تحلیلی زیر درمی‌آید:
+\begin{equation}
+    \nabla_\theta L(\theta) = \sum_{y \in \mathcal{V}} \nabla_\theta \pi_\theta(y \mid x) \log \left( \frac{\pi_\theta(y \mid x)}{\pi_E(y \mid x)} \right)
+\end{equation}
+با استفاده از هویت تابع امتیاز (\en{Score Function Trick}) یعنی $\nabla_\theta \pi_\theta(y \mid x) = \pi_\theta(y \mid x) \nabla_\theta \log \pi_\theta(y \mid x)$، عبارت گرادیان به فرم امید ریاضی تبدیل می‌شود:
+\begin{equation}
+    \nabla_\theta L(\theta) = \mathbb{E}_{y \sim \pi_\theta(\cdot \mid x)} \left[ \nabla_\theta \log \pi_\theta(y \mid x) \log \left( \frac{\pi_\theta(y \mid x)}{\pi_E(y \mid x)} \right) \right]
+\end{equation}
+
+\paragraph*{تحلیل واریانس: تقطیر واژگان کامل در برابر برآورد توکنی}
+در کارهای قبلی، برای گریز از محاسبات سنگین واژگان، گرادیان فوق را با یک نمونه تصادفی $y_t \sim \pi_\theta$ تقریب می‌زدند و متغیر مزیت را به‌صورت $A_t = \text{sg}\left[ \log \frac{\pi_E(y_t)}{\pi_\theta(y_t)} \right]$ درون چارچوب \en{RL} قرار می‌دادند. 
+
+اما واریانس این تخمین‌گر نمونه‌برداری‌شده $\hat{g}_{\text{sample}}$ به‌صورت زیر است:
+\begin{equation}
+    \mathbb{V}_{\pi_\theta}[\hat{g}_{\text{sample}}] = \sum_{y \in \mathcal{V}} \pi_\theta(y \mid x) \left( \log \frac{\pi_\theta(y \mid x)}{\pi_E(y \mid x)} \right)^2 \|\nabla_\theta \log \pi_\theta(y \mid x)\|^2 - \|\nabla_\theta L(\theta)\|^2
+\end{equation}
+در یک واژگان با ابعاد فراتر از صد هزار توکن ($|\mathcal{V}| > 100\text{K}$)، برای توکن‌هایی که تحت توزیع یکی از مدل‌ها احتمال بسیار ناچیزی دارند، عبارت $\left( \log \frac{\pi_\theta(y)}{\pi_E(y)} \right)^2$ می‌تواند به مقادیر فوق‌العاده بزرگی میل کند که موجب انفجار واریانس گرادیان و ناپایداری در آموزش مدل‌های تریلیونی می‌شود.
+
+\textbf{راهکار \model{DeepSeek-V4}:} با پیاده‌سازی تقطیر دقیق روی کل واژگان (\en{Full-Vocabulary Logit Distillation})، گرادیان مستقیماً نسبت به بردار لاجیت‌های لایه آخر دانش‌آموز ($z^\theta \in \mathbb{R}^{|\mathcal{V}|}$) مشتق‌گیری می‌شود:
+\begin{equation}
+    \frac{\partial \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_E)}{\partial z_j^\theta} = \pi_\theta(y_j) - \pi_E(y_j) + \pi_\theta(y_j) \left( \log \frac{\pi_\theta(y_j)}{\pi_E(y_j)} - \sum_{k \in \mathcal{V}} \pi_\theta(y_k) \log \frac{\pi_\theta(y_k)}{\pi_E(y_k)} \right)
+\end{equation}
+از آنجا که این گرادیان به‌صورت دقیق روی تمامی مولفه‌های واژگان ارزیابی می‌شود، واریانس نمونه‌برداری واژگان به صفر تقلیل یافته ($\mathbb{V}_{\text{Vocab}} = 0$) و آموزش با نهایت پایداری انجام می‌گیرد.
+
+\paragraph*{زیرساخت‌های مقیاس‌پذیر \en{RL} و \en{OPD} (\en{System Infrastructures})}
+بهینه‌سازی و اجرای این خط‌لوله بر روی مدل‌های تریلیونی و بافت‌های یک میلیون توکنی، با ابتکارات زیرساختی زیر محقق شده است:
+\begin{itemize}
+    \item \textbf{یکپارچه‌سازی کوانتایزاسیون \en{FP4 QAT}:} کوانتایزاسیون آگاه از آموزش \cite{jacob2018quantization} با قالب میکرواسکیلینگ \en{MXFP4} \cite{rouhani2023microscaling} بر روی وزن‌های متخصصان \en{MoE} و مسیر پرسش-کلید (\en{QK}) در نمایه‌ساز \en{CSA} اعمال گردید. دکوانتایزاسیون \en{FP4-to-FP8} کاملاً بدون اتلاف (\en{Lossless}) است؛ زیرا ساختار \en{FP8 (E4M3)} دارای دو بیت توان بیشتر از \en{FP4 (E2M1)} است و می‌تواند دامنه مقیاس‌های ریزبلوک‌ها را جذب کند. در پس‌انتشار، گرادیان‌ها بر پایه برآوردگر مستقیم عبور (\en{STE}) بدون تغییر اعمال می‌شوند. همچنین امتیازات نمایه‌ساز $I_{:,:}$ به \en{BF16} تبدیل شده که سرعت انتخاب‌گر را دو برابر کرده و نرخ بازیابی (\en{Recall}) را در سطح ۹۹.۷٪ حفظ می‌نماید.
+    \item \textbf{زمان‌بندی بهینه معلمان در تقطیر واژگان کامل:} برای مدیریت بیش از ده مدل معلم تریلیونی و واژگان $|\mathcal{V}| > 100\text{K}$، وزن معلمان روی حافظه توزیع‌شده قرار گرفته و با شاردینگ شبیه به \en{ZeRO} لود می‌شوند. به منظور جلوگیری از اشغال صدها گیگابایت حافظه توسط لاجیت‌ها، \textbf{تنها بردار حالت‌های مخفی لایه آخر معلمان ذخیره می‌گردد} و لاجیت‌ها در زمان محاسبه اتلاف به صورت بلادرنگ بازسازی می‌شوند. همچنین نمونه‌های آموزشی بر اساس شاخص معلم مرتب شده تا در هر زمان حداکثر یک سر پیش‌بینی در حافظه کارت گرافیک باشد. محاسبه واگرایی \en{KL} نیز با کرنل اختصاصی در زبان \en{TileLang} \cite{wang2026tilelang} شتاب‌دهی شده است.
+    \item \textbf{سرویس نمونه‌برداری ضدوقفه و مهار سوگیری طول (\en{WAL \& Length Bias}):} در صورت توقف ناگهانی ماشین‌ها در خوشه‌های ابری، شروع مجدد تولید نمونه از ابتدا خطای آماری ایجاد می‌کند؛ زیرا طبق مدل احتمالاتی بقای توالی‌ها تحت فرآیند پواسون با نرخ وقفه $\lambda$:
+    \begin{equation}
+        P(\text{Survival} \mid L) = \exp(-\lambda \cdot \tau \cdot L)
+    \end{equation}
+    توالی‌های کوتاه‌تر شانس بقای بیشتری دارند و تولید مجدد از ابتدا موجب پیدایش سوگیری به سوی طول‌های کوتاه (\en{Length Bias}) در مدل می‌شود. برای رفع این چالش، سیستم لاگ پیش‌نویس توکنی (\en{Token-granular WAL}) پیاده‌سازی شده که وضعیت هر توکن تولیدشده را بلادرنگ ثبت می‌کند و هنگام وقفه، فرآیند رمزگشایی با بارگذاری \en{KV Cache} پایدارشده بدون نیاز به تولید مجدد ادامه می‌یابد.
+    \item \textbf{مقیاس‌پذیری \en{RL} برای بافت یک میلیون توکن:} داده‌های رول‌اوت به متادیتای سبک (جهت درهم‌آمیزی سراسری) و فیلدهای سنگین به ازای هر توکن تفکیک شده و فیلدهای سنگین با حافظه اشتراکی بارگذاری و بلافاصله پس از مصرف در سطح ریزدسته آزاد می‌شوند.
+    \item \textbf{پلتفرم جعبه‌شنی \en{DSec} برای کارهای عاملی:} پلتفرم صنعتی \en{DeepSeek Elastic Compute (DSec)} با زبان راکد \en{Rust} طراحی شده و صدها هزار سندباکس هم‌زمان را روی سامانه ذخیره‌سازی توزیع‌شده \en{3FS} \cite{deepseek20253fs} مدیریت می‌کند. این بستر چهار لایه اجرایی را تحت یک واسط پایتون یکپارچه ارائه می‌دهد: فراخوانی سبک تابع (\en{Function Call})، کانتینر ایزوله (\en{Container}) با فایل‌سیستم \en{EROFS} \cite{gao2019erofs}، ماشین‌های مجازی خرد (\en{microVM}) بر پایه \en{Firecracker} \cite{agache2020firecracker} با دیسک‌های \en{overlaybd} \cite{li2020dadi}، و ماشین‌های مجازی کامل (\en{fullVM}) بر پایه \en{QEMU} \cite{bellard2005qemu}. همچنین با ثبت سراسری وقایع، امکان بازتولید قطعی ردپای عامل و بازیابی سریع وضعیت فراهم شده است.
+\end{itemize}
