@@ -1,0 +1,404 @@
+\item \model{مبانی نظری و مرور پیشینه جامع توکنایزیشن (\en{Foundations of Tokenization})}
+
+\paragraph*{مقدمه و فلسفه بنیادین توکنایزیشن (\en{Foundational Philosophy})}
+فرایند تبدیل داده‌های ساخت‌نیافته، پیوسته یا طویل به دنباله‌ای از واحدهای گسسته و نشانه‌گذاری‌شده، «توکنایزیشن» (\en{Tokenization}) نام دارد. در معماری مدل‌های زبانی بزرگ (\en{LLMs}) و سیستم‌های هوش مصنوعی چندوجهی معاصر (\en{Multimodal AI})، توکنایزر نقش رابط غیرخطی بنیادین میان سیگنال‌های فیزیکی دنیای واقعی و فضای احتمالاتی گسسته پیش‌بینی توکن بعدی (\en{Next-Token Prediction}) را بر عهده دارد \cite{gastaldi2025foundations, jia2025principles, li2025discrete}. بر خلاف تصور رایج که توکنایزیشن را صرفاً یک گام پیش‌پردازش مهندسی قلمداد می‌کند، کیفیت و ویژگی‌های صوری نگاشت‌های توکنایزر مستقیماً تعیین‌کننده سازگاری برآوردگرهای آماری مدل، سقف ظرفیت یادگیری، پایداری بهینه‌سازی و مهار ابهام در بازیابی اطلاعات هستند \cite{gastaldi2025foundations}.
+
+این تحلیل جامع بر پایه سه رکن استوار است:
+\begin{enumerate}
+    \item \textbf{مبانی آماری و نظریه رسته‌ها (\en{Category of Stochastic Maps}):} تبیین شرایط لازم و کافی برای بقای سازگاری برآوردگرهای آماری تحت نگاشت‌های تصادفی و مشخصه‌سازی ویژگی‌های درستی تام، یک‌به‌یکی، ضرب‌پذیری و تغییرات کراندار \cite{gastaldi2025foundations}.
+    \item \textbf{پارادایم‌های هشت‌گانه کوانتیزاسیون برداری گسسته (\en{Vector Quantization Taxonomy}):} فرمول‌بندی دقیق ریاضی روش‌های کلاسیک و نوین تبدیل پیوسته-به-گسسته شامل \en{VQ}، \en{RVQ}، \en{PQ}، \en{AQ}، \en{FSQ}، \en{LFQ}، \en{BSQ} و \en{GART} \cite{li2025discrete, jia2025principles}.
+    \item \textbf{دینامیک آموزش و مهار فروپاشی کدبوک (\en{Codebook Collapse Mitigation}):} تحلیل رفتار گرادیان در گلوگاه‌های غیرمشتق‌پذیر، سازوکارهای برآوردگر مستقیم (\en{STE})، واهلش گامبل-سافت‌مکس و رگولاریزاسیون‌های آنتروپیک و ساختاری \cite{li2025discrete}.
+\end{enumerate}
+
+\paragraph*{سیر تاریخی تکامل الگوریتم‌های توکنایزیشن (\en{Historical Evolution})}
+تکامل تاریخی توکنایزرها در پردازش زبان طبیعی و هوش مصنوعی را می‌توان در چهار دوره مشخص خلاصه نمود:
+\begin{itemize}
+    \item \textbf{عصر زبانی و لغت‌نامه‌ای (\en{Rule-Based Era}):} تکیه بر مرزهای فاصله‌ای و قواعد صرفی-نحوی نظیر \en{Morfessor} \cite{creutz2002unsupervised} و ابزار \en{Moses} \cite{koehn2007moses}. نقطه شکست این دوران، انفجار ابعاد واژگان و ناتوانی مطلق در مواجهه با کلمات خارج از دایره واژگان (\en{Out-Of-Vocabulary - OOV}) بود.
+    \item \textbf{عصر زیرکلمه‌ای آماری (\en{Statistical Subword Era}):} انطباق الگوریتم فشرده‌سازی بایت-پیر انکودینگ (\en{BPE}) توسط سنریش \cite{sennrich2016neural}، معرفی الگوریتم بیشترین پیشروی در \en{WordPiece} \cite{wu2016google} و مدل آماری \en{Unigram} بر مبنای بیشینه‌سازی تابع درست‌نمایی \cite{kudo2018subword}. این روش‌ها مشکل \en{OOV} را حذف نموده و طول توالی را بهینه ساختند.
+    \item \textbf{عصر کوانتیزاسیون عمیق پنهان (\en{Deep Vector Quantization Era}):} جهش از توکنایزیشن نمادین متنی به گسسته‌سازی خمینه‌های پیوسته پنهان با ابداع \en{VQ-VAE} \cite{van2017neural} و تثبیت پایداری تصویر با اتلاف‌های متخاصم و ادراکی در \en{VQGAN} \cite{esser2021taming}.
+    \item \textbf{عصر توکنایزرهای زیربنایی چندوجهی (\en{Multimodal Foundation Era}):} گسترش کوانتیزاسیون‌های بدون لوک‌آپ، مقیاس‌پذیر و درختی نظیر \en{FSQ} \cite{mentzer2023finite}، \en{LFQ} \cite{yu2024language} و \en{SpeechTokenizer} \cite{zhang2024speechtokenizer}، که امکان ادغام یکپارچه متن، سیگنال‌های دیداری، صوت، گراف و سیستم‌های توصیه‌گر را درون ترنسفورمرهای خودهمبسته محقق ساختند \cite{jia2025principles}.
+\end{itemize}
+
+% =========================================================================
+% دیاگرام ۱: رده نگاشت‌های تصادفی و برآورد سازگار (Gastaldi et al., 2025)
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=2.2cm and 3.5cm,
+    base/.style={draw, rounded corners=8pt, align=center, line width=1.1pt, drop shadow},
+    prob_node/.style={base, fill=blue!10, draw=blue!70!black, minimum width=4.5cm, minimum height=1.3cm},
+    map_node/.style={base, fill=teal!12, draw=teal!70!black, minimum width=4.8cm, minimum height=1.4cm},
+    seq_node/.style={base, fill=orange!12, draw=orange!70!black, minimum width=4.8cm, minimum height=1.4cm},
+    arrow/.style={-{Stealth[scale=1.2]}, line width=1.2pt, draw=gray!80!black},
+    dashed_arrow/.style={-{Stealth[scale=1.2]}, dashed, line width=1.2pt, draw=purple!80!black}
+]
+
+    % گره‌های بالا: توزیع‌های احتمالاتی مرجع
+    \node[prob_node] (p_star) {
+        \textbf{توزیع مرجع روی حروف}\\
+        $p^\star: \mathbf{1} \rightsquigarrow \Sigma^* \quad \left[\sum_{\boldsymbol{\sigma}} p^\star(\boldsymbol{\sigma}) = 1\right]$
+    };
+
+    \node[prob_node, right=of p_star] (q_star) {
+        \textbf{توزیع تصویر روی توکن‌ها}\\
+        $q^\star = \tau p^\star: \mathbf{1} \rightsquigarrow \Delta^*$
+    };
+
+    % گره‌های پایین: دنباله‌های برآوردگرهای یادگیری‌شده
+    \node[seq_node, below=of p_star] (pn_seq) {
+        \textbf{برآوردگر نهایی کدگشایی‌شده}\\
+        $\{p_n = \kappa q_n\} \subset \mathcal{P}(\Sigma^*)$\\
+        \scriptsize هدف: همگرایی نقطه‌ای $\{p_n\} \to p^\star$
+    };
+
+    \node[seq_node, below=of q_star] (qn_seq) {
+        \textbf{برآوردگر تجربی مدل زبانی}\\
+        $\{q_n\} \subset \mathcal{P}(\Delta^*)$\\
+        \scriptsize فرض سازگاری: $\{q_n\} \to q^\star$
+    };
+
+    % فلش‌ها و نگاشت‌ها
+    \draw[arrow, draw=teal!80!black] (p_star) -- node[above, font=\bfseries] {کدگذار تصادفی $\tau: \Sigma^* \rightsquigarrow \Delta^*$} (q_star);
+    \draw[arrow, draw=orange!80!black] (qn_seq) -- node[below, font=\bfseries] {کدگشای تصادفی $\kappa: \Delta^* \rightsquigarrow \Sigma^*$} (pn_seq);
+    
+    \draw[dashed_arrow] (q_star) -- node[right, font=\scriptsize] {همگرایی برآوردگر آماری (مثلاً \en{MLE})} (qn_seq);
+    \draw[dashed_arrow] (p_star) -- node[left, font=\scriptsize] {سازگاری کل $\iff \kappa \tau p^\star = p^\star$} (pn_seq);
+
+    % نگاشت همانی در بالای دیاگرام
+    \path (p_star) edge [bend left=40, line width=1.3pt, draw=purple!70!black, -{Stealth[scale=1.2]}] 
+        node[above, font=\bfseries] {درستی تام: $\kappa \tau = \mathrm{id}_{\Sigma^*}$} (p_star);
+
+\end{tikzpicture}%
+}
+\caption{چارچوب نظری رسته نگاشت‌های تصادفی و برآوردگرهای مدل زبانی طبق \cite{gastaldi2025foundations}.}
+\label{fig:gastaldi_category}
+\end{figure}
+
+\paragraph*{مبانی ریاضی: نظریه رسته‌ها و برآوردگرهای سازگار (\en{Stochastic Maps \& Estimators})}
+فرض کنید $\Sigma$ یک الفبای متناهی ناتهی باشد. کلین استار $\Sigma^* = \bigcup_{n=0}^\infty \Sigma^n$ به همراه عملگر الحاق رشته‌ها ($\cdot$) و رشته تهی $\varepsilon_\Sigma$ یک \textbf{تکواره آزاد} (\en{Free Monoid}) می‌سازد: $(\Sigma^*, \cdot, \varepsilon_\Sigma)$ \cite{gastaldi2025foundations}. 
+
+یک مدل زبانی $p$ توزیع احتمالی روی $\Sigma^*$ است به نحوی که $\sum_{\boldsymbol{\sigma} \in \Sigma^*} p(\boldsymbol{\sigma}) = 1$. فرض کنید متن‌های مشاهده‌شده $\{\boldsymbol{\sigma}_m\}_{m=1}^M$ نمونه‌هایی مستقل با توزیع یکسان از توزیع مرجع و واقعی $p^\star$ باشند. دنباله توزیع‌های $\{p_n\}$ یک \textbf{برآوردگر سازگار نقطه‌ای} برای $p^\star$ است اگر و تنها اگر:
+\begin{equation}
+    \forall \boldsymbol{\sigma} \in \Sigma^*: \quad \lim_{n \to \infty} p_n(\boldsymbol{\sigma}) = p^\star(\boldsymbol{\sigma})
+\end{equation}
+چنانچه برآورد بر مبنای بیشینه‌سازی تابع درست‌نمایی (\en{MLE}) و کمینه‌سازی واگرایی کولبک-لایبلر باشد ($D_{\mathrm{KL}}(p^\star \parallel p_n) \to 0$)، بنا بر \textbf{نامساوی پینسکر} (\en{Pinsker's Inequality}):
+\begin{equation}
+    \|p^\star - p_n\|_{\mathrm{TV}} \le \sqrt{\frac{1}{2} D_{\mathrm{KL}}(p^\star \parallel p_n)} \implies \lim_{n \to \infty} \sum_{\boldsymbol{\sigma} \in \Sigma^*} |p_n(\boldsymbol{\sigma}) - p^\star(\boldsymbol{\sigma})| = 0
+\end{equation}
+که حاکی از آن است که همگرایی در واگرایی \en{KL}، همگرایی نقطه‌ای را ایجاب می‌کند \cite{gastaldi2025foundations}.
+
+\textbf{رسته نگاشت‌های تصادفی (\en{Category of Stochastic Maps}):}
+یک نگاشت تصادفی از مجموعه شمارای $X$ به مجموعه شمارای $Y$، به فرم تابعی شرطی $f: X \times Y \to [0, 1]$ است به طوری که $\forall x \in X: \sum_{y \in Y} f(y \mid x) = 1$. ترکیب دو نگاشت تصادفی $f: X \rightsquigarrow Y$ و $g: Y \rightsquigarrow Z$ بر مبنای احتمال کل به صورت ضرب ماتریسی تعریف می‌شود:
+\begin{equation}
+    gf(z \mid x) \coloneqq \sum_{y \in Y} g(z \mid y) f(y \mid x)
+\end{equation}
+بر اساس قضیه فوبینی-تونلی، مجموع درایه‌ها همواره به ۱ همگرا بوده و ترکیب شرکت‌پذیر است:
+\begin{equation}
+    \sum_{z \in Z} gf(z \mid x) = \sum_{z \in Z} \sum_{y \in Y} g(z \mid y) f(y \mid x) = \sum_{y \in Y} f(y \mid x) \sum_{z \in Z} g(z \mid y) = \sum_{y \in Y} f(y \mid x) \cdot 1 = 1
+\end{equation}
+
+یک توکنایزر زوجی مرتب از نگاشت‌های تصادفی $T = (\tau, \kappa)$ است که در آن کدگذار $\tau: \Sigma^* \rightsquigarrow \Delta^*$ و کدگشا $\kappa: \Delta^* \rightsquigarrow \Sigma^*$ است.
+
+\paragraph*{اثبات قضایای بنیادین سازگاری آماری توکنایزر (\en{Proofs of Consistency})}
+برای مشخصه‌سازی رابطه میان همگرایی در فضای توکن و فضای متن، قضایا و لم‌های زیر از \cite{gastaldi2025foundations} را با تمامی گام‌های محاسباتی اثبات می‌کنیم:
+
+\textbf{لم ۱ (تعمیم قضیه شفه از طریق لم فاتو):}
+اگر دنباله‌ای از توزیع‌های احتمال $\{p_n\}$ روی مجموعه شمارا $X$ به طور نقطه‌ای به توزیع $p$ همگرا شود، آنگاه در نرم $\ell_1$ نیز همگرا است:
+\begin{equation}
+    \lim_{n \to \infty} \sum_{x \in X} |p_n(x) - p(x)| = 0
+\end{equation}
+\textit{اثبات:}
+تابع کمکی نامنفی $f_n(x) \coloneqq p_n(x) + p(x) - |p_n(x) - p(x)| \ge 0$ را تعریف می‌کنیم. بنا بر همگرایی نقطه‌ای، $\lim_{n \to \infty} f_n(x) = 2p(x)$. طبق لم فاتو (\en{Fatou's Lemma}):
+\begin{equation}
+    \sum_{x \in X} \liminf_{n \to \infty} f_n(x) \le \liminf_{n \to \infty} \sum_{x \in X} f_n(x)
+\end{equation}
+سمت چپ نامساوی برابر است با:
+\begin{equation}
+    \sum_{x \in X} 2p(x) = 2 \sum_{x \in X} p(x) = 2
+\end{equation}
+سمت راست نامساوی را بسط می‌دهیم:
+\begin{equation}
+    \begin{aligned}
+        \liminf_{n \to \infty} \sum_{x \in X} \left( p_n(x) + p(x) - |p_n(x) - p(x)| \right) &= \liminf_{n \to \infty} \left( 1 + 1 - \sum_{x \in X} |p_n(x) - p(x)| \right) \\
+        &= 2 - \limsup_{n \to \infty} \sum_{x \in X} |p_n(x) - p(x)|
+    \end{aligned}
+\end{equation}
+بنابراین:
+\begin{equation}
+    2 \le 2 - \limsup_{n \to \infty} \sum_{x \in X} |p_n(x) - p(x)| \implies \limsup_{n \to \infty} \sum_{x \in X} |p_n(x) - p(x)| \le 0
+\end{equation}
+از آنجا که قدر مطلق نامنفی است، حد تحتانی نیز بزرگتر یا مساوی صفر است؛ در نتیجه حد مجموع در بی‌نهایت دقیقاً برابر صفر خواهد بود ($\lim_{n \to \infty} \sum_{x} |p_n(x) - p(x)| = 0$). $\blacksquare$
+
+\textbf{لم ۲ (بقای سازگاری تحت نگاشت تصادفی):}
+اگر $f: X \rightsquigarrow Y$ یک نگاشت تصادفی و $\{p_n\}$ برآوردگری سازگار برای $p$ باشد، آنگاه $f p_n$ برآوردگری سازگار برای $f p$ است.
+\textit{اثبات:}
+به ازای هر $y \in Y$ ثابت، با استفاده از نامساوی مثلثی برای سری‌ها:
+\begin{equation}
+    \begin{aligned}
+        |f p_n(y) - f p(y)| &= \left| \sum_{x \in X} f(y \mid x) p_n(x) - \sum_{x \in X} f(y \mid x) p(x) \right| \\
+        &\le \sum_{x \in X} f(y \mid x) |p_n(x) - p(x)| \le \sum_{x \in X} 1 \cdot |p_n(x) - p(x)|
+    \end{aligned}
+\end{equation}
+با میل دادن $n \to \infty$ و استفاده از لم ۱، سمت راست به صفر میل کرده و سازگاری اثبات می‌شود. $\blacksquare$
+
+\textbf{قضیه ۱ (اصل بنیادین توکنایزیشن):}
+دنباله کدگشایی‌شده $\{p_n = \kappa q_n\}$ یک برآوردگر سازگار برای $p^\star$ است اگر و تنها اگر:
+\begin{equation}
+    \kappa \tau p^\star = p^\star
+\end{equation}
+\textit{اثبات:}
+از آنجا که طبق فرض $\{q_n\} \to q^\star = \tau p^\star$، با اعمال لم ۲ داریم $\{\kappa q_n\} \to \kappa \tau p^\star$. اگر $\kappa \tau p^\star = p^\star$ باشد، مستقیماً $\{\kappa q_n\} \to p^\star$. برعکس، به دلیل یکتایی حد در توپولوژی القایی، چنانچه $\{\kappa q_n\} \to p^\star$ باشد، باید $\kappa \tau p^\star = p^\star$ برقرار باشد. $\blacksquare$
+
+\textbf{گزاره ۱ (درستی تام و یک‌به‌یکی):}
+توکنایزر $T$ «دقیق» (\en{Exact}) نامیده می‌شود هرگاه $\kappa \tau = \mathrm{id}_{\Sigma^*}$. توکنایزر دقیق است اگر و تنها اگر نسبت به «تمام» توزیع‌های ممکن سازگار باشد. همچنین، اگر توکنایزری دقیق باشد، آنگاه $\tau$ یک‌به‌یک (\en{Injective}) است و $\kappa$ بر روی تکیه‌گاه $\tau$ قطعی (\en{Deterministic}) خواهد بود:
+\begin{equation}
+    \sum_{\boldsymbol{\delta} \in \Delta^*} \tau(\boldsymbol{\delta} \mid \boldsymbol{\sigma}) [1 - \kappa(\boldsymbol{\sigma} \mid \boldsymbol{\delta})] = 0 \implies \forall \boldsymbol{\delta} \in \text{supp}(\tau(\cdot \mid \boldsymbol{\sigma})): \quad \kappa(\boldsymbol{\sigma} \mid \boldsymbol{\delta}) = 1
+\end{equation}
+
+\paragraph*{چالش‌های آماری و محاسباتی توکنایزیشن متنی (\en{Statistical \& Computational Concerns})}
+تحلیل صوری گستالدی و همکاران \cite{gastaldi2025foundations} علل ریشه‌ای نارسایی‌های مدل‌های زبانی را تبیین می‌کند:
+\begin{itemize}
+    \item \textbf{نایک‌به‌یکی $\tau$ و ناسازگاری (\en{Inconsistency}):} هرگونه پیش‌پردازش یکسان‌ساز نظیر کوچک‌سازی حروف، حذف علائم نگارشی یا ارجاع نویسه‌های ناشناخته به توکن یکتای `\en{[UNK]}`، سبب می‌شود $\tau(\boldsymbol{\sigma}_1) = \tau(\boldsymbol{\sigma}_2)$ برای $\boldsymbol{\sigma}_1 \neq \boldsymbol{\sigma}_2$ رخ دهد. این امر یک‌به‌یکی را نقض کرده و سازگاری آماری مدل زبان را در مبدا ناممکن می‌سازد.
+    \item \textbf{نایک‌به‌یکی $\kappa$ و معضل ابهام کاذب (\en{Spurious Ambiguity}):} از آنجا که تصویر $\tau(\Sigma^*)$ زیرمجموعه اکیدی از کل دنباله‌های ممکن $\Delta^*$ است، لایه سافت‌مکس و خطای برآورد سبب نشت احتمال به خارج از تصویر $\tau$ می‌شوند. برای محاسبه درست چگالی یک متن، مدل ملزم به جمع‌بندی روی تمام پیش‌تصاویر در $\kappa^{-1}(\boldsymbol{\sigma})$ است:
+    \begin{equation}
+        p_n(\boldsymbol{\sigma}) = \sum_{\boldsymbol{\delta} \in \kappa^{-1}(\boldsymbol{\sigma})} q_n(\boldsymbol{\delta})
+    \end{equation}
+    چنانچه توکنایزر ضرب‌پذیر باشد ($\kappa(\boldsymbol{\delta}' \cdot \boldsymbol{\delta}'') = \kappa(\boldsymbol{\delta}') \cdot \kappa(\boldsymbol{\delta}'')$) و هسته بدیهی داشته باشد ($\boldsymbol{\delta} \neq \varepsilon_\Delta \implies \kappa(\boldsymbol{\delta}) \neq \varepsilon_\Sigma$)، ثابت می‌شود $|\boldsymbol{\delta}| \le |\boldsymbol{\sigma}|$ و اندازه پیش‌تصویر با رابطه زیر کراندار می‌گردد:
+    \begin{equation}
+        |\kappa^{-1}(\boldsymbol{\sigma})| \le \sum_{i=1}^{|\boldsymbol{\sigma}|} |\Delta|^i
+    \end{equation}
+    \item \textbf{تغییرات کراندار و پیچیدگی زمانی خطی (\en{Bounded Variation \& SFST}):} بر اساس قضیه چافروت (\en{Choffrut})، توابع ضرب‌پذیر دارای ویژگی تغییرات کراندار نسبت به فاصله پیشوندی هستند:
+    \begin{equation}
+        \|\boldsymbol{\gamma}, \boldsymbol{\gamma}'\| \coloneqq |\boldsymbol{\gamma}| + |\boldsymbol{\gamma}'| - 2 |\boldsymbol{\gamma} \wedge \boldsymbol{\gamma}'| \le k \implies \|\kappa(\boldsymbol{\gamma}), \kappa(\boldsymbol{\gamma}')\| \le C_k
+    \end{equation}
+    این خاصیت تضمین می‌کند که اجرای کدگذاری توکنایزرهایی نظیر \en{WordPiece} (با اصل بیشترین پیشروی) و \en{BPE} با مبدل‌های حالت متناهی متوالی (\en{SFST}) در زمان محاسباتی خطی $\mathcal{O}(|\boldsymbol{\sigma}|)$ امکان‌پذیر است.
+\end{itemize}
+
+% =========================================================================
+% دیاگرام ۲: لوله‌کشی عمومی کوانتیزاسیون پنهان در ابعاد چندوجهی (Li & Jia)
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.2cm and 1.8cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    enc_node/.style={base, fill=teal!12, draw=teal!70!black, minimum width=4cm, minimum height=1.1cm},
+    quant_node/.style={base, fill=purple!12, draw=purple!70!black, minimum width=5.5cm, minimum height=1.6cm},
+    dec_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=4cm, minimum height=1.1cm},
+    loss_node/.style={base, fill=red!10, draw=red!70!black, minimum width=8.5cm, minimum height=1.3cm},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black},
+    back_arrow/.style={-{Stealth[scale=1.1]}, dashed, line width=1.3pt, draw=red!80!black}
+]
+
+    % گره‌های مسیر پیشرو
+    \node[enc_node] (input) {\textbf{ورودی چندوجهی خام}\\ $x \in \mathbb{R}^{H \times W \times C}$ یا $\mathbb{R}^T$};
+    \node[enc_node, right=of input] (encoder) {\textbf{کدگذار عصبی پیوسته}\\ $z = \mathrm{Enc}(x) \in \mathbb{R}^D$};
+    
+    \node[quant_node, right=of encoder] (quant) {
+        \textbf{گلوگاه کوانتیزاسیون گسسته (\en{VQ Bottleneck})}\\[2pt]
+        $k^* = \arg\min_k \|z - c_k\|_2^2 \implies c_q = c_{k^*}$\\
+        \scriptsize یا کوانتیزاسیون‌های بدون لوک‌آپ (\en{FSQ / LFQ / BSQ})
+    };
+
+    \node[dec_node, below=1.4cm of quant] (decoder) {\textbf{کدگشای عصبی بازسازی}\\ $\hat{x} = \mathrm{Dec}(c_q)$};
+    \node[loss_node, left=1.2cm of decoder] (loss) {
+        \textbf{توابع اتلاف مشترک بهینه‌سازی (\en{Total Joint Loss})}\\[3pt]
+        $\mathcal{L} = \|x - \hat{x}\|_2^2 + \|\text{sg}[z] - c_q\|_2^2 + \beta \|z - \text{sg}[c_q]\|_2^2 + \lambda_{\text{adv}} \mathcal{L}_{\mathrm{GAN}}$
+    };
+
+    % اتصالات مسیر رو به جلو
+    \draw[arrow] (input) -- (encoder);
+    \draw[arrow] (encoder) -- node[above] {$z$} (quant);
+    \draw[arrow] (quant) -- node[right] {$c_q$} (decoder);
+    \draw[arrow] (decoder) -- (loss);
+    \draw[arrow] (input) |- (loss);
+
+    % مسیر پسرو گرادیان و STE
+    \draw[back_arrow] (decoder.north) -- node[right, font=\scriptsize\bfseries] {عبور از گره غیرمشتق‌پذیر با \en{STE}: $\nabla_z \mathcal{L} \approx \nabla_{c_q} \mathcal{L}$} (quant.south);
+    \draw[back_arrow] (quant.west) -- node[above, font=\scriptsize\bfseries] {انتقال گرادیان به کدگذار} (encoder.east);
+
+\end{tikzpicture}%
+}
+\caption{مسیر جریان داده و دینامیک پس‌انتشار گرادیان با \en{STE} در کوانتیزاسیون برداری پیوسته \cite{li2025discrete, jia2025principles}.}
+\label{fig:vq_pipeline}
+\end{figure}
+
+\paragraph*{تاکسونومی پارادایم‌های هشت‌گانه کوانتیزاسیون برداری (\en{Taxonomy of 8 VQ Variants})}
+در مدل‌سازی چندوجهی، تبدیل بردارهای پنهان پیوسته $z \in \mathbb{R}^D$ به شناسه‌های گسسته از طریق هشت الگوریتم بنیادین صورت می‌گیرد \cite{li2025discrete, jia2025principles}:
+
+\textbf{۱. کوانتیزاسیون برداری سنتی (\en{Vanilla VQ}):}
+با کدبوک صریح متناهی $\mathcal{C} = \{c_1, \dots, c_K\} \subset \mathbb{R}^D$، نگاشت با جستجوی نزدیک‌ترین همسایه انجام می‌شود \cite{van2017neural}:
+\begin{equation}
+    k^* = \arg\min_{k \in \{1, \dots, K\}} \|z - c_k\|_2^2, \quad c_q = c_{k^*}
+\end{equation}
+
+\textbf{۲. کوانتیزاسیون برداری باقیمانده (\en{Residual VQ - RVQ}):}
+جهت جلوگیری از انفجار ابعاد کدبوک در نرخ بیت بالا، خطا طی $M$ گام پیاپی کوانتیزه می‌شود \cite{juang1982multiple}:
+\begin{equation}
+    r^{(1)} = z, \quad c_{k_s^*}^{(s)} = \arg\min_{c \in \mathcal{C}^{(s)}} \|r^{(s)} - c\|_2^2, \quad r^{(s+1)} = r^{(s)} - c_{k_s^*}^{(s)} \implies z_q = \sum_{s=1}^M c_{k_s^*}^{(s)}
+\end{equation}
+
+\textbf{۳. کوانتیزاسیون ضربی (\en{Product Quantization - PQ}):}
+تجزیه بردار $z$ به $M$ زیرفضای متعامد با بعد $D/M$ و کوانتیزاسیون مستقل زیربردارها در کدبوک‌های مربوطه \cite{jegou2010product}:
+\begin{equation}
+    z = [z^{(1)}, \dots, z^{(M)}], \quad c_{k_m^*}^{(m)} = \arg\min_{c \in \mathcal{C}^{(m)}} \|z^{(m)} - c\|_2^2 \implies z_q = [c_{k_1^*}^{(1)}, \dots, c_{k_M^*}^{(M)}]
+\end{equation}
+
+\textbf{۴. کوانتیزاسیون برداری جمع‌پذیر (\en{Additive VQ - AQ}):}
+تقریب بردار تمام‌بعدی $z$ از طریق مجموع $M$ بردار برگزیده از کدبوک‌های کامل بدون تفکیک ابعادی \cite{babenko2014additive}:
+\begin{equation}
+    z_q = \sum_{m=1}^M c_{k_m^*}^{(m)}, \quad c_{k_m^*}^{(m)} \in \mathcal{C}^{(m)} \subset \mathbb{R}^D
+\end{equation}
+
+\textbf{۵. کوانتیزاسیون اسکالر متناهی (\en{Finite Scalar Quantization - FSQ}):}
+حذف کامل جستجوی کدبوک با نگاشت ابعاد بردار بسیار کوچک ($D \le 10$) به مقادیر صحیح کراندار \cite{mentzer2023finite}:
+\begin{equation}
+    f(z_i) = \frac{L_i - 1}{2} \tanh(z_i), \quad q(z_i) = \left\lfloor f(z_i) + \frac{1}{2} \right\rfloor \in \left\{ -\frac{L_i-1}{2}, \dots, \frac{L_i-1}{2} \right\}
+\end{equation}
+ظرفیت کل کدبوک ضمنی حاصل $\prod_{i=1}^D L_i$ بوده و پدیده کدهای بلااستفاده ناممکن است.
+
+\textbf{۶. کوانتیزاسیون بدون لوک‌آپ (\en{Lookup-Free Quantization - LFQ}):}
+تصویر بردار پنهان بر گوشه‌های ابرمکعب باینری $\{-1, +1\}^D$ با استفاده از تابع علامت \cite{yu2024language}:
+\begin{equation}
+    q(z_i) = \text{sign}(z_i), \quad \text{Index}(z) = \sum_{i=1}^D 2^{i-1} \cdot \mathbb{I}[z_i > 0]
+\end{equation}
+
+\textbf{۷. کوانتیزاسیون کروی باینری (\en{Binary Spherical Quantization - BSQ}):}
+تصویر خطی به بعد $L \ll D$، نرمال‌سازی بر ابرکره واحد $\mathbb{S}^{L-1}$ و باینری‌سازی کروی برای مهار خطای بازسازی \cite{zhao2024image}:
+\begin{equation}
+    u = \frac{\mathrm{Linear}(z)}{\|\mathrm{Linear}(z)\|_2} \in \mathbb{S}^{L-1}, \quad c_q = \frac{1}{\sqrt{L}} \text{sign}(u) \in \mathbb{S}^{L-1}
+\end{equation}
+
+\textbf{۸. توکنایزیشن رابطه-لنگر گراف (\en{Graph Anchor-Relation Tokenization - GART}):}
+کدگذاری گره‌های گراف با استخراج زیرگراف موضعی پیرامون لنگرهای از پیش تعیین‌شده $\mathcal{A}$ و روابط متصل $\mathcal{R}$ \cite{galkin2021nodepiece, li2025discrete}:
+\begin{equation}
+    W_v = \{a_{i_1}, \dots, a_{i_k}, r_{j_1}, \dots, r_{j_d}\}, \quad z_q(v) = \mathrm{Enc}(W_v)
+\end{equation}
+
+% =========================================================================
+% دیاگرام ۳: هندسه مقایسه‌ای افراز فضا در روش‌های کوانتیزاسیون
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    scale=0.95,
+    panel/.style={draw=blue!60!black, fill=white, rounded corners=8pt, line width=1pt, drop shadow}
+]
+
+    % پانل الف: VQ سنتی (افراز ورونوی)
+    \node at (2.2, 3.8) {\textbf{الف) کوانتیزاسیون ورونوی (\en{VQ})}};
+    \draw[panel, fill=blue!5] (0,0) rectangle (4.4, 3.4);
+    % خطوط سلول ورونوی
+    \draw[dashed, line width=0.8pt, gray!70] (0, 1.7) -- (4.4, 1.7);
+    \draw[dashed, line width=0.8pt, gray!70] (2.2, 0) -- (2.2, 3.4);
+    % بردارها
+    \fill[red!70!black] (1.1, 2.5) circle (3pt) node[below=2pt, font=\scriptsize] {$c_1$};
+    \fill[red!70!black] (3.3, 2.5) circle (3pt) node[below=2pt, font=\scriptsize] {$c_2$};
+    \fill[red!70!black] (1.1, 0.9) circle (3pt) node[below=2pt, font=\scriptsize] {$c_3$};
+    \fill[red!70!black] (3.3, 0.9) circle (3pt) node[below=2pt, font=\scriptsize] {$c_4$};
+    \fill[blue!80!black] (1.5, 2.2) circle (2pt) node[right=1pt, font=\tiny] {$z$};
+    \draw[-{Stealth}, line width=0.8pt, blue!80!black] (1.5, 2.2) -- (1.1, 2.5);
+
+    % پانل ب: FSQ (شبکه اسکالر منظم)
+    \node at (7.6, 3.8) {\textbf{ب) شبکه اسکالر متناهی (\en{FSQ})}};
+    \draw[panel, fill=teal!5] (5.4,0) rectangle (9.8, 3.4);
+    \draw[step=0.8cm, gray!50, dashed] (5.9, 0.5) grid (9.3, 2.9);
+    \foreach \x in {6.7, 7.5, 8.3}
+        \foreach \y in {0.9, 1.7, 2.5}
+            \fill[teal!70!black] (\x, \y) circle (2.5pt);
+    \node[below, font=\tiny] at (7.5, 0.4) {$-1 \quad 0 \quad +1$};
+
+    % پانل ج: LFQ (ابرمکعب باینری)
+    \node at (13.0, 3.8) {\textbf{ج) ابرمکعب بدون لوک‌آپ (\en{LFQ})}};
+    \draw[panel, fill=orange!5] (10.8,0) rectangle (15.2, 3.4);
+    \draw[-{Stealth}, gray] (10.9, 1.7) -- (15.1, 1.7) node[right, font=\tiny] {$z_1$};
+    \draw[-{Stealth}, gray] (13.0, 0.1) -- (13.0, 3.3) node[above, font=\tiny] {$z_2$};
+    \node[font=\tiny] at (14.2, 2.7) {$(+1, +1)$};
+    \node[font=\tiny] at (11.8, 2.7) {$(-1, +1)$};
+    \node[font=\tiny] at (11.8, 0.7) {$(-1, -1)$};
+    \node[font=\tiny] at (14.2, 0.7) {$(+1, -1)$};
+
+    % پانل د: BSQ (کره واحد)
+    \node at (18.4, 3.8) {\textbf{د) کره باینری (\en{BSQ})}};
+    \draw[panel, fill=purple!5] (16.2,0) rectangle (20.6, 3.4);
+    \draw[line width=1.1pt, purple!70!black] (18.4, 1.7) circle (1.2cm);
+    \fill[purple!90!black] (19.25, 2.55) circle (3pt) node[above right, font=\tiny] {$c_1$};
+    \fill[purple!90!black] (17.55, 2.55) circle (3pt) node[above left, font=\tiny] {$c_2$};
+    \fill[purple!90!black] (17.55, 0.85) circle (3pt) node[below left, font=\tiny] {$c_3$};
+    \fill[purple!90!black] (19.25, 0.85) circle (3pt) node[below right, font=\tiny] {$c_4$};
+
+\end{tikzpicture}%
+}
+\caption{هندسه مقایسه‌ای افراز فضا در رویکردهای گوناگون کوانتیزاسیون پنهان \cite{li2025discrete}.}
+\label{fig:quant_geometry}
+\end{figure}
+
+\paragraph*{دینامیک جریان گرادیان و به‌روزرسانی کدبوک (\en{Gradient Flow \& Optimization})}
+به دلیل غیرمشتق‌پذیر بودن عملگر $\arg\min$ و توابع پله‌ای، عبور گرادیان از لایه کوانتیزاسیون با چالش همراه است:
+\begin{itemize}
+    \item \textbf{برآوردگر مستقیم (\en{STE}):} با فرض $\frac{\partial c_q}{\partial z} \approx \mathbf{I}$، گرادیان اتلاف کل مستقیماً به خروجی کدگذار کپی می‌گردد \cite{bengio2013estimating}.
+    \item \textbf{واهلش گامبل-سافت‌مکس (\en{Gumbel-Softmax}):} نمونه‌گیری تصادفی با نویز گامبل $g_k = -\log(-\log(u_k))$ و آنیل کردن دما ($\tau \to 0$):
+    \begin{equation}
+        y_k = \frac{\exp\left(\frac{-\|z - c_k\|_2^2 + g_k}{\tau}\right)}{\sum_{j=1}^K \exp\left(\frac{-\|z - c_j\|_2^2 + g_j}{\tau}\right)} \implies \lim_{\tau \to 0} y = \text{one\_hot}(\arg\max_k)
+    \end{equation}
+    \item \textbf{به‌روزرسانی میانگین متحرک نمایی (\en{EMA Updating}):} جهت تثبیت بردارهای کدبوک بدون نوسانات گرادیان تصادفی:
+    \begin{equation}
+        N_i^{(t)} = \gamma N_i^{(t-1)} + (1 - \gamma) n_i^{(t)}, \quad m_i^{(t)} = \gamma m_i^{(t-1)} + (1 - \gamma) \sum_{j=1}^{n_i^{(t)}} z_{i,j}^{(t)} \implies c_i^{(t)} = \frac{m_i^{(t)}}{N_i^{(t)}}
+    \end{equation}
+\end{itemize}
+
+\paragraph*{معضل فروپاشی کدبوک و روش‌های مهار آن (\en{Codebook Collapse \& Mitigations})}
+پدیده «فروپاشی کدبوک» هنگامی رخ می‌دهد که بخش کثیری از بردارهای کدبوک فعال نشده و گرادیان دریافت نکنند (\en{Dead Codewords}). در جدول \ref{tab:collapse_mitigation}، مقایسه این چالش و راه‌حل‌های ارائه‌شده تدوین شده است \cite{li2025discrete, jia2025principles}.
+
+\begin{table}[htbp]
+\centering
+\caption{تحلیل و مقایسه آسیب‌پذیری و راهبردهای مهار فروپاشی کدبوک در روش‌های کوانتیزاسیون}
+\label{tab:collapse_mitigation}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{روش کوانتیزاسیون} & \textbf{سطح ریسک فروپاشی} & \textbf{مکانیسم مقابله / وضعیت در معماری} \\
+\midrule
+\en{Vanilla VQ} & بسیار شدید & نیازمند راه‌اندازی مجدد کدها (\en{Code Reset}) یا بازپارامتریک‌سازی افاین \cite{huh2023straightening} \\
+\en{Residual VQ (RVQ)} & متوسط رو به بالا & لایه‌های پایینی فعال می‌مانند؛ لایه‌های بالایی مستعد اشباع هستند \cite{li2025discrete} \\
+\en{Product VQ (PQ)} & متوسط & افراز زیرفضاها خطر را تعدیل می‌کند اما زیرکدبوک‌ها ممکن است تهی شوند \\
+\en{Additive VQ (AQ)} & متوسط & ساختار جمع‌پذیر بار تخصیص را توزیع می‌کند \\
+\en{FSQ} & \textbf{صفر (مصون مطلق)} & کدبوک ثابت ضمنی با گرد کردن مستقیم به مقادیر صحیح شبکه منظم \cite{mentzer2023finite} \\
+\en{LFQ} & \textbf{صفر (مصون مطلق)} & گسسته‌سازی مستقل در هر بعد بر روی ابرمکعب باینری با تابع علامت \cite{yu2024language} \\
+\en{BSQ} & \textbf{صفر (مصون مطلق)} & محصور شدن روی ابرکره واحد باینری بدون پارامترهای برداری آزاد \cite{zhao2024image} \\
+\en{GART} & \textbf{صفر (مصون مطلق)} & مبتنی بر ساختار توپولوژیک قطعی لنگرهای گراف \cite{galkin2021nodepiece} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\textbf{راهکارهای پیشرفته مهار فروپاشی در کدبوک‌های یادگیرنده:}
+\begin{itemize}
+    \item \textbf{بازنشانی آنلاین (\en{Online Clustering / Code Reset}):} روش‌های \en{HQA} و \en{CVQ-VAE} کدهای کم‌کاربرد را شناسایی کرده و آن‌ها را بر روی خوشه‌های تصادفی از داده‌های فعال با نویز کوچک بازنشانی می‌کنند.
+    \item \textbf{بازپارامتریک‌سازی خطی (\en{Linear Reparameterization}):} روش \en{SimVQ} \cite{zhu2024addressing} با عبور دادن بردارها از یک تبدیل خطی، تضمین می‌کند تمامی کدها در جریان پس‌انتشار مشتق قرار گیرند.
+    \item \textbf{رگولاریزاسیون ماکزیمم آنتروپی (\en{Entropy Penalty}):} افزودن اتلاف $\mathcal{L}_{\mathrm{ent}} = \sum_{k} p(c_k) \log p(c_k)$ که توزیع انتخاب کدها را به توزیع یکنواخت سوق می‌دهد \cite{yu2024language}.
+\end{itemize}
+
+\paragraph*{کاربردهای چندوجهی و سیستم‌های توصیه‌گر (\en{Cross-Modal Applications})}
+نقش توکنایزرهای گسسته در کاربردهای نوین هوش مصنوعی به شرح زیر است:
+\begin{itemize}
+    \item \textbf{تصویر و ویدیو:} مدل‌های \en{TiTok} \cite{yu2024an}، \en{MaskBit} و \en{Show-o} با به‌کارگیری \en{LFQ} و \en{1D VQ} بازنمایی تصویر را فشرده نموده‌اند. در ویدیو، مدل‌های \en{MagVit-v2} \cite{yu2024language} و \en{Cosmos} (با \en{FSQ}) پویایی مکانی-زمانی را به توکن تبدیل می‌کنند.
+    \item \textbf{صوت و مکالمه بلادرنگ:} مدل \en{SpeechTokenizer} \cite{zhang2024speechtokenizer} اطلاعات گفتار را به لایه‌های مجزای معنایی (\en{Semantic}) و آکوستیک (\en{Acoustic}) تفکیک می‌کند که زیرساخت مدل‌های گفتاری نظیر \en{AudioPaLM} و \en{Moshi} است.
+    \item \textbf{انقلاب شناسه‌های معنایی در سامانه‌های توصیه‌گر (\en{Semantic IDs in RecSys}):} جایگزینی شناسه‌های تصادفی آیتم‌ها (\en{ItemIDs}) با شناسه‌های معنایی گسسته سلسله‌مراتبی حاصل از \en{RQ-VAE} (نظیر مدل \en{TIGER} \cite{rajput2023recommender})، چالش شروع سرد (\en{Cold-Start}) را مرتفع ساخته و تعمیم‌پذیری بین‌دامنه‌ای را محقق نموده است.
+    \item \textbf{بازیابی اطلاعات زایشی (\en{Generative IR}):} در مدل‌های \en{DSI} \cite{tay2022transformer} و \en{RIPOR}، اسناد به جای شناسه‌های سطحی با شناسه‌های معنایی درختی توکنایز شده و بازیابی با تولید مستقیم شناسه سند توسط مدل زبانی صورت می‌گیرد.
+\end{itemize}
+
+\paragraph*{چالش‌های بنیادین و چشم‌انداز آینده (\en{Open Challenges \& Future Directions})}
+تحقیقات آتی در حوزه توکنایزیشن بر پنج محور متمرکز خواهد بود \cite{gastaldi2025foundations, li2025discrete, jia2025principles}:
+\begin{enumerate}
+    \item \textbf{تضاد ادراک و تولید (\en{Understanding vs. Generation Dilemma}):} توکنایزرهای بازسازی باکیفیت (مانند \en{VQGAN}) جزئیات پیکسلی با فرکانس بالا را حفظ می‌کنند اما بار معنایی ضعیفی دارند. در مدل‌هایی مانند \en{Janus} و \en{Janus-Pro} \cite{chen2025janus}، مسیرهای انکودینگ برای درک و تولید از یکدیگر تفکیک شده‌اند.
+    \item \textbf{مدل‌های بدون توکنایزر (\en{Token-Free Models}):} معماری‌هایی نظیر \en{BLT} \cite{pagnoni2024byte} و \en{MambaByte} که بایت‌های خام را مستقیماً پردازش می‌کنند تا خطاهای ناشی از نایک‌به‌یکی توکنایزر را دور بزنند.
+    \item \textbf{توکنایزیشن تطبیقی و چندنرخی (\en{Dynamic \& Multi-Rate Tokenization}):} تخصیص پویای طول توالی توکن‌ها بر حسب چگالی اطلاعاتی محتوای ورودی (مانند اختصاص توکن‌های بیشتر به نواحی با پیچیدگی بصری یا صوتی بالاتر).
+\end{enumerate}

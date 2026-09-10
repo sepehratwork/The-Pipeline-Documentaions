@@ -1418,6 +1418,160 @@ A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.
   generation.
 \newblock {\em arXiv preprint arXiv:2509.19128}, 2025.
 
+\bibitem{gastaldi2025foundations}
+Juan~Luis Gastaldi, John Terilla, Luca Malagutti, Brian DuSell, Tim Vieira, and
+  Ryan Cotterell.
+\newblock The foundations of tokenization: Statistical and computational
+  concerns.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{jia2025principles}
+Jian Jia, Jingtong Gao, Ben Xue, Junhao Wang, Qingpeng Cai, Quan Chen, Xiangyu
+  Zhao, Peng Jiang, and Kun Gai.
+\newblock From principles to applications: A comprehensive survey of discrete
+  tokenizers in generation, comprehension, recommendation, and information
+  retrieval.
+\newblock {\em arXiv preprint arXiv:2502.12448}, 2025.
+
+\bibitem{li2025discrete}
+Jindong Li, Yali Fu, Jiahong Liu, Linxiao Cao, Wei Ji, Menglin Yang, Irwin
+  King, and Ming-Hsuan Yang.
+\newblock Discrete tokenization for multimodal llms: A comprehensive survey.
+\newblock {\em arXiv preprint arXiv:2507.22920}, 2025.
+
+\bibitem{creutz2002unsupervised}
+Mathias Creutz and Krista Lagus.
+\newblock Unsupervised discovery of morphemes.
+\newblock In {\em Proceedings of the ACL-02 workshop on Morphological and
+  phonological learning}, pages 21--30, 2002.
+
+\bibitem{koehn2007moses}
+Philipp Koehn, Hieu Hoang, Alexandra Birch, Chris Callison-Burch, Marcello
+  Federico, et~al.
+\newblock Moses: Open source toolkit for statistical machine translation.
+\newblock In {\em Proceedings of the 45th annual meeting of the ACL}, pages
+  177--180, 2007.
+
+\bibitem{wu2016google}
+Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc~V Le, Mohammad Norouzi, et~al.
+\newblock Google's neural machine translation system: Bridging the gap between
+  human and machine translation.
+\newblock {\em arXiv preprint arXiv:1609.08144}, 2016.
+
+\bibitem{kudo2018subword}
+Taku Kudo.
+\newblock Subword regularization: Improving neural network translation models
+  with multiple subword candidates.
+\newblock {\em arXiv preprint arXiv:1804.10959}, 2018.
+
+\bibitem{van2017neural}
+Aaron Van~den Oord, Oriol Vinyals, et~al.
+\newblock Neural discrete representation learning.
+\newblock {\em Advances in Neural Information Processing Systems}, 30, 2017.
+
+\bibitem{esser2021taming}
+Patrick Esser, Robin Rombach, and Bjorn Ommer.
+\newblock Taming transformers for high-resolution image synthesis.
+\newblock In {\em Proceedings of the IEEE/CVF conference on computer vision and
+  pattern recognition}, pages 12873--12883, 2021.
+
+\bibitem{mentzer2023finite}
+Fabian Mentzer, David Minnen, Eirikur Agustsson, and Michael Tschannen.
+\newblock Finite scalar quantization: Vq-vae made simple.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2024.
+
+\bibitem{yu2024language}
+Lijun Yu, Jose Lezama, Nitesh~B Gundavarapu, Luca Versari, Austin Stone, et~al.
+\newblock Language model beats diffusion--tokenizer is key to visual
+  generation.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2024.
+
+\bibitem{zhang2024speechtokenizer}
+Xin Zhang, Dong Zhang, Shimin Li, et~al.
+\newblock Speechtokenizer: Unified speech tokenizer for speech large language
+  models.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2024.
+
+\bibitem{juang1982multiple}
+Biing-Hwang Juang and A~Gray.
+\newblock Multiple stage vector quantization for speech coding.
+\newblock In {\em ICASSP'82. IEEE International Conference on Acoustics,
+  Speech, and Signal Processing}, volume~7, pages 597--600, 1982.
+
+\bibitem{jegou2010product}
+Herve Jegou, Matthijs Douze, and Cordelia Schmid.
+\newblock Product quantization for nearest neighbor search.
+\newblock {\em IEEE transactions on pattern analysis and machine intelligence},
+  33(1):117--128, 2010.
+
+\bibitem{babenko2014additive}
+Artem Babenko and Victor Lempitsky.
+\newblock Additive quantization for extreme vector compression.
+\newblock In {\em Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition}, pages 931--938, 2014.
+
+\bibitem{zhao2024image}
+Yufan Zhao, Yunyang Xiong, et~al.
+\newblock Image and video tokenization with binary spherical quantization.
+\newblock {\em arXiv preprint arXiv:2406.07548}, 2024.
+
+\bibitem{galkin2021nodepiece}
+Mikhail Galkin, Etienne Denis, Jiapeng Wu, and William~L Hamilton.
+\newblock Nodepiece: Compositional and parameter-efficient representations of
+  large knowledge graphs.
+\newblock {\em arXiv preprint arXiv:2106.12144}, 2021.
+
+\bibitem{bengio2013estimating}
+Yoshua Bengio, Nicholas L{\'e}onard, and Aaron Courville.
+\newblock Estimating or propagating gradients through stochastic neurons for
+  conditional computation.
+\newblock {\em arXiv preprint arXiv:1308.3432}, 2013.
+
+\bibitem{huh2023straightening}
+Minyoung Huh, Brian Cheung, Pulkit Wang, and Pulkit Agrawal.
+\newblock Straightening out the straight-through estimator: Overcoming
+  optimization challenges in vector quantized networks.
+\newblock In {\em International Conference on Machine Learning}, pages
+  14133--14144, 2023.
+
+\bibitem{zhu2024addressing}
+Yongtian Zhu, Bo~Li, et~al.
+\newblock Addressing representation collapse in vector quantized models with
+  one linear layer.
+\newblock {\em arXiv preprint arXiv:2411.02038}, 2024.
+
+\bibitem{yu2024an}
+Qihang Yu, Mark Weber, Xueqing Deng, Xiaohui Shen, et~al.
+\newblock An image is worth 32 tokens for reconstruction and generation.
+\newblock {\em Advances in Neural Information Processing Systems}, 37, 2024.
+
+\bibitem{rajput2023recommender}
+Shashank Rajput, Nikhil Mehta, Anima Singh, et~al.
+\newblock Recommender systems with generative retrieval.
+\newblock In {\em Advances in Neural Information Processing Systems},
+  volume~36, 2023.
+
+\bibitem{tay2022transformer}
+Yi~Tay, Vinh Tran, Mostafa Dehghani, Jianmo Ni, Dara Bahri, et~al.
+\newblock Transformer memory as a differentiable search index.
+\newblock {\em Advances in Neural Information Processing Systems},
+  35:21831--21843, 2022.
+
+\bibitem{chen2025janus}
+Xiaokang Chen, Zhiyu Wu, Xingchao Liu, et~al.
+\newblock Janus-pro: Unified multimodal understanding and generation with data
+  and model scaling.
+\newblock {\em arXiv preprint arXiv:2501.17811}, 2025.
+
+\bibitem{pagnoni2024byte}
+Artidoro Pagnoni, Ram Pasunuru, Pedro Rodriguez, et~al.
+\newblock Byte latent transformer: Patches scale better than tokens.
+\newblock {\em arXiv preprint arXiv:2412.09871}, 2024.
+
 \bibitem{vaswani2017attention}
 Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
   Aidan~N. Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
