@@ -1,1 +1,226 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{مقدمه و فلسفه بنیادین معماری (\en{Architectural Philosophy})}
+با ظهور مدل‌های مبتنی بر استدلال و گسترش مقیاس محاسبات در زمان آزمون (\en{Test-Time Scaling})، چالش مقیاس‌پذیری بنیادین مدل‌های پیش‌آموزش‌دیده در کنار مدیریت پنجره زمینه فوق‌طولانی اهمیتی دوچندان یافته است. مدل \model{Kimi K3} \cite{kimi2026k3} یک مدل چندوجهی بومی بر پایه شبکه خبره‌های تنک (\en{Sparse MoE}) با مقیاس بی‌سابقه ۲.۷۸ تریلیون پارامتر کل و ۱۰۴.۲ میلیارد پارامتر فعال به ازای هر توکن است که پنجره زمینه تا سقف \en{1M} توکن را پشتیبانی می‌کند. 
+
+معماری ترنسفورمر این مدل با هدف گسترش و روان‌سازی جریان اطلاعات (\en{Information Flow}) در سه بعد مکمل مهندسی شده است:
+\begin{enumerate}
+    \item \textbf{بُعد طول توالی (\en{Sequence Length Dimension}):} بهره‌گیری از مکانیزم توجه ترکیبی (\en{Hybrid Attention}) شامل لایه‌های متناوب توجه خطی بازگشتی دلتا (\en{KDA}) \cite{kimi2025linear} و توجه نهفته چندسر درگاه‌دار (\en{Gated MLA}) \cite{deepseek2024v2, qiu2025gated}.
+    \item \textbf{بُعد عمق شبکه (\en{Network Depth Dimension}):} جایگزینی اتصالات پسماند خطی مرسوم با پسماندهای توجه بلوکی (\en{Block Attention Residuals - AttnRes}) \cite{kimi2026attnres} به منظور دسترسی انتخابی به بازنمایی لایه‌های پیشین.
+    \item \textbf{بُعد عرض و کانال‌ها (\en{Width \& Channel Dimension}):} پیاده‌سازی ساختار پایدار خبره‌های نهفته (\en{Stable LatentMoE}) \cite{elango2026latentmoe} با ۸۹۶ خبره تخصصی در فضای نهفته، تابع فعال‌ساز مهارشده \en{SiTU-GLU}، و توازن کوانتایلی پویا (\en{Quantile Balancing}) \cite{su2026travelsmoe}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام حرفه‌ای، رنگی و فاصله‌گذاری‌شده معماری Kimi K3
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.90\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.2cm and 1.5cm,
+    base/.style={draw, rounded corners=8pt, align=center, line width=1.1pt, drop shadow={opacity=0.25, shadow xshift=2pt, shadow yshift=-2pt}},
+    io_node/.style={base, fill=blue!12, draw=blue!75!black, minimum width=9cm, minimum height=1.0cm, font=\bfseries},
+    attn_box/.style={base, fill=teal!10, draw=teal!80!black, minimum width=9.5cm, minimum height=2.4cm},
+    moe_box/.style={base, fill=orange!12, draw=orange!85!black, minimum width=9.5cm, minimum height=2.4cm},
+    attnres_node/.style={base, fill=purple!12, draw=purple!75!black, minimum width=8.5cm, minimum height=1.1cm},
+    block_frame/.style={draw=blue!70!black, dashed, rounded corners=12pt, line width=1.3pt, inner sep=16pt},
+    arrow/.style={-{Stealth[scale=1.15]}, line width=1.2pt, draw=gray!75!black},
+    res_arrow/.style={-{Stealth[scale=1.15]}, line width=1.4pt, draw=purple!80!black, dashed}
+]
+
+    % ورودی‌ها
+    \node[io_node] (input) {جریان توکن‌های ورودی متن و تصویر (\en{Multimodal Interleaved Tokens})};
+    
+    \node[base, fill=cyan!12, draw=cyan!80!black, below=0.9cm of input, minimum width=9cm, minimum height=1.3cm] (vision) {
+        \textbf{مسیر بینایی بومی (\en{Native Vision Pathway: MoonViT-V2})}\\
+        \scriptsize ۲۷ لایه ترنسفورمر (۴۰۱M پارامتر) $+$ فشرده‌سازی فضایی-زمانی $+$ کاهش ابعاد \en{$2\times 2$ Pixel-Shuffle}
+    };
+
+    \node[io_node, below=0.9cm of vision] (embed) {
+        \textbf{فضای تعبیه برداری مشترک (\en{Shared Embedding Space})}\\
+        $\mathbf{h}_1 = \mathbf{b}_0 \in \mathbb{R}^{d} \quad (d = 7168)$
+    };
+
+    % لایه KDA
+    \node[attn_box, below=1.2cm of embed] (kda) {
+        \textbf{\large لایه توجه دلتای کیمی (\en{Kimi Delta Attention - KDA})}\\[3pt]
+        \scriptsize $\bullet$ قاعده بازگشتی دلتا با ضریب زوال کانالی: $\mathbf{S}_t = (\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top)\text{Diag}(\alpha_t)\mathbf{S}_{t-1} + \beta_t \mathbf{k}_t \mathbf{v}_t^\top$\\
+        \scriptsize $\bullet$ زوال کران‌دار لگاریتمی: $g_t^h = g_{\min}\sigma(e^{A_h} z_t^h) \in (-5, 0) \implies$ شتاب‌دهی کامل با \en{Tensor Cores}\\
+        \scriptsize $\bullet$ نرمال‌سازی $\text{L}_2$ کوئری و کلید $+$ کانوولوشن محلی (\en{ShortConv}) $+$ گیت خروجی رتبه-کامل $\mathbf{W}_g$
+    };
+
+    % اتصال AttnRes اول
+    \node[attnres_node, below=1.0cm of kda] (attnres_1) {
+        \textbf{پسماند توجه درون‌بلوکی (\en{Intra-Block AttnRes Update})}\\
+        \scriptsize بازیابی پویای بازنمایی: $\mathbf{h}_l = \sum \alpha_{i \to l} \mathbf{v}_i$ با شبه‌پرس‌وجوهای یادگیرنده $\mathbf{w}_l$
+    };
+
+    % لایه Stable LatentMoE
+    \node[moe_box, below=1.0cm of attnres_1] (moe) {
+        \textbf{\large لایه خبره‌های نهفته پایدار (\en{Stable LatentMoE Layer})}\\[3pt]
+        \scriptsize $\bullet$ ۲ خبره اشتراکی با بعد کامل $d=7168$ $+$ ۸۹۶ خبره تخصصی در فضای نهفته $\ell=3584$\\
+        \scriptsize $\bullet$ فعال‌سازی ۱۶ خبره در هر توکن (اسپارسیتی ۵۶) $+$ تعادل بار با توازن کوانتایلی (\en{QB})\\
+        \scriptsize $\bullet$ نرمال‌سازی پیش‌افکنش: $\mathbf{W}^\uparrow \text{RMSNorm}(\mathbf{u})$ جهت مهار پراکندگی\\
+        \scriptsize $\bullet$ تابع فعال‌ساز کران‌دار: $\text{SiTU-GLU}(x) = [\beta_1 \tanh(\cdot) \odot \sigma] \odot [\beta_2 \tanh(\cdot)]$ با کران ۱۰۰
+    };
+
+    % لایه Gated MLA
+    \node[attn_box, below=1.0cm of moe] (mla) {
+        \textbf{\large لایه توجه نهفته چندسر درگاه‌دار (\en{Gated MLA Layer - Periodic 3:1})}\\[3pt]
+        \scriptsize $\bullet$ تعامل سراسری بدون موقعیت‌یاب صریح (\en{NoPE: No Position Encoding})\\
+        \scriptsize $\bullet$ فشرده‌سازی کوئری و کلید/مقدار در بردار پنهان کم‌بعد جهت کاهش شدید حافظه \en{KV-Cache}\\
+        \scriptsize $\bullet$ انباشت ماتریسی در فرمت \en{FP32} جهت ممانعت از خطای تقریب محاسباتی
+    };
+
+    % قاب بلوک تکرار شونده
+    \node[block_frame, fit=(kda) (attnres_1) (moe) (mla), label={[font=\bfseries\color{blue!70!black}, inner sep=6pt]left:تکرار ساختار بلوک ترنسفورمر (۸ بلوک ۱۲ لایه‌ای)}] (block) {};
+
+    % لایه خروجی
+    \node[io_node, below=1.2cm of mla] (output) {
+        \textbf{لایه پیش‌بینی نهایی و پیش‌بینی چندتوکنی (\en{Prediction Head \& MTP})}\\
+        \scriptsize ادغام بازنمایی بلوک‌ها با \en{Block AttnRes} $+$ یک لایه \en{MTP} جهت رمزگشایی گمانه‌زن (\en{EAGLE-3})
+    };
+
+    % رسم فلش‌های جریان داده مستقیم
+    \draw[arrow] (input) -- (vision);
+    \draw[arrow] (vision) -- (embed);
+    \draw[arrow] (embed) -- (kda);
+    \draw[arrow] (kda) -- (attnres_1);
+    \draw[arrow] (attnres_1) -- (moe);
+    \draw[arrow] (moe) -- (mla);
+    \draw[arrow] (mla) -- (output);
+
+    % اتصالات پسماند توجه بلوکی در کناره
+    \draw[res_arrow] (embed.east) -- ++(1.4,0) |- (attnres_1.east) 
+        node[pos=0.25, right, font=\scriptsize\bfseries, text=purple!80!black] {جریان بازنمایی $\mathbf{b}_0$};
+    \draw[res_arrow] (kda.west) -- ++(-1.4,0) |- (moe.west)
+        node[pos=0.25, left, font=\scriptsize\bfseries, text=purple!80!black] {انباشت لایه‌ای $\sum f_j$};
+
+\end{tikzpicture}%
+}
+\caption{معماری یکپارچه بلوک ترنسفورمر \model{Kimi K3} شامل توجه هیبریدی، \en{Block AttnRes} و \en{Stable LatentMoE}.}
+\label{fig:kimi_k3_transformer_architecture}
+\end{figure}
+
+\paragraph*{مکانیزم توجه هیبریدی (\en{Hybrid Attention: KDA \& Gated MLA})}
+به منظور برطرف‌سازی چالش محاسباتی مرتبه دو $\mathcal{O}(T^2)$ در پردازش توالی‌های طویل، مدل \model{Kimi K3} الگوی لایه‌ای ترکیبی با نسبت ۳ به ۱ را به کار می‌بندد: در هر بلوک، ۳ لایه \en{KDA} با ۱ لایه \en{Gated MLA} جفت شده‌اند و یک لایه نهایی سراسری \en{MLA} در انتهای شبکه تعبیه شده است (در مجموع ۶۹ لایه \en{KDA} و ۲۴ لایه \en{MLA}).
+
+\textbf{۱. فرمولاسیون ریاضی لایه \en{KDA}:}
+در هر سر توجه با ابعاد کلید $d_k$ و مقدار $d_v$، رابطه بازگشتی قاعده دلتا \cite{schlag2021linear, yang2025gated} همراه با گیت فراموشی در سطح کانال به صورت زیر فرموله‌بندی می‌شود:
+\begin{align}
+    \mathbf{S}_t &= \left(\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^\top\right) \text{Diag}(\alpha_t) \mathbf{S}_{t-1} + \beta_t \mathbf{k}_t \mathbf{v}_t^\top \\
+    \tilde{\mathbf{o}}_t &= \mathbf{S}_t^\top \mathbf{q}_t
+\end{align}
+که در آن $\mathbf{S}_t \in \mathbb{R}^{d_k \times d_v}$ تانسور حالت بازگشتی، $\alpha_t \in (0, 1)^{d_k}$ بردار ضریب زوال کانالی، و $\beta_t \in (0, 1)$ نرخ نوشتن است. این مقادیر از طریق پروجکشن‌های زیر با نرمال‌سازی تعمیم‌یافته استخراج می‌گردند:
+\begin{align}
+    \mathbf{q}_t^h, \mathbf{k}_t^h &= \text{L2Norm}\left(\text{Swish}\left(\text{ShortConv}\left(\mathbf{W}_{q/k}^h \mathbf{x}_t\right)\right)\right) \in \mathbb{R}^{d_k} \\
+    \mathbf{v}_t^h &= \text{Swish}\left(\text{ShortConv}\left(\mathbf{W}_v^h \mathbf{x}_t\right)\right) \in \mathbb{R}^{d_v} \\
+    \beta_t^h &= \sigma\left(\mathbf{W}_\beta^h \mathbf{x}_t\right) \in (0, 1) \\
+    \mathbf{z}_t^h &= \mathbf{W}_\alpha^\uparrow \mathbf{W}_\alpha^\downarrow \mathbf{x}_t + \mathbf{b}_\alpha^h \in \mathbb{R}^{d_k}
+\end{align}
+
+\textbf{۲. میرایی کران‌دار از پایین (\en{Lower-Bounded Decay}) و پایداری محاسبات عددی:}
+در فرم موازی قطعه‌ای (\en{Chunkwise Parallel}) با اندازه قطعه $C$، زوال تجمعی به صورت $\gamma_{i \to j}[t] = \prod_{r=i}^j \alpha_r[t]$ تعریف می‌شود. تقسیم مقادیر کلید بر زوال تجمعی ($\mathbf{K}_{[t]} / \mathbf{\Gamma}_{1 \to C}[t]$) در صورت عدم مهار، می‌تواند به مقادیر بی‌نهایت میل کرده و در نمایش ممیز شناور \en{BF16} موجب خطای سرریز (\en{Overflow}) گردد. \model{Kimi K3} با تغییر تابع لاجیت به یک سیگموئید مقیاس‌شده با حد آستانه صلب $g_{\min} = -5$، این چالش را حل می‌کند:
+\begin{align}
+    g_t^h &= g_{\min} \cdot \sigma\left(e^{A_h} \mathbf{z}_t^h\right) \in (g_{\min}, 0)^{d_k} \\
+    \alpha_t^h &= \exp\left(g_t^h\right) \in \left(e^{g_{\min}}, 1\right)^{d_k}
+\end{align}
+با فرض $g_{\min} = -5$، کمترین مقدار ضریب زوال برابر با $\alpha_{t,j}^h > e^{-5} \approx 6.7 \times 10^{-3}$ خواهد بود. در نتیجه در یک کاشی ۱۶ توکنی، مجموع زوال لگاریتمی اکیداً در بازه $(-80, 0)$ محدود شده و فاکتور مقیاس معکوس از $e^{80}$ فراتر نمی‌رود. این کران تضمین می‌کند که محاسبات به طور کامل در دامنه عددی \en{BF16} باقی مانده و امکان اجرای مستقیم ضرب ماتریسی کاشی‌های قطری روی واحدهای \en{Tensor Cores} بدون نیاز به محاسبات کند جفت‌موقعیت فراهم شود. خروجی نهایی \en{KDA} توسط گیت رتبه-کامل مدوله می‌گردد:
+\begin{equation}
+    \mathbf{y}_t = \mathbf{W}_o \left[ \sigma\left(\mathbf{W}_g \mathbf{x}_t\right) \odot \text{RMSNorm}\left(\tilde{\mathbf{o}}_t\right) \right]
+\end{equation}
+
+\textbf{۳. توجه نهفته چندسر درگاه‌دار (\en{Gated MLA}):}
+در لایه‌های توجه تناوبی جهانی، برای به حداقل رساندن ردپای حافظه فعال \en{KV Cache}، بردار کلید-مقدار در یک بردار پنهان $\mathbf{c}_t = \mathbf{W}_c \mathbf{x}_t$ فشرده می‌شود. در این لایه‌ها رویکرد عدم استفاده از موقعیت‌یاب صریح (\en{NoPE: No Position Encoding}) اتخاذ شده است، زیرا اطلاعات مکانی و ترتیبی به صورت ذاتی توسط لایه‌های بازگشتی \en{KDA} تزریق می‌شوند. خروجی لایه با اعمال گیت رتبه-کامل و انباشت مقادیر در دقت \en{FP32} برای رفع خطای گردکردن در \en{FlashAttention} \cite{qiu2026flash} تولید می‌شود:
+\begin{equation}
+    \mathbf{y}_t = \mathbf{W}_o \left[ \sigma\left(\mathbf{W}_g \mathbf{x}_t\right) \odot \tilde{\mathbf{o}}_t \right]
+\end{equation}
+
+\paragraph*{پسماندهای توجه بلوکی (\en{Block Attention Residuals - AttnRes})}
+اتصالات پسماند مرسوم هیمینگ هه \cite{he2016deep} با فرمولاسیون جمعی $\mathbf{h}_l = \mathbf{h}_{l-1} + f_l(\mathbf{h}_{l-1})$، جریان اطلاعات در عمق شبکه را به یک گلوگاه بازگشتی با انباشت یکنواخت تبدیل می‌کنند. معماری \en{AttnRes} \cite{kimi2026attnres} با معرفی مکانیزم توجه بین‌لایه‌ای، امکان دسترسی پویا به تمامی لایه‌های زیرین را فراهم می‌سازد.
+
+\textbf{۱. فرم کامل پسماند توجه (\en{Full AttnRes}):}
+برای لایه $l$، با تعریف شبه‌پرس‌وجوی یادگیرنده $\mathbf{q}_l = \mathbf{w}_l \in \mathbb{R}^d$ و بردارهای کلید-مقدار $\mathbf{k}_i = \mathbf{v}_i = f_i(\mathbf{h}_i)$ (و $\mathbf{k}_0 = \mathbf{v}_0 = \mathbf{h}_1$ برای تعبیه ورودی)، وزن‌های توجه به فرم هسته نرمال‌شده زیر به دست می‌آیند:
+\begin{align}
+    \phi(\mathbf{q}, \mathbf{k}) &= \exp\left(\mathbf{q}^\top \text{RMSNorm}(\mathbf{k})\right) \\
+    \alpha_{i \to l} &= \frac{\phi(\mathbf{q}_l, \mathbf{k}_i)}{\sum_{j=0}^{l-1} \phi(\mathbf{q}_l, \mathbf{k}_j)}, \quad \mathbf{h}_l = \sum_{i=0}^{l-1} \alpha_{i \to l} \cdot \mathbf{v}_i
+\end{align}
+
+\textbf{۲. ساختار بلوکی (\en{Block AttnRes}):}
+جهت کاهش سربار حافظه از $\mathcal{O}(L \cdot d)$ به $\mathcal{O}(N \cdot d)$، شبکه به $N=8$ بلوک ۱۲ لایه‌ای تقسیم می‌شود. در داخل هر بلوک $n$، بازنمایی‌ها جمع شده ($\mathbf{b}_n = \sum_{j \in \mathcal{B}_n} f_j(\mathbf{h}_j)$) و مکانیزم توجه تنها بر روی بردارهای خلاصه‌شده بلوک‌ها اعمال می‌گردد. در زمان استنتاج، با ادغام الگوریتم سافت‌مکس آنلاین (\en{Online Softmax})، نتایج موازی بین‌بلوکی و جمع‌های متوالی درون‌بلوکی با کمترین تاخیر زمانی ترکیب می‌شوند.
+
+\paragraph*{مدل پایدار خبره‌های نهفته (\en{Stable LatentMoE})}
+ساختار \en{Stable LatentMoE} عرض لایه خبره‌ها را به یک فضای پنهان فشرده $\ell = 3584$ (نصف بعد پنهان مدل $d=7168$) منتقل می‌سازد \cite{elango2026latentmoe}. این لایه متشکل از $N_s = 2$ خبره اشتراکی تمام‌عرض و ۸۹۶ خبره تخصصی مسیردهی‌شده است که ۱۶ خبره به ازای هر توکن برگزیده می‌شوند:
+\begin{align}
+    \mathbf{u} &= \sum_{i \in \mathcal{T}_k(\mathbf{x})} p_i E_i^{\text{routed}}\left(\mathbf{W}^\downarrow \mathbf{x}\right) \\
+    \mathbf{y} &= \sum_{j=1}^{N_s} E_j^{\text{shared}}(\mathbf{x}) + \mathbf{W}^\uparrow \text{RMSNorm}(\mathbf{u})
+\end{align}
+تعبیه لایه $\text{RMSNorm}$ پیش از پروجکشن صعودی $\mathbf{W}^\uparrow$ پایداری عددی توزیع فعال‌ساز خبره‌ها را به طور قاطع تضمین می‌کند.
+
+\paragraph*{تابع فعال‌ساز مهارشده \en{SiTU-GLU}}
+برای جلوگیری از انفجار مقادیر عددی ناشی از ضرب‌های ماتریسی متوالی در شاخه نهفته MoE، تابع فعال‌ساز \en{SiTU-GLU} معرفی شده است که عملگر برش هموار $\text{softcap}(x, \beta) = \beta \tanh(x/\beta)$ را بر هر دو شاخه اعمال می‌نماید:
+\begin{equation}
+    \text{SiTU-GLU}(\mathbf{x}) = \left[ \beta_1 \tanh\left(\frac{\mathbf{W}_g \mathbf{x}}{\beta_1}\right) \odot \sigma\left(\mathbf{W}_g \mathbf{x}\right) \right] \odot \left[ \beta_2 \tanh\left(\frac{\mathbf{W}_u \mathbf{x}}{\beta_2}\right) \right]
+\end{equation}
+با تنظیم هایپرپارامترهای $\beta_1 = 4$ و $\beta_2 = 25$:
+\begin{itemize}
+    \item \textbf{انطباق محلی با \en{SwiGLU}:} بر پایه بسط تیلور $\beta \tanh(z/\beta) = z - \frac{z^3}{3\beta^2} + \mathcal{O}(z^5)$، در نزدیکی مبدأ رفتار تابع بر \en{SwiGLU} \cite{shazeer2020glu} منطبق است.
+    \item \textbf{کران‌داری مطلق خروجی:} با توجه به $|\tanh(\cdot)| < 1$ و $\sigma(\cdot) \in (0, 1)$، داریم:
+    \begin{equation}
+        \|\text{SiTU-GLU}(\mathbf{x})\|_\infty \le \beta_1 \cdot \beta_2 = 4 \times 25 = 100
+    \end{equation}
+    این ویژگی از ایجاد اکستریم ولیوها در محاسبات ممیز شناور با دقت پایین (\en{MXFP4/MXFP8}) جلوگیری می‌نماید.
+\end{itemize}
+
+\paragraph*{توازن کوانتایلی (\en{Quantile Balancing - QB})}
+جهت حفظ تعادل بار پردازشی میان ۸۹۶ خبره بدون استفاده از توابع اتلاف کمکی مضر، الگوریتم \en{QB} بر مبنای مسئله بهینه‌سازی تطابق بهینه دوطرفه (\en{Optimal Bipartite $b$-Matching}) استخراج گردیده است \cite{su2026travelsmoe}:
+\begin{equation}
+    \max_{x_{i,j} \in \{0, 1\}} \sum_{i,j} x_{i,j} s_{i,j} \quad \text{s.t.} \quad \sum_j x_{i,j} = k, \quad \sum_i x_{i,j} = \frac{mk}{n}
+\end{equation}
+با تشکیل تابع لاگرانژ و قضیه دوگان، مسئله به کمینه‌سازی محدب توابع حاشیه تبدیل شده که حل بسته تحلیلی آن به صورت کوانتایل حاصل می‌شود:
+\begin{equation}
+    \hat{b}_j^{(t+1)} \leftarrow -\text{quantile}_{1 - k/n}\left(\mathbf{s}_{:, j} - \alpha^{(t)}\right), \quad \mathbf{b}^{(t+1)} \leftarrow \hat{\mathbf{b}}^{(t+1)} - \text{mean}\left(\hat{\mathbf{b}}^{(t+1)}\right)\mathbf{1}
+\end{equation}
+در مقیاس توزیع‌شده، این کوانتایل به وسیله هیستوگرام‌های محلی با $B=1000$ سطل روی بازه $[b_{\min}-1, b_{\max}+1]$ و اجرای یک عملگر سراسری \en{All-Reduce} با خطای ناچیز کمتر از $10^{-3}$ محاسبه می‌شود.
+
+\paragraph*{بهینه‌ساز ماتریسی \en{Per-Head Muon}}
+مدل \model{Kimi K3} نسخه سر‌محور بهینه‌ساز \en{Muon} \cite{jordan2024muon} را به کار می‌گیرد. ماتریس‌های مومنتوم مربوط به پروجکشن‌های کوئری، کلید و مقدار در راستای بعد سرها افراز شده و الگوریتم ارتوگونال‌سازی طیفی نیوتن-شولتز به صورت مستقل بر روی هر بلوک اجرا می‌شود. این تفکیک مانع از تسلط سرهای با اندازه گرادیان بزرگ بر جهت به‌روزرسانی کل ماتریس می‌گردد.
+
+\paragraph*{مشخصات فنی و پیکربندی هایپرپارامترها}
+جدول \ref{tab:kimi_k3_specs} مقایسه مشخصات ساختاری \model{Kimi K3} در برابر نسل پیشین \model{Kimi K2} را نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه مشخصات و پیکربندی پارامترهای معماری ترنسفورمر در \model{Kimi K2} و \model{Kimi K3}}
+\label{tab:kimi_k3_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccc}
+\toprule
+\textbf{مولفه معماری / هایپرپارامتر} & \textbf{Kimi K2} & \textbf{Kimi K3} & \textbf{نرخ تغییرات (\en{$\Delta$})} \\
+\midrule
+معماری پایه (\en{Base Architecture}) & \en{MoE} متناوب & \en{MoE} هیبرید سه‌بعدی & ساختار نوین جریان اطلاعات \\
+تعداد کل لایه‌ها (\en{\#Layers}) & ۶۱ لایه & ۹۳ لایه & ۵۲\% افزایش $\uparrow$ \\
+تعداد کل پارامترها (\en{Total Parameters}) & ۱.۰۴ تریلیون ($1.04\text{T}$) & ۲.۷۸ تریلیون ($2.78\text{T}$) & ۱۶۷\% افزایش $\uparrow$ \\
+پارامترهای فعال به ازای هر توکن (\en{Activated Params}) & ۳۲.۶ میلیارد ($32.6\text{B}$) & ۱۰۴.۲ میلیارد ($104.2\text{B}$) & ۲۲۰\% افزایش $\uparrow$ \\
+بعد پنهان مدل ($d$) & ۷,۱۶۸ & ۷,۱۶۸ & بدون تغییر ($=$) \\
+بعد فضای پنهان خبره‌ها (\en{Latent MoE Dim $\ell$}) & — & ۳,۵۸۴ ($0.5\times d$) & نوآوری ساختاری جدید \\
+بعد میانی هر خبره (\en{MoE Hidden Dim}) & ۲,۰۴۸ & ۳,۰۷۲ & ۵۰\% افزایش $\uparrow$ \\
+تعداد خبره‌های تخصصی مسیردهی‌شده (\en{Routed Experts}) & ۳۸۴ & ۸۹۶ & ۱۳۳\% افزایش $\uparrow$ \\
+تعداد خبره‌های فعال در هر توکن ($k$) & ۸ & ۱۶ & ۱۰۰\% افزایش $\uparrow$ \\
+تعداد خبره‌های اشتراکی (\en{Shared Experts $N_s$}) & ۱ & ۲ & ۱۰۰\% افزایش $\uparrow$ \\
+تعداد سرهای توجه (\en{Attention Heads}) & ۶۴ & ۹۶ & ۵۰\% افزایش $\uparrow$ \\
+تعداد لایه‌های متراکم (\en{Dense Layers}) & ۱ & ۱ & بدون تغییر ($=$) \\
+تعداد لایه‌های پیش‌بینی چندتوکنی (\en{MTP Layers}) & ۱ لایه & ۱ لایه & بدون تغییر ($=$) \\
+اندازه واژگان تعبیه (\en{Vocabulary Size}) & ۱۶۰,۰۰۰ & ۱۶۰,۰۰۰ & بدون تغییر ($=$) \\
+طول پنجره زمینه آموزش (\en{Context Length}) & ۱۲۸ هزار توکن ($128\text{K}$) & ۱ میلیون توکن ($1\text{M}$) & ۸ برابر افزایش ($8\times$) \\
+مکانیزم توجه (\en{Attention Mechanism}) & \en{MLA} استاندارد & \en{Hybrid KDA--MLA} & ترکیب خطی و چندسر \\
+ترکیب لایه‌های توجه & ۶۱ لایه \en{MLA} & ۶۹ لایه \en{KDA} $+$ ۲۴ لایه \en{MLA} & نسبت ۳ به ۱ \\
+تابع فعال‌ساز شبکه خبره‌ها (\en{Activation}) & \en{SwiGLU} & \en{SiTU-GLU} ($\beta_1=4, \beta_2=25$) & مهارشده و کران‌دار \\
+کدگذاری موقعیت (\en{Positional Encoding}) & \en{RoPE / YaRN} & \en{NoPE} (حذف کامل در \en{MLA}) & کدگذاری ذاتی در \en{KDA} \\
+اتصال عمقی لایه‌ها (\en{Residual Path}) & پسماند جمعی یکنواخت & \en{Block Attention Residuals} & ۹ بلوک توجه عمقی \\
+رمزگذار دیداری بومی (\en{Vision Backbone}) & — & \en{MoonViT-V2} (۴۰۱M پارامتر، ۲۷ لایه) & آموزش بومی از ابتدا \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

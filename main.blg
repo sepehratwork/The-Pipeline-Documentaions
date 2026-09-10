@@ -2,13 +2,22 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 12429 items from 5000.
+Reallocated field_info (elt_size=8) to 12636 items from 5000.
 Database file #1: references.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
 Warning--I didn't find a database entry for "nemotron_nano2_2025"
+Warning--I didn't find a database entry for "deepseek2024v2"
+Warning--I didn't find a database entry for "qiu2025gated"
+Warning--I didn't find a database entry for "kimi2026attnres"
+Warning--I didn't find a database entry for "elango2026latentmoe"
+Warning--I didn't find a database entry for "su2026travelsmoe"
+Warning--I didn't find a database entry for "schlag2021linear"
+Warning--I didn't find a database entry for "yang2025gated"
+Warning--I didn't find a database entry for "qiu2026flash"
+Warning--I didn't find a database entry for "he2016deep"
 You've used 342 entries,
             1791 wiz_defined-function locations,
-            1754 strings with 67110 characters,
+            1763 strings with 67237 characters,
 and the built_in function-call counts, 75524 in all, are:
 = -- 5115
 > -- 6237
@@ -47,4 +56,4 @@ warning$ -- 0
 while$ -- 463
 width$ -- 345
 write$ -- 3473
-(There was 1 warning)
+(There were 10 warnings)
