@@ -1611,6 +1611,43 @@ Roger Waleffe, Wonmin Byeon, Duncan Riach, Brandon Norick, Vijay Korthikanti,
 \newblock Pretraining large language models with nvfp4.
 \newblock {\em arXiv preprint arXiv:2509.25149}, 2025.
 
+\bibitem{dehghani2023scaling}
+Mostafa Dehghani, Josip Djolonga, Basil Mustafa, Piotr Padlewski, Jonathan
+  Heek, Justin Gilmer, Andreas~Peter Steiner, Mathilde Caron, Robert Geirhos,
+  Ibrahim Alabdulmohsin, et~al.
+\newblock {Scaling Vision Transformers to 22 Billion Parameters}.
+\newblock In {\em ICML}, volume 202, pages 7480--7512, 2023.
+
+\bibitem{yang2024qwen2}
+An~Yang, Baosong Yang, Binyuan Hui, Bo~Zheng, Bowen Yu, Chang Zhou, Chengpeng
+  Li, Chengyuan Li, Dayiheng Liu, Fei Huang, et~al.
+\newblock {Qwen2 Technical Report}.
+\newblock {\em CoRR, abs/2407.10671}, 2024.
+
+\bibitem{jiang2023prermsnorm}
+Zixuan Jiang, Jiaqi Gu, Hanqing Zhu, and David~Z. Pan.
+\newblock {Pre-RMSNorm and Pre-CRMSNorm Transformers: Equivalent and Efficient
+  Pre-LN Transformers}.
+\newblock {\em CoRR, abs/2305.14858}, 2023.
+
+\bibitem{dauphin2017language}
+Yann~N Dauphin, Angela Fan, Michael Auli, and David Grangier.
+\newblock {Language Modeling with Gated Convolutional Networks}.
+\newblock In {\em ICML}, volume~70, pages 933--941, 2017.
+
+\bibitem{qiu2025demons}
+Zihan Qiu, Zeyu Huang, Bo~Zheng, Kaiyue Wen, Zekun Wang, Rui Men, Ivan Titov,
+  Dayiheng Liu, Jingren Zhou, and Junyang Lin.
+\newblock {Demons in the Detail: On Implementing Load Balancing Loss for
+  Training Specialized Mixture-of-Expert Models}.
+\newblock {\em CoRR, abs/2501.11873}, 2025.
+
+\bibitem{an2024trainingfree}
+Chenxin An, Fei Huang, Jun Zhang, Shansan Gong, Xipeng Qiu, Chang Zhou, and
+  Lingpeng Kong.
+\newblock {Training-Free Long-Context Scaling of Large Language Models}.
+\newblock {\em CoRR, abs/2402.17463}, 2024.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.

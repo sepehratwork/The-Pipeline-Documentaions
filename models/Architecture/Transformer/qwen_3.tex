@@ -1,1 +1,247 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و اصول بنیادین معماری (\en{Architectural Philosophy})}
+سری مدل‌های \model{Qwen3} \cite{qwen3techreport} جدیدترین نسل از خانواده مدل‌های بنیادی \en{Qwen} هستند که در دو دسته ساختاری متراکم (\en{Dense}) با مقیاس‌های $0.6\text{B}$، $1.7\text{B}$، $4\text{B}$، $8\text{B}$، $14\text{B}$ و $32\text{B}$ و مدل‌های مبتنی بر ترکیب خبرگان (\en{Mixture-of-Experts - MoE}) شامل مدل‌های \en{Qwen3-30B-A3B} ($3\text{B}$ پارامتر فعال) و مدل پرچم‌دار \en{Qwen3-235B-A22B} ($22\text{B}$ پارامتر فعال) طراحی شده‌اند. معماری این مدل‌ها بر پایه دکودر ترنسفورمر خودکاهنده (\en{Autoregressive Decoder-Only}) بنا شده و تحولات ساختاری کلیدی را به منظور پایداری آموزش در مقیاس بزرگ، افزایش راندمان استنتاج و گسترش طول زمینه تا $128\text{K}$ توکن معرفی می‌کند.
+
+اصول بنیادین حاکم بر معماری ترنسفورمر \model{Qwen3} عبارتند از:
+\begin{itemize}
+    \item \textbf{مکانیزم توجه گروهی (\en{Grouped Query Attention - GQA}):} کاهش حجم حافظه موقت \en{KV-Cache} به منظور تسریع استنتاج در طول زمینه‌های بالا \cite{ainslie2023gqa}.
+    \item \textbf{تثبیت طیفی توجه با \en{QK-Norm}:} نرمال‌سازی سرهای پرسمان و کلید پیش از ضرب داخلی جهت جلوگیری از فروپاشی آنتروپی \cite{dehghani2023scaling}.
+    \item \textbf{حذف بایاس از تصویرسازی‌های \en{QKV}:} حذف ترم خطی بایاس به منظور پیشگیری از رانش جهت‌دار لایه‌ها در متون طولانی \cite{yang2024qwen2}.
+    \item \textbf{پیش‌نرمال‌سازی با \en{RMSNorm}:} بهره‌گیری از جذر میانگین مربعات به صورت پیش‌نرمال‌سازی برای پایدارسازی شیب گرادیان \cite{jiang2023prermsnorm}.
+    \item \textbf{واحدهای فعال‌ساز \en{SwiGLU}:} ساختار غیرخطی با ماتریس‌های گیت جهت کنترل جریان اطلاعات در شبکه پیش‌خور \cite{dauphin2017language}.
+    \item \textbf{افراز فوق‌ریزدانه خبرگان (\en{Fine-Grained MoE}):} استفاده از ۱۲۸ خبره مستقل با فعال‌سازی ۸ خبره و حذف خبره‌های اشتراکی \cite{dai2024deepseekmoe}.
+    \item \textbf{اتلاف توازن بار در مقیاس دسته سرتاسری (\en{Global-Batch Load Balancing}):} جلوگیری از اشباع خبره‌ها و ارتقای تخصصی‌سازی \cite{qiu2025demons}.
+\end{itemize}
+
+% =========================================================================
+% دیاگرام جامع معماری بلوک ترنسفورمر Qwen3
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.90\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.1cm and 1.5cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=6.5cm, minimum height=0.9cm, font=\bfseries},
+    norm_node/.style={base, fill=purple!12, draw=purple!70!black, minimum width=6cm, minimum height=0.85cm},
+    attn_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=9.2cm, minimum height=2.6cm},
+    moe_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=9.2cm, minimum height=2.5cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=12pt, line width=1.2pt, inner sep=14pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % ورودی
+    \node[io_node] (input) {توکن‌های ورودی (\en{Input Tokens})};
+    \node[io_node, below=0.8cm of input] (embed) {لایه‌گذاری و بردارسازی کلمات (\en{BBPE Tokenizer, Vocab} $= 151,669$)\\ $\mathbf{X}_0 \in \mathbb{R}^{B \times L \times d_{\text{model}}}$ \quad [\en{Tie Embedding} در مدل‌های زیر $8\text{B}$]};
+
+    % پیش‌نرمال‌سازی توجه
+    \node[norm_node, below=1.2cm of embed] (pre_attn_norm) {
+        \textbf{پیش‌نرمال‌سازی جذر میانگین مربعات (\en{Pre-RMSNorm})}\\
+        $\bar{\mathbf{X}} = \text{RMSNorm}(\mathbf{X}_l) \in \mathbb{R}^{B \times L \times d_{\text{model}}}$
+    };
+
+    % بلوک توجه
+    \node[attn_box, below=0.9cm of pre_attn_norm] (attn) {
+        \textbf{\large لایه توجه گروهی ارتقایافته (\en{Enhanced GQA Layer})}\\[4pt]
+        \scriptsize $\bullet$ نگاشت بدون بایاس: $\mathbf{Q} = \bar{\mathbf{X}}\mathbf{W}_Q, \; \mathbf{K} = \bar{\mathbf{X}}\mathbf{W}_K, \; \mathbf{V} = \bar{\mathbf{X}}\mathbf{W}_V$ بدون ترم خطی $\mathbf{b}$\\[2pt]
+        \scriptsize $\bullet$ پایدارسازی دامنه لاجیت با \en{QK-Norm}: $\tilde{\mathbf{Q}} = \text{RMSNorm}(\mathbf{Q}), \; \tilde{\mathbf{K}} = \text{RMSNorm}(\mathbf{K})$\\[2pt]
+        \scriptsize $\bullet$ کدگذاری موقعیت دورانی (\en{RoPE}): اعمال تبدیل زاویه‌ای با بسامد مقیاس‌یافته $\theta_{\text{base}} = 10^6$ (\en{ABF})\\[2pt]
+        \scriptsize $\bullet$ محاسبه توجه گروهی (\en{GQA}): اشتراک هر جفت سر کلید/مقدار میان $G$ سر پرسمان ($G \in \{2, 4, 5, 8, 16\}$)
+    };
+
+    % اتصال باقیمانده توجه
+    \node[norm_node, below=0.9cm of attn] (post_attn_res) {
+        \textbf{اتصال باقیمانده و پیش‌نرمال‌سازی لایه بعد}\\
+        $\mathbf{X}'_l = \mathbf{X}_l + \mathbf{O} \mathbf{W}_O, \quad \bar{\mathbf{X}}'_l = \text{RMSNorm}(\mathbf{X}'_l)$
+    };
+
+    % بلوک شبکه پیش‌خور یا خبره‌ها
+    \node[moe_box, below=0.9cm of post_attn_res] (ffn_moe) {
+        \textbf{\large لایه تبدیل غیرخطی (\en{Feed-Forward / MoE Layer})}\\[4pt]
+        \scriptsize $\bullet$ \textbf{در مدل‌های متراکم (\en{Dense}):} تبدیل $\text{SwiGLU}(\bar{\mathbf{X}}'_l) = \left( \text{Swish}(\bar{\mathbf{X}}'_l \mathbf{W}_{\text{gate}}) \odot (\bar{\mathbf{X}}'_l \mathbf{W}_{\text{up}}) \right) \mathbf{W}_{\text{down}}$\\[2pt]
+        \scriptsize $\bullet$ \textbf{در مدل‌های \en{MoE}:} ۱۲۸ خبره مجزا (بدون خبره اشتراکی) $+$ انتخاب تنک $\text{Top-}8$\\[2pt]
+        \scriptsize $\bullet$ تابع زیان توازن بار سرتاسری (\en{Global-Batch Load Balancing Loss}) جهت جلوگیری از اشباع خبره
+    };
+
+    % جمع باقیمانده دوم
+    \node[norm_node, below=0.9cm of ffn_moe] (post_ffn_res) {
+        \textbf{جمع برداری باقیمانده نهایی (\en{Final Residual Addition})}\\
+        $\mathbf{X}_{l+1} = \mathbf{X}'_l + \text{FFN/MoE}(\bar{\mathbf{X}}'_l)$
+    };
+
+    % کادر تکرار بلوک
+    \node[block_frame, fit=(pre_attn_norm) (attn) (post_attn_res) (ffn_moe) (post_ffn_res), label={[font=\bfseries\color{blue!70!black}]left:تکرار لایه ترنسفورمر $\times L$}] (block) {};
+
+    % خروجی نهایی
+    \node[norm_node, below=1.1cm of post_ffn_res] (final_norm) {\textbf{نرمال‌سازی نهایی (\en{Final RMSNorm})}};
+    \node[io_node, below=0.8cm of final_norm] (output) {تصویرسازی خروجی (\en{LM Output Head / Softmax})\\ $\mathbf{P}(w_{t+1} \mid w_{\le t}) \in \mathbb{R}^{V}$};
+
+    % خطوط ارتباطی
+    \draw[arrow] (input) -- (embed);
+    \draw[arrow] (embed) -- (pre_attn_norm);
+    \draw[arrow] (pre_attn_norm) -- (attn);
+    \draw[arrow] (attn) -- (post_attn_res);
+    \draw[arrow] (post_attn_res) -- (ffn_moe);
+    \draw[arrow] (ffn_moe) -- (post_ffn_res);
+    \draw[arrow] (post_ffn_res) -- (final_norm);
+    \draw[arrow] (final_norm) -- (output);
+
+    % مسیرهای باقیمانده (Residuals)
+    \draw[arrow, purple!80!black, line width=1.4pt] (pre_attn_norm.north) ++(-2.4,0) -- ++(0,-0.3) -- ++(-1.8,0) |- (post_attn_res.west);
+    \draw[arrow, purple!80!black, line width=1.4pt] (post_attn_res.north) ++(-2.4,0) -- ++(0,-0.3) -- ++(-1.8,0) |- (post_ffn_res.west);
+
+\end{tikzpicture}%
+}
+\caption{جریان پردازش داده و تانسور در بلوک ترنسفورمر مدل \model{Qwen3}.}
+\label{fig:qwen3_transformer_block}
+\end{figure}
+
+\paragraph*{نمایش ورودی، توکنایزیشن و اشتراک وزن‌ها (\en{Tokenization \& Tie Embedding})}
+مدل‌های \model{Qwen3} از توکنایزر \en{BBPE} بر مبنای کاراکترهای بایت در سطح \en{UTF-8} با حجم واژگان $V = 151,669$ بهره می‌برند \cite{sennrich2016neural, brown2020language, wang2020neural, bai2023qwen}. در مدل‌های متراکم کوچک‌تر ($0.6\text{B}$، $1.7\text{B}$ و $4\text{B}$)، وزن‌های لایه بردارسازی ورودی با لایه پیش‌بینی خروجی به اشتراک گذاشته شده‌اند (\en{Tie Embedding}):
+\begin{equation}
+    \mathbf{W}_{\text{head}} \equiv \mathbf{E} \in \mathbb{R}^{V \times d_{\text{model}}}
+\end{equation}
+از دیدگاه تئوری اطلاعات و آمار چندبعدی، اشتراک این وزن‌ها مانع از بیش‌برازش در بردارهای کم‌بسامد شده و ایزومورفیسم هندسی بین فضای بازنمایی اولیه و تفکیک خطی لاجیت‌ها را حفظ می‌کند. در مدل‌های بزرگ‌تر ($8\text{B}$ تا $235\text{B}$)، با تفکیک $\mathbf{W}_{\text{head}} \neq \mathbf{E}$، آزادی عمل پارامتری برای استخراج ویژگی‌های غنی در ورودی و جداسازی رده‌ها در خروجی فراهم می‌شود.
+
+\paragraph*{پیش‌نرمال‌سازی (\en{Pre-RMSNorm}) و تحلیل پایداری گرادیان}
+در تمامی لایه‌ها، پیش‌نرمال‌سازی با مکانیسم \en{RMSNorm} \cite{jiang2023prermsnorm} بر روی بردار ورودی $\mathbf{x} \in \mathbb{R}^{d}$ اعمال می‌شود:
+\begin{equation}
+    \text{RMS}(\mathbf{x}) = \sqrt{\frac{1}{d} \sum_{i=1}^d x_i^2 + \epsilon} = \sqrt{\frac{1}{d} \|\mathbf{x}\|_2^2 + \epsilon}
+\end{equation}
+بردار نرمال‌شده $\bar{\mathbf{x}}$ و خروجی با ضریب یادگیرنده $\boldsymbol{\gamma} \in \mathbb{R}^d$ عبارت است از:
+\begin{equation}
+    \bar{x}_i = \frac{x_i}{\text{RMS}(\mathbf{x})}, \quad y_i = \gamma_i \bar{x}_i
+\end{equation}
+مشتق دیفرانسیلی جهت تحلیل پس‌انتشار گرادیان به صورت زیر به دست می‌آید:
+\begin{equation}
+    \frac{\partial \bar{x}_k}{\partial x_i} = \frac{\delta_{ki}}{\text{RMS}(\mathbf{x})} - \frac{x_k x_i}{d \cdot \text{RMS}(\mathbf{x})^3}
+\end{equation}
+که به فرم ماتریسی برابر است با:
+\begin{equation}
+    \nabla_{\mathbf{x}} \mathcal{L} = \frac{1}{\text{RMS}(\mathbf{x})} \left( \nabla_{\bar{\mathbf{x}}} \mathcal{L} - \frac{\mathbf{x}}{d \cdot \text{RMS}(\mathbf{x})^2} \left( \mathbf{x}^T \nabla_{\bar{\mathbf{x}}} \mathcal{L} \right) \right)
+\end{equation}
+حذف محاسبه میانگین آماری ضمن کاهش بار محاسباتی و ارتباطات بین‌هسته‌ای در پردازنده‌ها، تضمین می‌کند که نرم گرادیان در عبور از عمق‌های زیاد (تا ۹۴ لایه در مدل پرچم‌دار) بدون جهش باقی بماند.
+
+\paragraph*{حذف بایاس از پرسمان، کلید و مقدار (\en{No QKV-Bias})}
+برخلاف مدل‌های پیشین نظیر \en{Qwen2} \cite{yang2024qwen2}، در \model{Qwen3} بردارهای بایاس در نگاشت‌های خطی توجه به طور کامل حذف شده‌اند:
+\begin{equation}
+    \mathbf{Q} = \mathbf{X} \mathbf{W}_Q, \quad \mathbf{K} = \mathbf{X} \mathbf{W}_K, \quad \mathbf{V} = \mathbf{X} \mathbf{W}_V \quad \left[\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{d_{\text{model}} \times (H \cdot d_k)}\right]
+\end{equation}
+حذف بایاس از رانش جهت‌دار ثابت بردارها در امتداد بعد توالی در متون بلند جلوگیری نموده و فرآیند همگرایی را پایدار می‌سازد.
+
+\paragraph*{پایدارسازی توجه با \en{QK-Norm} و جلوگیری از فروپاشی آنتروپی}
+برای مهار رشد کنترل‌نشده مقادیر لاجیت پیش از اعمال تابع \en{Softmax} در طول آموزش‌های طولانی، از \en{QK-Norm} \cite{dehghani2023scaling} استفاده شده است:
+\begin{equation}
+    \tilde{\mathbf{Q}}_h = \text{RMSNorm}(\mathbf{Q}_h) \odot \boldsymbol{\gamma}_{Q,h}, \quad \tilde{\mathbf{K}}_h = \text{RMSNorm}(\mathbf{K}_h) \odot \boldsymbol{\gamma}_{K,h}
+\end{equation}
+ماتریس امتیاز توجه خام برای هر سر به صورت زیر فرمول‌بندی می‌شود:
+\begin{equation}
+    \mathbf{S}_h = \frac{\tilde{\mathbf{Q}}_h \tilde{\mathbf{K}}_h^T}{\sqrt{d_k}}
+\end{equation}
+از دیدگاه تئوری اطلاعات، در غیاب نرمال‌سازی سرها، واریانس لاجیت‌ها با رابطه $\text{Var}(\mathbf{S}_{ij}) \propto \|\mathbf{Q}\|^2 \|\mathbf{K}\|^2$ متناسب بوده و با رشد مقادیر منفرد ماتریس‌های وزن، واریانس ورودی سافت‌مکس به بی‌نهایت میل می‌کند. این پدیده باعث می‌شود توزیع احتمالاتی توجه دچار فروپاشی آنتروپی (\en{Entropy Collapse}) گردد:
+\begin{equation}
+    \lim_{\|\mathbf{Q}\|, \|\mathbf{K}\| \to \infty} \mathcal{H}\left(\text{Softmax}(\mathbf{S}_{i,:})\right) = 0
+\end{equation}
+در این حالت، توزیع به یک بردار \en{One-Hot} تبدیل شده و مشتقات سافت‌مکس صفر می‌شوند:
+\begin{equation}
+    \frac{\partial \text{Softmax}(\mathbf{S})_j}{\partial S_k} = P_j (\delta_{jk} - P_k) \to 0
+\end{equation}
+لایه \en{QK-Norm} با ثابت نگه داشتن اندازه بردارها در یک کره هذلولوی مقید، مانع از اشباع سافت‌مکس شده و جریان گرادیان را در تمامی گام‌های آموزش پایدار نگه می‌دارد.
+
+\paragraph*{مکانیزم توجه گروهی (\en{GQA}) و تحلیل حافظه}
+در \en{GQA} \cite{ainslie2023gqa}، سرهای پرسمان ($H_Q$) به $H_{KV}$ گروه تقسیم می‌شوند ($G = H_Q / H_{KV}$):
+\begin{equation}
+    \mathbf{A}_g = \text{Softmax}\left( \frac{\tilde{\mathbf{Q}}_{g, i} \tilde{\mathbf{K}}_g^T}{\sqrt{d_k}} + \mathbf{M} \right) \mathbf{V}_g \quad \forall i \in \{1, \dots, G\}
+\end{equation}
+حجم حافظه موقت مورد نیاز برای ذخیره‌سازی \en{KV-Cache} به ازای هر توکن در فرمت ۱۶ بیتی برابر است با:
+\begin{equation}
+    \text{Mem}_{\text{KV}} = 2 \times 2 \times L \times H_{KV} \times d_k \quad (\text{بایت})
+\end{equation}
+در مدل پرچم‌دار \en{Qwen3-235B-A22B} با $L=94$ و $H_{KV}=4$ و $d_k=128$:
+\begin{equation}
+    \text{Mem}_{\text{KV}} = 4 \times 94 \times 4 \times 128 = 192,512 \text{ بایت/توکن} \approx 188\text{KB/Token}
+\end{equation}
+این مقدار در مقایسه با ساختار توجه چندسری کلاسیک ($H_Q = 64$)، کاهشی معادل ۱۶ برابر را در پهنای باند حافظه ایجاد می‌کند.
+
+\paragraph*{کدگذاری موقعیت دورانی (\en{RoPE}) و تعمیم طول زمینه}
+کدگذاری موقعیت با ماتریس دورانی $\mathbf{R}_{\Theta, m}$ اعمال می‌شود \cite{su2024roformer}:
+\begin{equation}
+    \mathbf{R}_{\theta_i, m} = \begin{pmatrix} \cos(m \theta_i) & -\sin(m \theta_i) \\ \sin(m \theta_i) & \cos(m \theta_i) \end{pmatrix}, \quad \theta_i = b^{-2(i-1)/d_k}
+\end{equation}
+به منظور پوشش طول زمینه تا $32\text{K}$ در پیش‌آموزش و تعمیم به $128\text{K}$، فرکانس پایه با روش \en{ABF} \cite{xiong2023effective} از $10,000$ به $1,000,000$ ارتقا یافته است:
+\begin{equation}
+    b_{\text{scaled}} = 10^6
+\end{equation}
+همچنین در زمان استنتاج برای رسیدن به طول ۱۲۸ هزار توکن، از تلفیق تکنیک‌های \en{YaRN} \cite{peng2023yarn} و \en{Dual Chunk Attention - DCA} \cite{an2024trainingfree} بهره گرفته شده است.
+
+\paragraph*{شبکه پیش‌خور با فعال‌ساز \en{SwiGLU}}
+بلوک غیرخطی مدل‌های متراکم از ساختار \en{SwiGLU} \cite{dauphin2017language} بهره می‌برد:
+\begin{equation}
+    \text{SwiGLU}(\mathbf{x}) = \left( \text{Swish}(\mathbf{x} \mathbf{W}_{\text{gate}}) \odot (\mathbf{x} \mathbf{W}_{\text{up}}) \right) \mathbf{W}_{\text{down}}
+\end{equation}
+که در آن:
+\begin{equation}
+    \text{Swish}(z) = z \cdot \sigma(z) = \frac{z}{1 + e^{-z}}
+\end{equation}
+مشتق زنجیره‌ای نسبت به ورودی به صورت زیر محاسبه می‌شود:
+\begin{equation}
+    \frac{d}{dz}\text{Swish}(z) = \sigma(z) \left( 1 + z(1 - \sigma(z)) \right)
+\end{equation}
+وجود ماتریس گیت با کنترل پیوسته مقادیر برون‌داد، از اشباع یا خاموشی ناگهانی نرون‌ها جلوگیری کرده و ظرفیت یادگیری الگوهای نمادین را ارتقا می‌دهد.
+
+\paragraph*{ساختار ترکیب خبرگان (\en{Qwen3 MoE Architecture})}
+در مدل‌های \en{MoE} \cite{dai2024deepseekmoe}، به جای یک لایه متراکم، مجموعه‌ای از خبره‌های ریزدانه تعبیه شده است:
+\begin{itemize}
+    \item تعداد کل خبره‌ها: $N = 128$
+    \item خبره‌های فعال برای هر توکن: $K = 8$
+    \item خبره‌های اشتراکی: برخلاف \en{Qwen2.5-MoE}، در این ساختار تمامی خبره‌های اشتراکی \textbf{حذف} شده‌اند.
+\end{itemize}
+برای بردار ورودی $\mathbf{x}$، امتیازدهی توسط ماتریس گیتینگ $\mathbf{W}_g \in \mathbb{R}^{d_{\text{model}} \times 128}$ صورت می‌گیرد:
+\begin{equation}
+    H(\mathbf{x}) = \mathbf{x} \mathbf{W}_g, \quad \mathcal{T} = \text{TopK}\left(H(\mathbf{x}), 8\right)
+\end{equation}
+\begin{equation}
+    P_i(\mathbf{x}) = \frac{\exp(H(\mathbf{x})_i)}{\sum_{j \in \mathcal{T}} \exp(H(\mathbf{x})_j)} \quad \forall i \in \mathcal{T}
+\end{equation}
+خروجی نهایی حاصل ترکیب خطی هشت خبره منتخب است:
+\begin{equation}
+    \mathbf{y} = \sum_{i \in \mathcal{T}} P_i(\mathbf{x}) \cdot \text{Expert}_i(\mathbf{x})
+\end{equation}
+
+\textbf{اتلاف توازن بار در سطح کل دسته سرتاسری (\en{Global-Batch Load Balancing Loss}):}
+برای احتراز از فروپاشی خبره‌ها، اتلاف کمکی توازن بار \cite{qiu2025demons} در سطح دسته داده سراسری (\en{Global Batch} با اندازه $B$) به شکل زیر محاسبه می‌شود:
+\begin{equation}
+    f_i = \frac{1}{B} \sum_{\mathbf{x} \in \mathcal{B}} \mathbb{I}(i \in \text{TopK}(H(\mathbf{x}), 8)), \quad P_i = \frac{1}{B} \sum_{\mathbf{x} \in \mathcal{B}} \frac{\exp(H(\mathbf{x})_i)}{\sum_{j=1}^{128} \exp(H(\mathbf{x})_j)}
+\end{equation}
+\begin{equation}
+    \mathcal{L}_{\text{balance}} = \alpha \cdot N \sum_{i=1}^{128} f_i \cdot P_i
+\end{equation}
+بر اساس نامساوی کوشی-شوارتز، کمینه این اتلاف زمانی حاصل می‌شود که بار پردازشی به‌طور یکنواخت ($f_i = \frac{8}{128}$ و $P_i = \frac{1}{128}$) توزیع گردد. محاسبه این تابع بر روی کل دسته پردازشی در بین گره‌ها مانع از همپوشانی وظایف خبره‌ها شده و بالاترین سطح تخصص‌گرایی را رقم می‌زند.
+
+\paragraph*{مشخصات فنی و مقایسه هایپرپارامترهای معماری}
+پیکربندی کامل خانواده مدل‌های متراکم و مبتنی بر خبرگان \model{Qwen3} در جدول \ref{tab:qwen3_specs} مدون شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات و پیکربندی هایپرپارامترهای معماری ترنسفورمر در خانواده مدل‌های \model{Qwen3}}
+\label{tab:qwen3_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{مدل} & \textbf{تعداد لایه‌ها} & \textbf{سرهای پرسمان ($H_Q$)} & \textbf{سرهای کلید/ارزش ($H_{KV}$)} & \textbf{تعبیه متصل (\en{Tie Emb.})} & \textbf{تعداد خبره‌ها (کل / فعال)} & \textbf{طول زمینه} \\
+\midrule
+\model{Qwen3-0.6B} & 28 & 16 & 8 & بله (\en{Yes}) & متراکم (\en{Dense}) & $32\text{K}$ \\
+\model{Qwen3-1.7B} & 28 & 16 & 8 & بله (\en{Yes}) & متراکم (\en{Dense}) & $32\text{K}$ \\
+\model{Qwen3-4B}   & 36 & 32 & 8 & بله (\en{Yes}) & متراکم (\en{Dense}) & $128\text{K}$ \\
+\model{Qwen3-8B}   & 36 & 32 & 8 & خیر (\en{No})  & متراکم (\en{Dense}) & $128\text{K}$ \\
+\model{Qwen3-14B}  & 40 & 40 & 8 & خیر (\en{No})  & متراکم (\en{Dense}) & $128\text{K}$ \\
+\model{Qwen3-32B}  & 64 & 64 & 8 & خیر (\en{No})  & متراکم (\en{Dense}) & $128\text{K}$ \\
+\midrule
+\model{Qwen3-30B-A3B}   & 48 & 32 & 4 & خیر (\en{No}) & $128 \;/\; 8$ (بدون خبره اشتراکی) & $128\text{K}$ \\
+\model{Qwen3-235B-A22B} & 94 & 64 & 4 & خیر (\en{No}) & $128 \;/\; 8$ (بدون خبره اشتراکی) & $128\text{K}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
