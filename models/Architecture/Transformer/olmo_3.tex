@@ -1,1 +1,327 @@
-\item \textbf asd
+\item \model{OLMo 3}
+
+\paragraph*{مقدمه و فلسفه بنیادین معماری (\en{Architectural Philosophy})}
+خانواده مدل‌های زبانی \model{OLMo 3} (شامل نگارش‌های \en{7B} و \en{32B}) بر پایه یک معماری ترنسفورمر تنها-رمزگشا (\en{Decoder-Only Transformer}) متکی بر فرمول‌بندی پایه واسوانی و همکاران \cite{vaswani2017attention} بنا نهاده شده است. با این حال، با هدف دستیابی به توان استدلال پیشرفته، پردازش بهینه پنجره‌های زمینه بسیار طولانی (\en{Long-Context Reasoning}) تا سقف $65{,}536$ توکن (\en{64K})، افزایش بازدهی سخت‌افزاری (\en{MFU}) و تثبیت پایداری بهینه‌سازی در مقیاس چند تریلیون توکن، نوآوری‌های عمیقی نسبت به نسل پیشین یعنی \model{OLMo 2} \cite{olmo2024furious} در آن تعبیه شده است.
+
+ارکان اصلی معماری ترنسفورمر در \model{OLMo 3} عبارتند از:
+\begin{enumerate}
+    \item \textbf{مکانیزم توجه آمیخته تنک-کامل (\en{Hybrid Attention}):} تلفیق حساب‌شده توجه پنجره لغزان (\en{SWA}) با طول ثابت $W=4096$ در سه لایه از هر چهار لایه با لایه‌های توجه کامل (\en{Full Attention}) \cite{beltagy2020longformer}.
+    \item \textbf{نرمال‌سازی لاجیت‌های توجه (\en{QK-Norm}):} اعمال لایه‌نرمال‌سازی مستقل بر پرسمان‌ها و کلیدها به‌منظور جلوگیری از فروپاشی آنتروپی ضرب داخلی و مهار پرش‌های ناگهانی گرادیان \cite{dehghani2023scaling}.
+    \item \textbf{تثبیت لگاریتم شانس‌ها با \en{Z-Loss}:} منظم‌سازی اندازه تابع تقسیم (\en{Partition Function}) در سافت‌مکس برای رفع رانش لاجیت‌ها و مهار خطای ممیز شناور \en{bfloat16}.
+    \item \textbf{کدگذاری موقعیت چرخان با فرکانس فوق‌پایه و بسط \en{YaRN}:} بکارگیری \en{RoPE} با فرکانس پایه $\theta_{\text{base}} = 500{,}000$ و تعمیم زمینه به \en{64K} از طریق الگوریتم \en{YaRN} صرفاً در لایه‌های توجه کامل \cite{peng2023yarn, su2024roformer}.
+    \item \textbf{بلوک غیرخطی \en{SwiGLU}:} بهره‌گیری از ضرب هادامارد در واحدهای خطی دروازه‌ای جهت بیشینه‌سازی ظرفیت بازنمایی مؤلفه‌های مفهومی \cite{shazeer2020glu}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع و مدرن معماری ترنسفورمر OLMo 3
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0.85cm and 1.2cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=6.5cm, minimum height=0.85cm, font=\bfseries},
+    norm_node/.style={base, fill=purple!12, draw=purple!70!black, minimum width=6cm, minimum height=0.75cm},
+    attn_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=8.5cm, minimum height=2.8cm},
+    ffn_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=8.5cm, minimum height=1.7cm},
+    loss_box/.style={base, fill=red!10, draw=red!70!black, minimum width=4.0cm, minimum height=1.1cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=10pt, line width=1.2pt, inner sep=14pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % گره‌های ورودی
+    \node[io_node] (input) {توکن‌های ورودی (\en{Input Tokens}): $\mathbf{X} = (x_1, \dots, x_T)$};
+    \node[io_node, below=0.7cm of input] (embed) {تعبیه کلمات (\en{Token Embeddings}) بدون افت وزنی (\en{No Weight Decay})\\ $\mathbf{h}^{(0)} \in \mathbb{R}^{B \times T \times d_{\text{model}}}$};
+
+    % بلوک تکرار شونده
+    \node[norm_node, below=1.1cm of embed] (pre_norm1) {
+        \textbf{نرمال‌سازی پیشین اول (\en{Pre-RMSNorm})}\\
+        $\bar{\mathbf{h}} = \text{RMSNorm}\left(\mathbf{h}^{(l-1)}\right) \in \mathbb{R}^{d_{\text{model}}}$
+    };
+
+    \node[attn_box, below=0.8cm of pre_norm1] (attn) {
+        \textbf{\large لایه توجه ترکیبی مجهز به \en{QK-Norm}}\\[4pt]
+        \scriptsize $\bullet$ \textbf{افکنش خطی:} استخراج $\mathbf{Q} \in \mathbb{R}^{H_Q \times d_k}$ و $\mathbf{K}, \mathbf{V} \in \mathbb{R}^{H_{KV} \times d_k}$ با $d_k=128$\\
+        \scriptsize $\bullet$ \textbf{معماری سرها:} در مدل \en{7B} توجه چندسر (\en{MHA: 32H})؛ در مدل \en{32B} توجه گروهی (\en{GQA: 40Q/8KV})\\
+        \scriptsize $\bullet$ \textbf{نرمال‌سازی \en{QK-Norm}:} $\tilde{\mathbf{Q}} = \text{RMSNorm}(\mathbf{Q}), \; \tilde{\mathbf{K}} = \text{RMSNorm}(\mathbf{K})$\\
+        \scriptsize $\bullet$ \textbf{کدگذاری موقعیت:} اعمال \en{RoPE} با $\theta_{\text{base}} = 5 \times 10^5$ (بسط \en{YaRN} در فاز \en{64K} صرفاً روی \en{Full Attn})\\
+        \scriptsize $\bullet$ \textbf{الگوی ترکیبی:} لایه‌های $1,2,3$ در هر ۴ لایه: پنجره لغزان (\en{SWA: $W=4096$})؛ لایه ۴ و لایه آخر: \en{Full Attention}\\
+        \scriptsize $\bullet$ \textbf{پوشش اسناد:} تلفیق ماسک علّی با ماسک درون‌سندی (\en{Intra-Document Masking})
+    };
+
+    \node[norm_node, below=1.0cm of attn] (post_attn_add) {
+        \textbf{اتصال باقیمانده اول (\en{First Residual Addition})}\\
+        $\mathbf{u}^{(l)} = \mathbf{h}^{(l-1)} + \text{Attention}(\bar{\mathbf{h}}) \mathbf{W}_O$
+    };
+
+    \node[norm_node, below=0.7cm of post_attn_add] (pre_norm2) {
+        \textbf{نرمال‌سازی پیشین دوم (\en{Pre-RMSNorm})}\\
+        $\bar{\mathbf{u}} = \text{RMSNorm}\left(\mathbf{u}^{(l)}\right)$
+    };
+
+    \node[ffn_box, below=0.8cm of pre_norm2] (ffn) {
+        \textbf{\large شبکه عصبی پیش‌خور دروازه‌ای (\en{SwiGLU FFN})}\\[3pt]
+        \scriptsize $\bullet$ تبدیل دوخطی: $\text{FFN}(\bar{\mathbf{u}}) = \left( \text{Swish}(\bar{\mathbf{u}}\mathbf{W}_{\text{gate}}) \odot (\bar{\mathbf{u}}\mathbf{W}_{\text{up}}) \right) \mathbf{W}_{\text{down}}$\\
+        \scriptsize $\bullet$ فعال‌ساز هموار: $\text{Swish}(x) = x \cdot \sigma(x)$ بدون مرگ نورون‌ها
+    };
+
+    \node[norm_node, below=1.0cm of ffn] (post_ffn_add) {
+        \textbf{اتصال باقیمانده دوم (\en{Second Residual Addition})}\\
+        $\mathbf{h}^{(l)} = \mathbf{u}^{(l)} + \text{FFN}(\bar{\mathbf{u}})$
+    };
+
+    % کادر پیرامون لایه ترنسفورمر
+    \node[block_frame, fit=(pre_norm1) (attn) (post_attn_add) (pre_norm2) (ffn) (post_ffn_add), 
+          label={[font=\bfseries\color{blue!70!black}]left:تکرار لایه ترنسفورمر ($L=32$ در \en{7B} و $L=64$ در \en{32B})}] (block) {};
+
+    % خروجی و توابع اتلاف
+    \node[norm_node, below=1.0cm of post_ffn_add] (final_norm) {
+        \textbf{نرمال‌سازی نهایی (\en{Final Output RMSNorm})}\\
+        $\mathbf{h}_{\text{out}} = \text{RMSNorm}\left(\mathbf{h}^{(L)}\right)$
+    };
+
+    \node[io_node, below=0.7cm of final_norm] (logits) {
+        افکنش واژگان و محاسبه لاجیت‌ها (\en{LM Head}): $\mathbf{z} = \mathbf{h}_{\text{out}} \mathbf{W}_{\text{head}} \in \mathbb{R}^V$
+    };
+
+    \node[loss_box, below left=0.8cm and -1.8cm of logits] (ce_loss) {
+        \textbf{انتروپی متقاطع (\en{CE})}\\
+        $-\frac{1}{T}\sum \log P_\theta(x_t)$
+    };
+
+    \node[loss_box, below right=0.8cm and -1.8cm of logits] (z_loss) {
+        \textbf{منظم‌ساز \en{Z-Loss}}\\
+        $10^{-5} \cdot (\log \sum e^{z_j})^2$
+    };
+
+    % فلش‌های جریان مستقیم
+    \draw[arrow] (input) -- (embed);
+    \draw[arrow] (embed) -- (pre_norm1);
+    \draw[arrow] (pre_norm1) -- (attn);
+    \draw[arrow] (attn) -- (post_attn_add);
+    \draw[arrow] (post_attn_add) -- (pre_norm2);
+    \draw[arrow] (pre_norm2) -- (ffn);
+    \draw[arrow] (ffn) -- (post_ffn_add);
+    \draw[arrow] (post_ffn_add) -- (final_norm);
+    \draw[arrow] (final_norm) -- (logits);
+    \draw[arrow] (logits) -| (ce_loss);
+    \draw[arrow] (logits) -| (z_loss);
+
+    % اتصالات باقیمانده (Residuals) در کناره‌ها با فاصله استاندارد
+    \draw[arrow, purple!80!black, line width=1.3pt] (embed.south) ++(-2.6,0) -- ++(0,-0.5) |- (post_attn_add.west);
+    \draw[arrow, purple!80!black, line width=1.3pt] (post_attn_add.south) ++(-2.6,0) -- ++(0,-0.5) |- (post_ffn_add.west);
+
+\end{tikzpicture}%
+}
+\caption{نمودار جریان تانسوری و ساختار داخلی یک بلوک ترنسفورمر در معماری مدل \model{OLMo 3}.}
+\label{fig:olmo_3_architecture}
+\end{figure}
+
+\paragraph*{مبانی نظری، تئوری اطلاعات و فرمول‌بندی \en{Z-Loss}}
+مدل‌سازی زبان بر پایه یادگیری توزیع احتمال شرطی توکن آتی به صورت زیر عامل‌بندی می‌شود:
+\begin{equation}
+    P_\theta(X) = \prod_{t=1}^T P_\theta(x_t \mid x_{<t}), \quad P_\theta(x_t = k \mid x_{<t}) = \frac{\exp(z_k)}{\sum_{j=1}^V \exp(z_j)}
+\end{equation}
+که در آن $z_k$ مؤلفه متناظر با توکن $k$ در بردار لاجیت خروجی $\mathbf{z} \in \mathbb{R}^V$ است.
+
+\textbf{پدیده رانش لاجیت‌ها (\en{Logits Drift}):} عملگر بیشینه هموار نسبت به انتقال خطی نامتغیر است ($\text{Softmax}(\mathbf{z} + c) = \text{Softmax}(\mathbf{z})$). در مدل‌های حجیم، بهینه‌ساز تمایل دارد مقادیر خام لاجیت‌ها را به سمت بی‌نهایت سوق دهد بدون اینکه بر مقدار خطای انتروپی متقاطع تأثیر منفی بگذارد. با این حال، در محاسبات مبتنی بر ممیز شناور \en{bfloat16}، رشد بیش از حد لاجیت‌ها سبب سرریز عددی (\en{Numerical Overflow}) در تابع $\sum_{j} \exp(z_j)$ شده و انفجار مقادیر اتلاف (\en{Loss Spikes}) را به همراه دارد.
+
+برای رفع این عدم پایداری، در \model{OLMo 3} از تابع زیان مرکب به همراه جریمه \en{Z-Loss} با ضریب $c_z = 10^{-5}$ استفاده شده است:
+\begin{equation}
+    \mathcal{L}_{\text{Total}} = \mathcal{L}_{\text{CE}} + \mathcal{L}_z = -\frac{1}{T} \sum_{t=1}^T \log P_\theta(x_t \mid x_{<t}) + c_z \cdot \left( \log \sum_{j=1}^V \exp(z_j) \right)^2
+\end{equation}
+
+\textbf{استخراج مشتق و تحلیل تئوریک گرادیان:}
+با تعریف تابع تقسیم به صورت $Z \coloneqq \sum_{j=1}^V \exp(z_j)$، گرادیان تحلیلی مؤلفه $\mathcal{L}_z$ نسبت به هر لاجیت خروجی $z_i$ بر اساس قاعده زنجیره‌ای دیفرانسیل به شکل زیر محاسبه می‌شود:
+\begin{align}
+    \frac{\partial \mathcal{L}_z}{\partial z_i} &= \frac{\partial}{\partial z_i} \left[ c_z \cdot (\log Z)^2 \right] = 2 c_z \cdot (\log Z) \cdot \frac{\partial (\log Z)}{\partial z_i} \nonumber \\
+    &= 2 c_z \cdot (\log Z) \cdot \frac{1}{Z} \frac{\partial Z}{\partial z_i} = 2 c_z \cdot (\log Z) \cdot \frac{\exp(z_i)}{\sum_{j=1}^V \exp(z_j)} \nonumber \\
+    &= 2 c_z \cdot \log\left(\sum_{j=1}^V \exp(z_j)\right) \cdot P_\theta(x = i)
+\end{align}
+این گرادیان، نیروی بازدارنده‌ای اعمال می‌کند که شدت آن با لگاریتم تابع تقسیم متناسب است. در نتیجه، لاجیت‌ها همواره در محدوده‌ای پایدار نزدیک به صفر مهار شده و پایداری عددی آموزش در مقیاس‌های محاسباتی عظیم بدون نیاز به تغییر نرخ یادگیری تضمین می‌گردد.
+
+\paragraph*{نرمال‌سازی لایه‌ها با \en{RMSNorm} و مکانیسم \en{Pre-LN}}
+به جای لایه‌نرمال‌سازی متداول که نیازمند کسر میانگین و استانداردسازی واریانس است، مدل \model{OLMo 3} از **\en{RMSNorm}** \cite{zhang2019rmsnorm} بهره می‌گیرد. فرض بنیادین بر این است که پایداری شبکه‌های عصبی عمیق ناشی از تغییرناپذیری مقیاس بردارهاست و جابجایی مبدأ با میانگین صفر نقشی در همگرایی ندارد.
+
+برای بردار ورودی $\mathbf{x} \in \mathbb{R}^d$ با بعد $d = d_{\text{model}}$:
+\begin{equation}
+    \text{RMS}(\mathbf{x}) \coloneqq \sqrt{\frac{1}{d} \sum_{j=1}^d x_j^2 + \epsilon}, \quad \bar{x}_i = \frac{x_i}{\text{RMS}(\mathbf{x})} \cdot \gamma_i
+\end{equation}
+که در آن $\boldsymbol{\gamma} \in \mathbb{R}^d$ ضریب مقیاس یادگیرنده و $\epsilon$ مقدار تثبیت‌کننده ممیز شناور است.
+
+\textbf{مشتق جزئی نسبت به بردار ورودی:}
+برای ردیابی انتشار پس‌رو گرادیان، ژاکوبین لایه را استخراج می‌کنیم:
+\begin{equation}
+    \frac{\partial \text{RMS}(\mathbf{x})}{\partial x_k} = \frac{1}{2 \text{RMS}(\mathbf{x})} \cdot \frac{2 x_k}{d} = \frac{x_k}{d \cdot \text{RMS}(\mathbf{x})}
+\end{equation}
+با بکارگیری مشتق ضرب:
+\begin{align}
+    \frac{\partial \bar{x}_i}{\partial x_k} &= \gamma_i \cdot \frac{\partial}{\partial x_k} \left( x_i \cdot (\text{RMS}(\mathbf{x}))^{-1} \right) = \gamma_i \left[ \frac{\delta_{ik}}{\text{RMS}(\mathbf{x})} - \frac{x_i}{\text{RMS}(\mathbf{x})^2} \frac{\partial \text{RMS}(\mathbf{x})}{\partial x_k} \right] \nonumber \\
+    &= \frac{\gamma_i}{\text{RMS}(\mathbf{x})} \left[ \delta_{ik} - \frac{x_i x_k}{d \cdot \text{RMS}(\mathbf{x})^2} \right]
+\end{align}
+که در آن $\delta_{ik}$ دلتای کرونکر است. این ساختار علاوه بر کاهش حدود ۷ درصدی هزینه محاسباتی نسبت به لایه‌نرمال‌سازی مرسوم، ماتریس ژاکوبینی شبه‌تصادفی پدید می‌آورد که مانع از محوشدگی گرادیان در لایه‌های عمیق ($L=64$) می‌شود. چیدمان \en{Pre-LN} مسیر باقیمانده بدون انحرافی برای گرادیان‌ها ایجاد می‌نماید.
+
+\paragraph*{مکانیسم توجه، تثبیت آنتروپی با \en{QK-Norm} و مقایسه \en{MHA / GQA}}
+عملگر توجه خودکار مقیاس‌دار استاندارد از رابطه زیر پیروی می‌کند:
+\begin{equation}
+    \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Softmax}\left( \frac{\mathbf{Q} \mathbf{K}^T}{\sqrt{d_k}} + \mathbf{M} \right) \mathbf{V}
+\end{equation}
+که در آن $\mathbf{Q}, \mathbf{K}, \mathbf{V} \in \mathbb{R}^{T \times d_k}$ ماتریس‌های افکنش‌شده هستند و $\mathbf{M}$ ماتریس پوشش علّی است.
+
+\textbf{فروپاشی آنتروپی ضرب داخلی و نقش ریاضی \en{QK-Norm}:}
+در طول مراحل اولیه آموزش، مقیاس بردارها به موازات عمق مدل افزایش می‌یابد ($\|\mathbf{q}\|_2, \|\mathbf{k}\|_2 \gg \sqrt{d_k}$). در نتیجه، ضرب داخلی $\mathbf{q} \mathbf{k}^T$ لاجیت‌های بسیار بزرگی تولید کرده و توزیع وزن‌های توجه به یک بردار ضربه (مشابه توزیع تک‌مقداری \en{One-Hot}) تبدیل می‌گردد؛ یعنی آنتروپی شانون توزیع توجه به صفر میل می‌کند:
+\begin{equation}
+    \mathcal{H}(\mathbf{a}_i) = -\sum_{j=1}^T A_{ij} \log A_{ij} \to 0
+\end{equation}
+از منظر گرادیانی، مشتق بیشینه هموار $\frac{\partial \text{Softmax}(s)_i}{\partial s_j} = s_i(\delta_{ij} - s_j)$ در حالت تک‌مقداری ($s_i \to 1$) به صفر میل می‌کند که سبب ایست گرادیانی می‌گردد. مدل \model{OLMo 3} جهت مصون‌سازی قطعی در برابر این رخداد، از تکنیک **\en{QK-Norm}** \cite{dehghani2023scaling} استفاده نموده است:
+\begin{equation}
+    \tilde{\mathbf{Q}} = \text{RMSNorm}(\mathbf{Q}), \quad \tilde{\mathbf{K}} = \text{RMSNorm}(\mathbf{K})
+\end{equation}
+از آنجا که نرم اقلیدسی بردارهای نرمال‌شده کران‌دار است ($\|\tilde{\mathbf{q}}\|_2 \approx \sqrt{d_k}$ و $\|\tilde{\mathbf{k}}\|_2 \approx \sqrt{d_k}$)، طبق نامساوی کوشی-شوارتز داریم:
+\begin{equation}
+    \left| \frac{\tilde{\mathbf{q}}^T \tilde{\mathbf{k}}}{\sqrt{d_k}} \right| \le \frac{\|\tilde{\mathbf{q}}\|_2 \|\tilde{\mathbf{k}}\|_2}{\sqrt{d_k}} \approx \frac{d_k}{\sqrt{d_k}} = \sqrt{d_k}
+\end{equation}
+با توجه به ثابت بودن بعد سر توجه ($d_k = 128$)، حداکثر مقدار ورودی سافت‌مکس به دامنه کران‌دار $[-\sqrt{128}, +\sqrt{128}] \approx [-11.31, +11.31]$ مقید می‌شود که امکان بروز ناپایداری‌های عددی و پرش‌های زیان را از میان برمی‌دارد.
+
+\textbf{تمایز سرها بین دو مدل \en{7B} و \en{32B}:}
+\begin{itemize}
+    \item \textbf{مدل \en{OLMo 3 - 7B}:} از مکانیزم چندسر استاندارد (\en{MHA}) بهره می‌برد که در آن $H_Q = H_{KV} = 32$ بوده و هر سر پرسمان به یک جفت کلید-مقدار مجزا اختصاص دارد.
+    \item \textbf{مدل \en{OLMo 3 - 32B}:} جهت کاهش بار حافظه در رمزگشایی خودبازگشتی، از توجه پرسمان گروهی (\en{GQA}) با $H_Q = 40$ و $H_{KV} = 8$ استفاده می‌کند. در اینجا نسبت گروه‌بندی برابر است با:
+    \begin{equation}
+        G = \frac{H_Q}{H_{KV}} = \frac{40}{8} = 5
+    \end{equation}
+    هر ۵ سر پرسمان از یک جفت کلید-مقدار مشترک استفاده می‌کنند:
+    \begin{equation}
+        \text{head}_i = \text{Attention}\left( \mathbf{Q}_i, \mathbf{K}_{\lfloor i/5 \rfloor}, \mathbf{V}_{\lfloor i/5 \rfloor} \right), \quad i \in \{0, \dots, 39\}
+    \end{equation}
+\end{itemize}
+
+\textbf{تحلیل آماری و صرفه‌جویی حافظه \en{KV-Cache}:}
+میزان حافظه مورد نیاز برای ذخیره موقت ماتریس‌های کلید و مقدار به ازای هر توکن جدید تولیدشده در طول استنتاج به صورت زیر محاسبه می‌شود:
+\begin{align}
+    \text{Mem}_{\text{MHA (7B)}} &= 2 \times L \times H_{KV} \times d_k \times 2\text{ Byte} = 2 \times 32 \times 32 \times 128 \times 2 = 524{,}288 \text{ B} \approx 0.5 \text{ MB} \\
+    \text{Mem}_{\text{GQA (32B)}} &= 2 \times L \times H_{KV} \times d_k \times 2\text{ Byte} = 2 \times 64 \times 8 \times 128 \times 2 = 262{,}144 \text{ B} \approx 0.25 \text{ MB}
+\end{align}
+در صورتی که در مدل \en{32B} از \en{MHA} استفاده می‌شد، این رقم به $1.25\text{ MB}$ به ازای هر توکن می‌رسید؛ بنابراین \en{GQA} منجر به **کاهش ۸۰ درصدی** ردپای حافظه تانسورهای \en{KV} شده و استنتاج روان در زمینه \en{64K} را میسر می‌سازد.
+
+\paragraph*{توجه پنجره لغزان محلی (\en{Sliding Window Attention - SWA})}
+جهت کاهش بار محاسباتی در زمینه‌های طولانی از پیچیدگی مرتبه دو $\mathcal{O}(T^2)$ به پیچیدگی خطی $\mathcal{O}(T \cdot W)$، مدل \model{OLMo 3} از معماری توجه پنجره لغزان (\en{SWA}) \cite{beltagy2020longformer} با طول پنجره ثابت $W = 4096$ بهره می‌برد.
+
+\textbf{الگوی چیدمان لایه‌ها:}
+در ساختار مدل، از هر ۴ لایه متوالی، ۳ لایه ابتدایی دارای ساختار \en{SWA} و لایه چهارم مجهز به توجه کامل (\en{Full Attention}) است. علاوه بر این، آخرین لایه مدل در انتهای شبکه ($L=32$ یا $L=64$) همواره از نوع توجه کامل انتخاب شده است تا اطمینان حاصل شود که توکن پایانی، بازنمایی جامعی از کل توالی را پیش از افکنش به واژگان دریافت کرده است.
+
+ماتریس ماسک لایه‌های \en{SWA} به صورت تحلیلی به شرح زیر تعریف می‌گردد:
+\begin{equation}
+    M_{ij}^{\text{SWA}} = \begin{cases} 
+        0 & \text{if } 0 \le i - j < W \\ 
+        -\infty & \text{otherwise} 
+    \end{cases}
+\end{equation}
+
+\textbf{رشد سلسله‌مراتبی میدان دریافت موثر (\en{Effective Receptive Field}):}
+اگرچه هر لایه \en{SWA} تنها قادر به مشاهده مستقیم $W$ توکن پیشین است، اما انباشت این لایه‌ها میدان دید موثر را گسترش می‌دهد:
+\begin{itemize}
+    \item لایه ۱ ($l=1$): میدان دید برابر با $W = 4096$ توکن.
+    \item لایه ۲ ($l=2$): میدان دید برابر با $2W = 8192$ توکن.
+    \item لایه ۳ ($l=3$): میدان دید برابر با $3W = 12288$ توکن.
+    \item لایه ۴ ($l=4$): مکانیزم \en{Full Attention} وارد عمل شده و اطلاعات جمع‌آوری‌شده در لایه‌های موضعی را به سراسر توالی مخابره می‌کند.
+\end{itemize}
+
+\paragraph*{کدگذاری موقعیت چرخان (\en{RoPE}) و بسط زمینه به \en{64K} با \en{YaRN}}
+کدگذاری موقعیت در \model{OLMo 3} به وسیله ماتریس دوران متعامد \en{RoPE} \cite{su2024roformer} اعمال می‌شود. برای یک زیرفضای دوبعدی در موقعیت زمانی $m$:
+\begin{equation}
+    \mathbf{R}_{\Theta, m} \coloneqq \begin{pmatrix} \cos(m\theta) & -\sin(m\theta) \\ \sin(m\theta) & \cos(m\theta) \end{pmatrix}
+\end{equation}
+حاصل‌ضرب داخلی پرسمان در موقعیت $m$ و کلید در موقعیت $n$ خاصیت انحصار فاصله نسبی را نشان می‌دهد:
+\begin{equation}
+    \langle \mathbf{R}_{\Theta, m}\mathbf{q}, \mathbf{R}_{\Theta, n}\mathbf{k} \rangle = \mathbf{q}^T \mathbf{R}_{\Theta, m}^T \mathbf{R}_{\Theta, n} \mathbf{k} = \mathbf{q}^T \mathbf{R}_{\Theta, n-m} \mathbf{k}
+\end{equation}
+فرکانس پایه تعبیه‌شده در \model{OLMo 3} برابر با **$\theta_{\text{base}} = 500{,}000$** ($5 \times 10^5$) است:
+\begin{equation}
+    \theta_j = \theta_{\text{base}}^{-2(j-1)/d_k}, \quad j \in \{1, \dots, d_k/2\}
+\end{equation}
+بزرگی این پارامتر سبب طولانی‌تر شدن طول موج هارمونیک‌ها ($\lambda_j = \frac{2\pi}{\theta_j}$) شده و افت تداخل فاز در توالی‌های طویل را به همراه دارد.
+
+\textbf{بسط پنجره به \en{64K} به وسیله \en{YaRN}:}
+در مرحله سوم آموزش، طول زمینه از $8{,}192$ به $65{,}536$ توکن گسترش می‌یابد (ضریب مقیاس $s = \frac{65536}{8192} = 8$). به منظور جلوگیری از زوال دقت در فواصل کوتاه، تکنیک **\en{YaRN}** \cite{peng2023yarn} بر مبنای نسبت طول موج مؤلفه‌ها به طول زمینه اولیه ($r_j \coloneqq \frac{L}{\lambda_j} = \frac{L \theta_j}{2\pi}$) بکار گرفته شده است:
+\begin{equation}
+    \gamma(r_j) = \begin{cases} 
+        0 & \text{if } r_j < \beta_{\text{low}} \\ 
+        \frac{r_j - \beta_{\text{low}}}{\beta_{\text{high}} - \beta_{\text{low}}} & \text{if } \beta_{\text{low}} \le r_j \le \beta_{\text{high}} \\ 
+        1 & \text{if } r_j > \beta_{\text{high}} 
+    \end{cases}
+\end{equation}
+فرکانس اصلاح‌شده $\tilde{\theta}_j$ از ترکیب محدب زیر حاصل می‌شود:
+\begin{equation}
+    \tilde{\theta}_j = (1 - \gamma(r_j)) \cdot \frac{\theta_j}{s} + \gamma(r_j) \cdot \theta_j
+\end{equation}
+علاوه بر این، دمای لاجیت‌های توجه با ضریب تصحیح $t = \sqrt{1 + 0.1 \ln s}$ مقیاس‌بندی می‌گردد تا کاهش انتروپی ناشی از گسترش طول متن خنثی شود.
+
+\textbf{ویژگی بارز در پیاده‌سازی \model{OLMo 3}:}
+مطابق با آزمون‌های تجربی ارائه‌شده در بخش ۳.۶.۴ مقاله، **تنظیمات \en{YaRN} منحصراً بر روی لایه‌های با توجه کامل (\en{Full Attention}) اعمال شده است** و فرکانس‌های موقعیتی در لایه‌های پنجره لغزان دست‌نخورده باقی مانده‌اند تا همبستگی‌های محلی با اعوجاج هندسی مواجه نشوند.
+
+\paragraph*{شبکه عصبی پیش‌خور (\en{FFN}) و فعال‌ساز \en{SwiGLU}}
+بلوک پیش‌خور غیرخطی در هر لایه ترنسفورمر، از ساختار دروازه‌ای **\en{SwiGLU}** \cite{shazeer2020glu} بهره می‌برد:
+\begin{equation}
+    \text{FFN}_{\text{SwiGLU}}(\mathbf{x}) = \left( \text{Swish}(\mathbf{x} \mathbf{W}_{\text{gate}}) \odot (\mathbf{x} \mathbf{W}_{\text{up}}) \right) \mathbf{W}_{\text{down}}
+\end{equation}
+که در آن $\mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$ و $\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$ ماتریس‌های وزن خطی هستند. تابع فعال‌ساز $\text{Swish}(u) \coloneqq u \cdot \sigma(u)$ بر مبنای سیگموئید تعریف می‌شود.
+
+\textbf{تحلیل مشتق تحلیلی و رفتار غیریکنواخت:}
+\begin{equation}
+    \frac{d}{du}\text{Swish}(u) = \sigma(u) + u \cdot \frac{d\sigma(u)}{du} = \sigma(u) + u \sigma(u)(1 - \sigma(u)) = \sigma(u) \left[ 1 + u(1 - \sigma(u)) \right]
+\end{equation}
+وجود ناحیه منفی ملایم در ورودی‌های منفی کوچک، از پدیده خاموشی همیشگی نورون‌ها جلوگیری کرده و یادگیری ویژگی‌های تفکیک‌ناپذیر خطی در داده‌های استدلالی و کد را امکان‌پذیر می‌سازد.
+
+\paragraph*{بسته‌بندی اسناد (\en{Document Packing}) و ماسک‌گذاری درون‌سندی (\en{Intra-document Masking})}
+در فاز بسط زمینه \model{OLMo 3}، از رویکرد اتصال و قطعه‌بندی نایو پرهیز شده و استراتژی‌های مهندسی زیر بکار گرفته شده است:
+\begin{itemize}
+    \item \textbf{بسته‌بندی اسناد با بهترین برازش (\en{Best-fit Document Packing}):} ادغام چندین سند مجزا درون پنجره‌های $65{,}536$ توکنی با الگوریتم کوله‌پشتی به‌گونه‌ای که نیاز به توکن‌های حاشیه‌گذاری (\en{Padding}) به حداقل ممکن برسد \cite{ding2024fewer}.
+    \item \textbf{ماسک‌گذاری درون‌سندی (\en{Intra-document Masking}):} ممانعت جبری از تبادل ضرب داخلی بین اسناد مجزایی که در یک پنجره قرار دارند با تعریف ماسک ترکیبی:
+    \begin{equation}
+        M_{ij}^{\text{Intra}} = \begin{cases} 
+            0 & \text{if } \text{DocID}(i) = \text{DocID}(j) \text{ and } j \le i \\ 
+            -\infty & \text{otherwise} 
+        \end{cases}
+    \end{equation}
+    این راهبرد از یادگیری توجه ساختگی بین اسناد غیرمرتبط جلوگیری می‌کند \cite{zhao2024sequence}.
+    \item \textbf{موازی‌سازی زمینه (\en{8-way Context Parallelism}):} توزیع متوالی طول توالی $64\text{K}$ بر روی ۸ شتاب‌دهنده \en{NVIDIA H100} با ارتباطات مبتنی بر \en{All-Gather} \cite{chu2025scaling}.
+\end{itemize}
+
+\paragraph*{مشخصات فنی و مقایسه هایپرپارامترهای معماری}
+پیکربندی جامع و ابعاد پارامتری دو نسخه \model{OLMo 3 - 7B} و \model{OLMo 3 - 32B} در جدول \ref{tab:olmo_3_specs} مدون شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات و پیکربندی هایپرپارامترهای معماری ترنسفورمر در سری \model{OLMo 3}}
+\label{tab:olmo_3_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{مولفه معماری / هایپرپارامتر} & \textbf{OLMo 3 - 7B} & \textbf{OLMo 3 - 32B} \\
+\midrule
+تعداد کل لایه‌های ترنسفورمر ($L$) & ۳۲ لایه & ۶۴ لایه \\
+بعد پنهان مدل ($d_{\text{model}}$) & ۴۰۹۶ & ۵۱۲۰ \\
+تعداد سرهای پرسمان ($H_Q$) & ۳۲ هد & ۴۰ هد \\
+تعداد سرهای کلید-مقدار ($H_{KV}$) & ۳۲ هد (\en{MHA}) & ۸ هد (\en{GQA}) \\
+نسبت گروه‌بندی در \en{GQA} ($H_Q / H_{KV}$) & ۱ (بدون اشتراک) & ۵ (اشتراک ۵ به ۱) \\
+بعد هر سر توجه ($d_k = d_v$) & ۱۲۸ & ۱۲۸ \\
+پنجره زمینه پیش‌فرض (\en{Pretrain Context}) & ۸,۱۹۲ توکن & ۸,۱۹۲ توکن \\
+پنجره زمینه گسترش‌یافته (\en{Long-Context}) & ۶۵,۵۳۶ توکن (\en{64K}) & ۶۵,۵۳۶ توکن (\en{64K}) \\
+مکانیزم توجه پنجره لغزان (\en{SWA}) & در ۳ لایه از هر ۴ لایه ($W=4096$) & در ۳ لایه از هر ۴ لایه ($W=4096$) \\
+لایه نهایی ترنسفورمر & توجه کامل (\en{Full Attention}) & توجه کامل (\en{Full Attention}) \\
+نرمال‌سازی تعبیه کلمات (\en{Weight Decay}) & غیرفعال ($0.0$) & غیرفعال ($0.0$) \\
+نوع لایه‌نرمال‌سازی (\en{Layer Norm}) & \en{RMSNorm} & \en{RMSNorm} \\
+جایگاه لایه‌نرمال‌سازی & \en{Pre-LN} و در خروجی نهایی & \en{Pre-LN} و در خروجی نهایی \\
+نرمال‌سازی پرسمان و کلید (\en{QKV Norm}) & \en{QK-Norm} (\en{RMSNorm}) & \en{QK-Norm} (\en{RMSNorm}) \\
+تابع فعال‌ساز پیش‌خور (\en{Activation}) & \en{SwiGLU} & \en{SwiGLU} \\
+پایه فرکانسی چرخان ($\theta_{\text{base}}$) & ۵۰۰,۰۰۰ & ۵۰۰,۰۰۰ \\
+روش بسط زمینه موقعیتی (\en{RoPE Scaling}) & \en{YaRN} (صرفاً روی لایه‌های کامل) & \en{YaRN} (صرفاً روی لایه‌های کامل) \\
+حد آستانه برش گرادیان (\en{Grad Clipping}) & ۱.۰ & ۱.۰ \\
+ضریب منظم‌سازی لگاریتم شانس‌ها (\en{Z-Loss}) & $10^{-5}$ & $10^{-5}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

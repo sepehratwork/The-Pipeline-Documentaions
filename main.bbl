@@ -1648,6 +1648,31 @@ Chenxin An, Fei Huang, Jun Zhang, Shansan Gong, Xipeng Qiu, Chang Zhou, and
 \newblock {Training-Free Long-Context Scaling of Large Language Models}.
 \newblock {\em CoRR, abs/2402.17463}, 2024.
 
+\bibitem{olmo2024furious}
+{OLMo Team}, Pete Walsh, Luca Soldaini, Dirk Groeneveld, Kyle Lo, et~al.
+\newblock {2 OLMo 2 Furious}.
+\newblock {\em arXiv preprint arXiv:2501.00656}, 2024.
+
+\bibitem{zhang2019rmsnorm}
+Biao Zhang and Rico Sennrich.
+\newblock {Root Mean Square Layer Normalization}.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  32, 2019.
+
+\bibitem{zhao2024sequence}
+Yian Zhao, Yuanhao Qu, Kamil Staniszewski, Szymon Tworkowski, Wei Liu, Piotr
+  Mi{\l}o{\'s}, Yuhuai Wu, and Pasquale Minervini.
+\newblock {Analysing the Impact of Sequence Composition on Language Model
+  Pre-Training}.
+\newblock In {\em Proceedings of the 62nd Annual Meeting of the Association for
+  Computational Linguistics (Volume 1: Long Papers)}, pages 7897--7912, 2024.
+
+\bibitem{chu2025scaling}
+Wei Chu, Xiaohan Xie, Jiaming Yu, Jilong Wang, Amar Phanishayee, et~al.
+\newblock {Scaling Llama 3 Training with Efficient Parallelism Strategies}.
+\newblock In {\em Proceedings of the 52nd Annual International Symposium on
+  Computer Architecture (ISCA)}, pages 1703--1716, 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.

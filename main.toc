@@ -13,26 +13,26 @@
 \contentsline {subsection}{\numberline {2.5}نرمالسازی (\lr {Normalization})}{121}{subsection.2.5}%
 \contentsline {subsection}{\numberline {2.6}مکانیزم توجه (\lr {Attention})}{122}{subsection.2.6}%
 \contentsline {subsection}{\numberline {2.7}ساختار ترنسفورمر (\lr {Transformer})}{122}{subsection.2.7}%
-\contentsline {section}{\numberline {3}بهینه سازی (\lr {Optimization})}{156}{section.3}%
-\contentsline {subsection}{\numberline {3.1}الگوریتم (\lr {Algorithm})}{156}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}تابع هزینه (\lr {Loss Function})}{157}{subsection.3.2}%
-\contentsline {section}{\numberline {4}تنظیم هایپرپارامتر (\lr {Hyperparameter Tuning})}{157}{section.4}%
-\contentsline {section}{\numberline {5}قوانین مقیاس پذیری (\lr {Scaling Laws})}{157}{section.5}%
-\contentsline {subsection}{\numberline {5.1}مقدمه}{157}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}اصلاح و توسعه قوانین مقیاس‌پذیری کلاسیک}{158}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}تاثیر معماری و شکل مدل (\lr {Model Shape \& Architecture})}{158}{subsection.5.3}%
-\contentsline {subsection}{\numberline {5.4}قوانین مقیاس‌پذیری برای مدل‌های ترکیبی از خبرگان (\lr {MoE})}{159}{subsection.5.4}%
-\contentsline {subsection}{\numberline {5.5}نقش داده‌ها: کیفیت، ترکیب و چگالی}{159}{subsection.5.5}%
-\contentsline {subsection}{\numberline {5.6}فراتر از خطای مطلق: معیارهای نوین ارزیابی}{159}{subsection.5.6}%
-\contentsline {subsection}{\numberline {5.7}نتیجه‌گیری}{160}{subsection.5.7}%
-\contentsline {section}{\numberline {6}ارزیابی (\lr {Evaluation})}{160}{section.6}%
-\contentsline {section}{\numberline {7}یادگیری تقویتی (\lr {Reinforcement Learning})}{160}{section.7}%
-\contentsline {subsection}{\numberline {7.1}الگوریتم بهینه‌سازی تقریبی خط‌مشی (\lr {Proximal Policy Optimization - PPO})}{165}{subsection.7.1}%
-\contentsline {subsection}{\numberline {7.2}الگوریتم بهینه‌سازی نسبی خط‌مشی گروهی (\lr {Group Relative Policy Optimization - GRPO})}{172}{subsection.7.2}%
-\contentsline {subsection}{\numberline {7.3}الگوریتم بهینه‌سازی توالی گروهی خط‌مشی (\lr {Group Sequence Policy Optimization - GSPO})}{177}{subsection.7.3}%
-\contentsline {subsection}{\numberline {7.4}الگوریتم بهینه‌سازی خط‌مشی با برش مجزا و نمونه‌برداری پویا (\lr {Decoupled Clip and Dynamic Sampling Policy Optimization - DAPO})}{184}{subsection.7.4}%
-\contentsline {subsection}{\numberline {7.5}الگوریتم بهینه‌سازی خط‌مشی تطبیقی نرم (\lr {Soft Adaptive Policy Optimization - SAPO})}{190}{subsection.7.5}%
-\contentsline {subsection}{\numberline {7.6}الگوریتم بهینه‌سازی خط‌مشی با ضریب اهمیت برش‌خورده (\lr {Clipped IS-weight Policy Optimization - CISPO})}{196}{subsection.7.6}%
-\contentsline {subsection}{\numberline {7.7}الگوریتم یادگیری تقویتی با پاداش‌های اعتبارسنجی‌پذیر (\lr {Reinforcement Learning with Verifiable Rewards - RLVR})}{202}{subsection.7.7}%
-\contentsline {subsection}{\numberline {7.8}الگوریتم یادگیری تقویتی با پاداش‌های قابل اعتبارسنجی و بهینه‌سازی گروهی (\lr {OlmoRL: RLVR + GRPO})}{207}{subsection.7.8}%
-\contentsline {section}{\numberline {8}منابع}{215}{section.8}%
+\contentsline {section}{\numberline {3}بهینه سازی (\lr {Optimization})}{162}{section.3}%
+\contentsline {subsection}{\numberline {3.1}الگوریتم (\lr {Algorithm})}{162}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}تابع هزینه (\lr {Loss Function})}{162}{subsection.3.2}%
+\contentsline {section}{\numberline {4}تنظیم هایپرپارامتر (\lr {Hyperparameter Tuning})}{163}{section.4}%
+\contentsline {section}{\numberline {5}قوانین مقیاس پذیری (\lr {Scaling Laws})}{163}{section.5}%
+\contentsline {subsection}{\numberline {5.1}مقدمه}{163}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}اصلاح و توسعه قوانین مقیاس‌پذیری کلاسیک}{163}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}تاثیر معماری و شکل مدل (\lr {Model Shape \& Architecture})}{164}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}قوانین مقیاس‌پذیری برای مدل‌های ترکیبی از خبرگان (\lr {MoE})}{164}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}نقش داده‌ها: کیفیت، ترکیب و چگالی}{165}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}فراتر از خطای مطلق: معیارهای نوین ارزیابی}{165}{subsection.5.6}%
+\contentsline {subsection}{\numberline {5.7}نتیجه‌گیری}{166}{subsection.5.7}%
+\contentsline {section}{\numberline {6}ارزیابی (\lr {Evaluation})}{166}{section.6}%
+\contentsline {section}{\numberline {7}یادگیری تقویتی (\lr {Reinforcement Learning})}{166}{section.7}%
+\contentsline {subsection}{\numberline {7.1}الگوریتم بهینه‌سازی تقریبی خط‌مشی (\lr {Proximal Policy Optimization - PPO})}{171}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}الگوریتم بهینه‌سازی نسبی خط‌مشی گروهی (\lr {Group Relative Policy Optimization - GRPO})}{178}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}الگوریتم بهینه‌سازی توالی گروهی خط‌مشی (\lr {Group Sequence Policy Optimization - GSPO})}{183}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}الگوریتم بهینه‌سازی خط‌مشی با برش مجزا و نمونه‌برداری پویا (\lr {Decoupled Clip and Dynamic Sampling Policy Optimization - DAPO})}{190}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}الگوریتم بهینه‌سازی خط‌مشی تطبیقی نرم (\lr {Soft Adaptive Policy Optimization - SAPO})}{196}{subsection.7.5}%
+\contentsline {subsection}{\numberline {7.6}الگوریتم بهینه‌سازی خط‌مشی با ضریب اهمیت برش‌خورده (\lr {Clipped IS-weight Policy Optimization - CISPO})}{202}{subsection.7.6}%
+\contentsline {subsection}{\numberline {7.7}الگوریتم یادگیری تقویتی با پاداش‌های اعتبارسنجی‌پذیر (\lr {Reinforcement Learning with Verifiable Rewards - RLVR})}{208}{subsection.7.7}%
+\contentsline {subsection}{\numberline {7.8}الگوریتم یادگیری تقویتی با پاداش‌های قابل اعتبارسنجی و بهینه‌سازی گروهی (\lr {OlmoRL: RLVR + GRPO})}{213}{subsection.7.8}%
+\contentsline {section}{\numberline {8}منابع}{221}{section.8}%
