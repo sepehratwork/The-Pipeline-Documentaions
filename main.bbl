@@ -1572,6 +1572,26 @@ Artidoro Pagnoni, Ram Pasunuru, Pedro Rodriguez, et~al.
 \newblock Byte latent transformer: Patches scale better than tokens.
 \newblock {\em arXiv preprint arXiv:2412.09871}, 2024.
 
+\bibitem{meta2025mobilellmpro}
+Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, et~al.
+\newblock {MobileLLM-Pro Technical Report}.
+\newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
+
+\bibitem{nvidia2025nemotron3}
+{NVIDIA}.
+\newblock {NVIDIA Nemotron 3: Efficient and Open Intelligence}.
+\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
+
+\bibitem{qwen2025qwen3}
+{Team Qwen}.
+\newblock Qwen3 technical report.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{olmo2025olmo3}
+{Olmo Team}.
+\newblock {Olmo 3}.
+\newblock {\em arXiv preprint}, 2025.
+
 \bibitem{vaswani2017attention}
 Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
   Aidan~N. Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
@@ -2148,11 +2168,6 @@ Chujie Zheng, Shixuan Liu, Mingze Li, Xiong-Hui Chen, Bowen Yu, Chang Gao, Kai
 \newblock Deepseek-r1: Incentivizing reasoning capability in llms via
   reinforcement learning.
 \newblock {\em arXiv preprint arXiv:2501.12948}, 2025.
-
-\bibitem{qwen2025qwen3}
-{Team Qwen}.
-\newblock Qwen3 technical report.
-\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
 
 \bibitem{jain2024livecodebench}
 Naman Jain, King Han, Alex Gu, Wen-Ding Li, Fanjia Yan, Tianjun Zhang, Sida

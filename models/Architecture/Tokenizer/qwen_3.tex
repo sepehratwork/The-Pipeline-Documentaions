@@ -1,1 +1,23 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{ساختار واژگان و مقیاس چندزبانی (\en{BBPE Multi-lingual Scaling})}
+مدل \model{Qwen3} \cite{qwen2025qwen3} بر پایه الگوریتم \en{Byte-level BPE} با واژگانی شامل $|\mathcal{V}| = 151{,}669$ توکن بنا شده است. این توکنایزر با آموزش بر روی ۳۶ تریلیون توکن، پشتیبانی خود را به **۱۱۹ زبان و گویش** گسترش داده است که موجب کاهش چشمگیر نرخ بیت بر بایت (\en{BPB}) در متون بین‌المللی شده است.
+
+\paragraph*{استراتژی اشتراک وزن تعبیه (\en{Tie Embedding Strategy})}
+بر اساس نسبت ابعاد واژگان به تعداد پارامترهای کل، اشتراک وزن ماتریس ورودی ($\mathbf{W}_E$) و خروجی ($\mathbf{W}_U$) تفکیک شده است:
+\begin{itemize}
+    \item در مدل‌های سبک ($\le 4\text{B}$): برقراری اشتراک وزن جهت مهار حجم حافظه لایه واژگان.
+    \item در مدل‌های متوسط و بزرگ ($\ge 8\text{B}$): عدم اشتراک وزن به منظور تقویت قدرت تمایز لاجیت‌ها.
+\end{itemize}
+
+\paragraph*{نشانه‌های کنترل حالت تفکر و ادغام الگوها}
+تغییر حالت تفکر با نشانه‌های صریح زیر مدیریت می‌شود:
+\begin{itemize}
+    \item \en{\texttt{/think}}: ورود به حالت تفکر عمیق و تولید توکن‌ها درون بلوک‌های \en{\texttt{<think> ... </think>}}.
+    \item \en{\texttt{/no\_think}}: اجبار مدل به تولید بلوک خالی \en{\texttt{<think>\textbackslash n</think>}} و صدور پاسخ مستقیم بدون تفکر.
+\end{itemize}
+در زمان اتمام بودجه توکنی در استنتاج، دستور توقف زیر به متن افزوده می‌شود:
+\begin{center}
+\small
+\en{\texttt{"Considering the limited time by the user, I have to give the solution based on the thinking directly now.\textbackslash n</think>\textbackslash n\textbackslash n"}}
+\end{center}

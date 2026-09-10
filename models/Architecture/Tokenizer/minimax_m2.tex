@@ -1,1 +1,38 @@
-\item \textbf asd
+\item \model{MiniMax-M2 Series}
+
+\paragraph*{ابعاد واژگان و بافت بومی}
+سری مدل‌های \model{MiniMax-M2} \cite{minimax2026m2} از واژگان بزرگ با اندازه $|\mathcal{V}| = 200{,}064$ توکن و بعد پنهان $d_{\text{model}} = 3072$ بهره می‌برند که طول زمینه بومی $192\text{K}$ توکن را پشتیبانی می‌کند.
+
+\paragraph*{پروتکل تفکر بینابینی در جریان توکن‌ها (\en{Interleaved Token Stream})}
+دنباله تولیدی مدل در سناریوهای عامل‌محور به صورت زنجیره‌ای متناوب از توکن‌های تفکر ($r_t$) و اکشن‌های اجرایی ($a_t$) شکل می‌گیرد:
+\begin{equation}
+    \tau = (r_1, a_1, o_1, r_2, a_2, o_2, \dots, r_T, a_T, o_T)
+\end{equation}
+برخلاف روش‌های سنتی که توکن‌های تفکر را پس از هر نوبت دور می‌ریزند، در این مدل تاریخچه تفکر حفظ شده و به نوبت بعدی الصاق می‌گردد.
+
+\paragraph*{ادغام درخت پیشوندی توکن‌ها (\en{Prefix Tree Merging})}
+در آموزش یادگیری تقویتی چندنوبتی، چندین پاسخ تولیدی دارای پیش‌وند توکنی یکسان هستند. با بهره‌گیری از الگوریتم \en{Prefix Tree Merging}، محاسبات لایه تعبیه و توجه برای توکن‌های پیش‌وند مشترک تنها یک بار اجرا شده و سپس شاخه‌بندی می‌شود. این روش بدون هیچ‌گونه تقریب، سرعت محاسبات آموزشی را تا **۴۰ برابر** بهبود می‌بخشد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    font=\small,
+    node distance=0.8cm and 1.2cm,
+    base/.style={draw, rounded corners=5pt, align=center, line width=0.9pt, drop shadow},
+    m2_prefix_box/.style={base, fill=blue!15, draw=blue!70!black, minimum width=4.2cm, minimum height=0.9cm},
+    m2_branch_box/.style={base, fill=green!15, draw=green!70!black, minimum width=3.2cm, minimum height=0.8cm},
+    arrow/.style={-{Stealth[scale=1.0]}, line width=1pt, draw=gray!80!black}
+]
+    \node[m2_prefix_box] (pre) {\textbf{پیش‌وند توکنی مشترک}\\ محاسبه یکباره در تعبیه و توجه};
+    \node[m2_branch_box, above right=0.4cm and 1.2cm of pre] (b1) {شاخه خروجی ۱ (\en{Path A})};
+    \node[m2_branch_box, right=1.2cm of pre] (b2) {شاخه خروجی ۲ (\en{Path B})};
+    \node[m2_branch_box, below right=0.4cm and 1.2cm of pre] (b3) {شاخه خروجی ۳ (\en{Path C})};
+
+    \draw[arrow] (pre) -| (b1.west);
+    \draw[arrow] (pre) -- (b2.west);
+    \draw[arrow] (pre) -| (b3.west);
+\end{tikzpicture}
+\caption{سازوکار ادغام درخت پیشوندی توکن‌ها در \model{MiniMax-M2}.}
+\label{fig:minimax_prefix_tree}
+\end{figure}

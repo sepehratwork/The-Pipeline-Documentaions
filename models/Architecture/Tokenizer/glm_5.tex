@@ -1,1 +1,51 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{ابعاد واژگان و مقیاس پارامتری (\en{Vocabulary Dimensions})}
+مدل \model{GLM-5} \cite{glm2026glm5} دارای واژگانی با ظرفیت $|\mathcal{V}| = 154{,}880$ توکن است. این میزان در مقایسه با واژگان ۱۵۱K مدلی \model{GLM-4.5} افزایش یافته تا کدهای سطح پایین سیستمی و زبان‌های متنوع را با کارایی بهتری بازنمایی نماید.
+
+\paragraph*{دروازه توکن‌به‌توکن (\en{Token-in-Token-out Gateway - TITO})}
+در آموزش یادگیری تقویتی ناهمگام، بازگرداندن متن خام به موتور آموزش (\en{Text-in-Text-out}) به دلیل توکنایزیشن مجدد (\en{Re-tokenization})، مرزهای توکن‌ها را دچار لغزش نموده و هماهنگی محاسبات گرادیان و پاداش را متلاشی می‌کرد. معماری \en{TITO Gateway} شناسه‌های خام عددی توکن‌ها (\en{Token IDs}) را از موتور استنتاج ثبت کرده و بدون تبدیل به متن، به موتور آموزش ارسال می‌کند.
+
+\paragraph*{نمونه‌برداری ترجیحی در سطح توکن (\en{Token-Level Importance Sampling})}
+نسبت اهمیت توکن‌ها در آموزش ناهمگام مستقیماً از روی لاگ‌احتمال‌های ثبت‌شده محاسبه می‌شود:
+\begin{equation}
+    r_t(\theta) = \exp\left(\log \pi_\theta(a_t \mid s_t) - \log \pi_{\text{rollout}}(a_t \mid s_t)\right)
+\end{equation}
+و با تابع برش متقارن $f(r_t; \epsilon_\ell, \epsilon_h)$ پایدار می‌گردد:
+\begin{equation}
+    f(r_t; \epsilon_\ell, \epsilon_h) = \begin{cases} 
+        r_t & \text{if } 1 - \epsilon_\ell < r_t < 1 + \epsilon_h \\
+        0 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+\paragraph*{حالت‌های تفکر در جریان توکن‌ها}
+\model{GLM-5} جریان تفکر را در قالب توکن‌های \en{\texttt{<think> ... </think>}} تفکیک می‌کند و سه قابلیت بنیادین ارائه می‌دهد:
+\begin{itemize}
+    \item \textbf{تفکر بینابینی (\en{Interleaved Thinking}):} استدلال گام‌به‌گام پیش از اجرای هر اکشن.
+    \item \textbf{پایداری تفکر (\en{Preserved Thinking}):} ماندگاری توکن‌های استدلال قبلی در سراسر نشست کاری.
+    \item \textbf{تفکر نوبتی (\en{Turn-level Thinking}):} مدیریت فعال یا غیرفعال بودن تفکر در هر نوبت پاسخ‌دهی.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    font=\small,
+    node distance=1.0cm and 1.2cm,
+    base/.style={draw, rounded corners=5pt, align=center, line width=0.9pt, drop shadow},
+    engine_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=3.8cm, minimum height=1cm},
+    tito_node/.style={base, fill=green!15, draw=green!70!black, minimum width=5.2cm, minimum height=1.1cm},
+    arrow/.style={-{Stealth[scale=1.0]}, line width=1pt, draw=gray!80!black}
+]
+    \node[engine_node] (rollout) {موتور استنتاج ناهمگام\\ (\en{Rollout Engine})};
+    \node[tito_node, right=1.2cm of rollout] (tito) {\textbf{دروازه \en{TITO Gateway}}\\ انتقال مستقیم شناسه‌های عددی توکن\\ ممانعت از \en{Re-Tokenization}};
+    \node[engine_node, right=1.2cm of tito] (trainer) {موتور آموزش و گرادیان\\ (\en{Learner Engine})};
+
+    \draw[arrow] (rollout) -- node[above]{\scriptsize شناسه‌های توکن} (tito);
+    \draw[arrow] (tito) -- node[above]{\scriptsize جریان تراز شده} (trainer);
+    \draw[arrow, dashed, red!70!black] (trainer) |- ++(0,-1.0) -| node[pos=0.25, below]{\scriptsize به‌روزرسانی پارامترها} (rollout);
+\end{tikzpicture}
+\caption{عملکرد دروازه \en{TITO} در جلوگیری از خطای مرز توکن‌ها در \model{GLM-5}.}
+\label{fig:glm5_tito_gateway}
+\end{figure}

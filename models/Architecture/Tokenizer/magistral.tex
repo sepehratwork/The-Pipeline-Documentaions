@@ -1,1 +1,23 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{نرمال‌سازی اتلاف در سطح طول توکن‌ها (\en{Token-Level Loss Normalization})}
+در الگوریتم \en{GRPO} مدل \model{Magistral} \cite{mistral2025magistral}، نرمال‌سازی تابع زیان به جای تعداد نمونه‌ها، بر مبنای مجموع طول توکن‌های تولیدی در گروه ($|o_i|$) محاسبه می‌شود تا از سوگیری مدل به سمت پاسخ‌های طویل ممانعت گردد:
+\begin{equation}
+    \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E} \left[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \min \left( r_{i,t} \hat{A}_{i,t}^{\text{norm}}, \text{clip}(r_{i,t}, 1-\varepsilon_{\text{low}}, 1+\varepsilon_{\text{high}}) \hat{A}_{i,t}^{\text{norm}} \right) \right]
+\end{equation}
+
+\paragraph*{پاداش هم‌نوایی زبانی توکن‌ها (\en{Language Consistency Reward})}
+جهت جلوگیری از اختلاط تصادفی زبان‌ها (\en{Code-switching}) در توکن‌های استدلال درونی، از ارزیابی زبانی بر مبنای طبقه‌بند \en{fastText} استفاده شد. در صورتی که متن پرسش، توکن‌های تفکر و پاسخ نهایی دارای شناسه زبانی یکسان باشند، پاداش الحاقی $+0.1$ اعطا می‌گردد.
+
+\paragraph*{مهار طول توکن‌ها با جریمه نرم (\en{Soft Length Penalty})}
+برای کنترل اندازه توالی‌های خروجی پیش از رسیدن به سقف سخت $l_{\max}$، تابع جریمه زیر در مرحله استنتاج اعمال می‌شود:
+\begin{equation}
+    R_{\text{length}}(y) = \begin{cases} 
+        0 & |y| \le l_{\max} - l_{\text{cache}} \\
+        -0.1 \cdot \frac{|y| - l_{\max} + l_{\text{cache}}}{l_{\text{cache}}} & l_{\max} - l_{\text{cache}} < |y| \le l_{\max} \\
+        -0.1 & |y| > l_{\max}
+    \end{cases}
+\end{equation}
+
+\paragraph*{کاهش ۱۹ درصدی توکن‌های حاشیه (\en{Padding Reduction})}
+با توجه به نوسان ۵ برابری طول توکن‌های تولیدی در فرآیند استدلال، یک روش چینش حریصانه (\en{Greedy Collation}) در دسته‌بندی توکن‌ها به کار گرفته شد که حجم توکن‌های زائد \en{Padding} را تا ۱۹٪ کاهش داد.

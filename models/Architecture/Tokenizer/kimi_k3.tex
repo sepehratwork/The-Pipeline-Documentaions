@@ -1,1 +1,47 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{ابعاد واژگان و ساختار رها از کدهای مکانی (\en{NoPE})}
+مدل \model{Kimi K3} \cite{kimi2026k3} از یک واژگان با ابعاد $|\mathcal{V}| = 160{,}000$ توکن بهره می‌برد. در این مدل، لایه‌های توجه \en{MLA} فاقد هرگونه کدگذاری موقعیتی صریح (\en{NoPE}) هستند. اطلاعات ترتیبی و زمانی توکن‌ها ذاتاً توسط لایه‌های خطی بازگشتی \en{KDA} مدل‌سازی می‌شود؛ بنابراین هیچ‌گونه نیازی به دستکاری کدهای مکانی دوار (\en{RoPE}) برای پشتیبانی از ۱ میلیون توکن وجود ندارد.
+
+\paragraph*{زبان نشانه‌گذاری \en{XTML} برای رفع ابهام توکنایزیشن}
+برای حذف خطاهای ناشی از تداخل کاراکترهای زاویه‌دار در متن‌های فنی، ساختار \en{XTML} بر پایه سه نشانه رزروشده معرفی شده است:
+\begin{itemize}
+    \item \en{\texttt{[open]}}: علامت آغاز ساختار.
+    \item \en{\texttt{[sep]}}: جداکننده صریح شناسه و ویژگی‌ها از بدنه پیام.
+    \item \en{\texttt{[close]}}: علامت پایان ساختار.
+    \item \en{\texttt{[end\_of\_msg]}}: توکن پایانی پیام.
+\end{itemize}
+نمونه سریال‌سازی پیام در سطح توکن به صورت زیر است:
+\begin{center}
+\scriptsize
+\en{\texttt{[open]message role="assistant"[sep] [open]think[sep] ... [close]think[sep] [open]response[sep] ... [close]response[sep] [close]message[sep] [end\_of\_msg]}}
+\end{center}
+
+\paragraph*{کانال‌های تفکیک‌شده تولید توکن}
+پیام‌ها در این مدل به سه کانال محاسباتی تقسیم می‌شوند: کانال تفکر (\en{Think Channel})، کانال پاسخ نهایی (\en{Response Channel})، و کانال فراخوانی ابزار (\en{Tools Channel}) که آرگومان‌ها در آن به فرمت ساختاریافته بدون نیاز به گریز کاراکترها درج می‌گردند.
+
+\paragraph*{فشرده‌سازی و توکنایزیشن تصویر}
+انکودر دیداری \en{MoonViT-V2} تصاویر و ویدئوها را به توکن‌های پیوسته تبدیل می‌کند. با اعمال عملگر \en{Pixel-Shuffle} با ضریب نمونه‌برداری $2 \times 2$، تعداد توکن‌های دیداری ۴ برابر فشرده شده و امکان گنجاندن تصاویر تا ابعاد $3584 \times 3584$ پیکسل در زمینه میلیونی فراهم می‌شود.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    font=\small,
+    node distance=0.8cm and 1.0cm,
+    base/.style={draw, rounded corners=5pt, align=center, line width=0.9pt, drop shadow},
+    frame_box/.style={base, fill=blue!10, draw=blue!70!black, minimum width=8.5cm, minimum height=1cm},
+    sub_box/.style={base, fill=white, draw=gray!80!black, minimum width=7.5cm, minimum height=0.8cm}
+]
+    \node[frame_box] (msg) {\textbf{پیام دستیار در ساختار \en{XTML}}};
+    \node[sub_box, below=0.5cm of msg] (think) {کانال استدلال: \texttt{\scriptsize [open]think[sep]} $\dots$ \texttt{\scriptsize [close]think[sep]}};
+    \node[sub_box, below=0.4cm of think] (resp) {کانال پاسخ: \texttt{\scriptsize [open]response[sep]} $\dots$ \texttt{\scriptsize [close]response[sep]}};
+    \node[sub_box, below=0.4cm of resp] (tools) {کانال ابزار: \texttt{\scriptsize [open]call ...[sep]} $\dots$ \texttt{\scriptsize [close]call[sep]}};
+    
+    \draw[-{Stealth}, line width=0.9pt] (msg) -- (think);
+    \draw[-{Stealth}, line width=0.9pt] (think) -- (resp);
+    \draw[-{Stealth}, line width=0.9pt] (resp) -- (tools);
+\end{tikzpicture}
+\caption{کانال‌بندی و ساختار نشانه‌های کنترلی \en{XTML} در \model{Kimi K3}.}
+\label{fig:kimi_k3_xtml}
+\end{figure}
