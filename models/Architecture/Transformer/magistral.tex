@@ -1,1 +1,210 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{مقدمه و فلسفه معماری ترنسفورمر (\en{Architectural Philosophy})}
+مدل‌های خانواده \model{Magistral} \cite{magistral2025} به عنوان نخستین نسل از مدل‌های استدلال‌گر پیشرفته شرکت \en{Mistral AI}، با تکیه بر مقیاس‌پذیری الگوریتم‌های یادگیری تقویتی برخط (\en{Online RL}) بر بستر معماری ترنسفورمرهای خودکاهنده (\en{Autoregressive Decoder-Only Transformers}) توسعه یافته‌اند. برخلاف رویکردهای متداول که بر تقطیر ردپای استدلال (\en{Distillation of CoT Traces}) از مدل‌های پیشین متکی هستند، این خانواده بر پایه یادگیری تقویتی مستقیم روی ترنسفورمرهای چندوجهی طراحی شده است. 
+
+این معماری در دو مقیاس اصلی پیکربندی شده است:
+\begin{itemize}
+    \item \textbf{\model{Magistral Small}:} ترنسفورمر ۲۴ میلیارد پارامتری ($24\text{B}$) مبتنی بر مدل پایه \en{Mistral Small 3 Instruct} که با تلفیق چک‌پوینت‌های آغازین (\en{Cold-Start SFT}) و بهینه‌سازی سیاست گروهی (\en{GRPO}) آموزش دیده است.
+    \item \textbf{\model{Magistral Medium}:} مدل استدلال‌گر مقیاس‌بزرگ مبتنی بر \en{Mistral Medium 3} \cite{mistralai2025medium3} که به شکل خالص با یادگیری تقویتی و بدون استفاده از داده‌های تقطیرشده مدل‌های پیشین بهینه‌سازی شده است.
+\end{itemize}
+
+علاوه بر این، در مطالعات تعیین بهینه هایپرپارامترها و پایدارسازی لایه‌ها از مدل سبک‌تر \en{Ministral 3B} استفاده شده است.
+
+% =========================================================================
+% دیاگرام جامع معماری ترنسفورمر و پایپ‌لاین وزن‌ها در Magistral
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.1cm and 1.6cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=8.5cm, minimum height=1.0cm, font=\bfseries},
+    vision_box/.style={base, fill=purple!12, draw=purple!70!black, minimum width=4.0cm, minimum height=1.2cm},
+    text_box/.style={base, fill=teal!12, draw=teal!70!black, minimum width=4.0cm, minimum height=1.2cm},
+    attn_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=9.2cm, minimum height=2.5cm},
+    system_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=4.3cm, minimum height=3.0cm},
+    pca_box/.style={base, fill=violet!12, draw=violet!70!black, minimum width=9.2cm, minimum height=1.3cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=10pt, line width=1.2pt, inner sep=12pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % ورودی‌های مدل (متن و تصویر)
+    \node[io_node] (input) {ورودی چندوجهی: توکن‌های متنی و تصاویر (\en{Multimodal Input Tokens \& Images})};
+
+    % انکودرهای ورودی
+    \node[text_box, below left=0.8cm and 0.2cm of input] (text_enc) {
+        \textbf{انکودر متنی (\en{Text Embed})}\\[2pt]
+        \scriptsize نگاشت توکن‌های کلامی\\
+        \scriptsize $\mathbf{X}_{\text{text}} \in \mathbb{R}^{N_t \times d}$
+    };
+    \node[vision_box, below right=0.8cm and 0.2cm of input] (vis_enc) {
+        \textbf{انکودر بینایی (\en{Vision Encoder})}\\[2pt]
+        \scriptsize استخراج ویژگی‌های بصری\\
+        \scriptsize $\mathbf{X}_{\text{vis}} \in \mathbb{R}^{N_v \times d}$
+    };
+
+    % بلوک توجه و بدنه دیکودر ترنسفورمر
+    \node[attn_box, below=1.3cm of $(text_enc.south)!0.5!(vis_enc.south)$] (decoder) {
+        \textbf{\large لایه‌های دیکودر ترنسفورمر (\en{Autoregressive Transformer Layers})}\\[3pt]
+        \scriptsize $\bullet$ \textbf{پیکربندی:} مدل ۲۴ میلیاردی \en{Mistral Small 3} و مدل مقیاس‌بزرگ \en{Mistral Medium 3}\\
+        \scriptsize $\bullet$ \textbf{توجه علّی و مدیریت زمینه طولانی:} پشتیبانی بومی از پنجره بازنمایی تا ۳۲ و ۴۰ هزار توکن\\
+        \scriptsize $\bullet$ \textbf{دینامیک حافظه \en{KV Cache}:} تحمل ناهمگامی ناشی از جایگزینی بلادرنگ وزن‌ها (\en{Mid-generation Updates})\\
+        \scriptsize $\bullet$ \textbf{همگرایی چندوجهی:} تعمیم‌پذیری زنجیره تفکر به درک تصاویر بدون آموزش تفکیک‌شده بینایی
+    };
+
+    % قاب تکرار بلوک‌های دیکودر
+    \node[block_frame, fit=(decoder), label={[font=\bfseries\color{blue!70!black}]left:تکرار بلوک‌های ترنسفورمر $\times L$}] (block) {};
+
+    % پایپ‌لاین ناهمگام: ژنراتور و ترینر
+    \node[system_box, below left=1.2cm and 0.3cm of block] (generators) {
+        \textbf{\large تولیدکننده‌ها (\en{Generators})}\\[4pt]
+        \scriptsize $\bullet$ استنتاج پیوسته با حداکثر توان\\
+        \scriptsize $\bullet$ پنجره زمینه: $16\text{k} \to 24\text{k} \to 32\text{k}$\\
+        \scriptsize $\bullet$ عدم نیاز به محاسبه مجدد حافظه\\
+        \scriptsize پنهان قدیمی (\en{Stale KV-Cache})\\
+        \scriptsize $\bullet$ نرخ نمونه‌برداری بالا با $\varepsilon_{\text{high}}$
+    };
+
+    \node[system_box, below right=1.2cm and 0.3cm of block] (trainers) {
+        \textbf{\large آموزش‌دهنده‌ها (\en{Trainers})}\\[4pt]
+        \scriptsize $\bullet$ گرادیان بهینه‌سازی سیاست (\en{GRPO})\\
+        \scriptsize $\bullet$ دسته‌بندی حریصانه (\en{Greedy Collation}):\\
+        \scriptsize کاهش ۱۹ درصدی اتلاف حافظه پدینگ\\
+        \scriptsize $\bullet$ مقیاس‌بندی حافظه:\\
+        \scriptsize $n_{\text{batch}}: 8\text{k} \to 4\text{k} \to 2\text{k}$
+    };
+
+    % بلوک ارزیاب‌ها
+    \node[base, fill=yellow!15, draw=yellow!70!black, minimum width=9.2cm, minimum height=1.0cm, below=0.8cm of $(generators.south)!0.5!(trainers.south)$] (verifiers) {
+        \textbf{ماژول ارزیابی و اعتبارسنجی پاداش (\en{Reward Verifiers})}\\[2pt]
+        \scriptsize بررسی صحت نمادین با \en{SymPy} $+$ اجرای تست‌های برنامه‌نویسی (\en{C++20/Python}) $+$ سازگاری زبانی با \en{fastText}
+    };
+
+    % تحلیل فضای وزن‌ها
+    \node[pca_box, below=0.8cm of verifiers] (pca) {
+        \textbf{هندسه فضای پارامتری ترنسفورمر (\en{Low-Dimensional Weight Trajectory Analysis})}\\[2pt]
+        \scriptsize بازنمایی تغییرات وزنی در ابرصفحه: $w(\alpha_1, \alpha_2) = w^* + \alpha_1 c_1 + \alpha_2 c_2$ بر پایه الگوریتم لنچوس-آرنولدی
+    };
+
+    % اتصالات و خطوط جریان
+    \draw[arrow] (input.south -| text_enc.north) -- (text_enc.north);
+    \draw[arrow] (input.south -| vis_enc.north) -- (vis_enc.north);
+    \draw[arrow] (text_enc.south) -- ++(0,-0.4) -| (decoder.north);
+    \draw[arrow] (vis_enc.south) -- ++(0,-0.4) -| (decoder.north);
+
+    \draw[arrow] (decoder.south) ++(-2.2,0) -- (generators.north);
+    \draw[arrow] (generators.south) -- ++(0,-0.3) -| (verifiers.west);
+    \draw[arrow] (verifiers.east) |- ++(0.5,0.4) -| (trainers.south);
+
+    % تبادل مستقیم وزن‌ها از طریق NCCL
+    \draw[arrow, red!70!black, line width=1.4pt] (trainers.west) -- node[above, font=\scriptsize\bfseries] {انتقال سریع وزن‌ها با \en{NCCL} ($t < 5\text{s}$)} node[below, font=\tiny] {تطبیق پویا با توپولوژی شاردینگ} (generators.east);
+
+    \draw[arrow] (verifiers.south) -- (pca.north);
+
+\end{tikzpicture}%
+}
+\caption{معماری لایه‌ها، جریان تانسورهای چندوجهی و زیرساخت تبادل وزن‌های ترنسفورمر \model{Magistral}.}
+\label{fig:magistral_transformer_architecture}
+\end{figure}
+
+\paragraph*{یکپارچه‌سازی چندوجهی بومی ترنسفورمر (\en{Multimodal Vision Integration})}
+مدل‌های پایه \en{Mistral Small 3} و \en{Mistral Medium 3} از معماری ترنسفورمر چندوجهی با انکودر بینایی پیوسته (\en{Associated Vision Encoder}) بهره می‌برند. در آموزش‌های متداول، بهینه‌سازی صرفاً متنی (\en{Text-Only RL}) غالباً منجر به فراموشی فاجعه‌بار (\en{Catastrophic Forgetting}) در درک بصری مدل می‌شود. با این حال، تحلیل‌های ارائه‌شده در مقاله نشان می‌دهد که معماری لایه‌های ترنسفورمر نه تنها بازنمایی‌های بصری را حفظ می‌کند، بلکه توانایی استدلال چندوجهی را به شکل خودبه‌خودی ارتقا می‌دهد:
+\begin{itemize}
+    \item بهبود ۵ درصدی بر روی بنچ‌مارک جامع \en{MMMU} \cite{yue2024mmmu} و ثبت دقت $70.0\%$.
+    \item جهش ۱۲ درصدی در نسخه بینایی آزمون دشوار \en{MMMU-Pro-Vision} \cite{yue2025mmmupro} و دستیابی به دقت $52.1\%$.
+    \item ارتقای استدلال تصویری-ریاضی بر روی \en{MathVista} \cite{lu2024mathvista} به $70.1\%$.
+\end{itemize}
+توالی ورودی ترنسفورمر حاصل الحاق بردار توکن‌های متنی و توکن‌های تصویر است که از طریق انکودر بینایی فشرده و همگام‌سازی شده‌اند.
+
+\paragraph*{ریاضیات خودتوجهی و رفتار حافظه کلید-مقدار (\en{Attention Mechanics \& KV-Cache Dynamics})}
+فرض کنید بردار ورودی لایه ترنسفورمر به صورت $\mathbf{X} \in \mathbb{R}^{N \times d}$ باشد. نگاشت‌های خطی برای تشکیل ماتریس‌های کوئری، کلید و مقدار با ماتریس‌های وزن $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{d \times d_k}$ تعریف می‌شوند:
+\begin{equation}
+    \mathbf{Q} = \mathbf{X}\mathbf{W}_Q, \quad \mathbf{K} = \mathbf{X}\mathbf{W}_K, \quad \mathbf{V} = \mathbf{X}\mathbf{W}_V
+\end{equation}
+خروجی لایه توجه با استفاده از ماتریس پوشش علّی $\mathbf{M} \in \mathbb{R}^{N \times N}$ محاسبه می‌گردد:
+\begin{equation}
+    \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}} + \mathbf{M}\right)\mathbf{V}
+\end{equation}
+که در آن $M_{ij} = -\infty$ به ازای $j > i$ و $M_{ij} = 0$ به ازای $j \le i$ است.
+
+\textbf{۱. بار حافظه \en{KV-Cache} در پنجره استنتاج فوق‌طولانی:}
+در حل مسائل استدلال زنجیره تفکر عمیق، طول توالی به مقادیر فوق‌العاده بزرگ $32\text{k}$ و $40\text{k}$ توکن می‌رسد. میزان حافظه مورد نیاز برای ذخیره‌سازی تانسورهای کلید-مقدار ترنسفورمر از رابطه زیر محاسبه می‌شود:
+\begin{equation}
+    \text{Mem}_{\text{KV}} = 2 \cdot b \cdot L \cdot n_{\text{kv}} \cdot d_k \cdot N_{\text{seq}} \cdot \kappa
+\end{equation}
+که در آن $b$ اندازه دسته، $L$ تعداد کل لایه‌های ترنسفورمر، $n_{\text{kv}}$ تعداد سرهای کلید/مقدار، $d_k$ بعد سر توجه، $N_{\text{seq}}$ طول توالی فعال و $\kappa$ تعداد بایت به ازای هر پارامتر (دقت ممیز شناور) است.
+
+برای جلوگیری از سرریز حافظه، یک استراتژی هماهنگ‌سازی پویای هایپرپارامترها به‌کار گرفته شده است. هم‌زمان با افزایش سقف طول استدلال غیرجریمه‌شده:
+\begin{equation}
+    (l_{\max} - l_{\text{cache}}): 16\text{k} \longrightarrow 24\text{k} \longrightarrow 32\text{k}
+\end{equation}
+اندازه دسته محاسباتی به شکل معکوس کاهش یافته است:
+\begin{equation}
+    n_{\text{batch}}: 8\text{k} \longrightarrow 4\text{k} \longrightarrow 2\text{k}
+\end{equation}
+
+\textbf{۲. ثبات ترنسفورمر در برابر حافظه پنهان کهنه (\en{Stale KV-Cache Invariance}):}
+در ساختار غیرهمگام پایپ‌لاین تولید، ترنسفورمر حین تولید توکن با وزن‌های جدید $\theta_{\text{new}}$ به‌روزرسانی می‌شود، اما وضعیت‌های پنهان ثبت‌شده در حافظه پنهان کلید-مقدار متناظر با توکن‌های ابتدایی ($t < t_{\text{update}}$) بر پایه وزن‌های پیشین $\theta_{\text{old}}$ محاسبه شده‌اند. در معماری \model{Magistral} به منظور حفظ بازده محاسباتی، از محاسبه مجدد تانسورهای \en{KV} صرف‌نظر شده است:
+\begin{equation}
+    \mathbf{k}_t, \mathbf{v}_t \sim \pi_{\theta_{\text{new}}}(\cdot), \quad \text{while } \{\mathbf{k}_\tau, \mathbf{v}_\tau\}_{\tau < t} \sim \pi_{\theta_{\text{old}}}(\cdot)
+\end{equation}
+تحلیل تجربی و نظری نشان می‌دهد که خاصیت تعمیم‌پذیری لایه‌ها و تصحیح برون‌خط‌مشی در تابع زیان \en{GRPO} \cite{shao2024deepseekmath, schulman2017proximal}، ترنسفورمر را در برابر این ناهمگامی زمانی در بردارهای پنهان مقاوم می‌سازد.
+
+\paragraph*{تحلیل دینامیک پارامترها در فضای وزن‌ها با الگوریتم لنچوس-آرنولدی (\en{Weight Space PCA})}
+برای بررسی نحوه انتقال پارامترهای ترنسفورمر حین بهینه‌سازی، روش تحلیل مولفه‌های اصلی در فضای وزن‌ها به کار گرفته شده است \cite{li2018visualizing}. با نمونه‌برداری از $T$ چک‌پوینت میانی در طول آموزش، ماتریس تغییرات وزنی تشکیل می‌شود:
+\begin{equation}
+    \mathbf{X} = \begin{bmatrix} \mathbf{w}_1^T \\ \mathbf{w}_2^T \\ \vdots \\ \mathbf{w}_T^T \end{bmatrix} \in \mathbb{R}^{T \times W}
+\end{equation}
+که در آن $W$ نشان‌دهنده ابعاد کل وزن‌های ترنسفورمر است ($W \approx 2.4 \times 10^{10}$ برای مدل ۲۴ میلیاردی). با محاسبه میانگین وزن‌ها $\bar{\mathbf{w}} = \frac{1}{T}\sum_{i=1}^T \mathbf{w}_i$، ماتریس مرکززدایی‌شده $\tilde{\mathbf{X}} = \mathbf{X} - \mathbf{1}_T \bar{\mathbf{w}}^T$ به دست می‌آید.
+
+با توجه به این‌که بعد $W$ فوق‌العاده بزرگ است، ضرب مستقیم ماتریس کوواریانس امکان‌پذیر نیست. از این رو با بهره‌گیری از روش تکراری لنچوس-آرنولدی (\en{Lanczos-Arnoldi Algorithm}) \cite{saad2003iterative} بر روی ماتریس $\tilde{\mathbf{X}}^T \tilde{\mathbf{X}}$، دو بردار ویژه نخست ($c_1, c_2$) استخراج و نرمال‌سازی می‌شوند:
+\begin{equation}
+    \|c_1\|_2 = 1, \quad \|c_2\|_2 = 1, \quad c_1^T c_2 = 0
+\end{equation}
+سپس، با اعمال اغتشاش دو‌بعدی بر روی چک‌پوینت نهایی $w^* \in \mathbb{R}^W$:
+\begin{equation}
+    w(\alpha_1, \alpha_2) = w^* + \alpha_1 c_1 + \alpha_2 c_2
+\end{equation}
+مشاهده گردید که حرکت در امتداد یک جهت مشخص در فضای وزن‌ها مستقیماً با افزایش طول پاسخ و رشد پاداش مدل همبستگی دارد و پاداش خام تابعی لگاریتمی از طول توکن‌های تولیدی ترنسفورمر است:
+\begin{equation}
+    \mathbb{E}[R_{\text{raw}}] \approx a \cdot \log(\text{Output Length}) + b
+\end{equation}
+
+\paragraph*{بهینه‌سازی توکن‌ها با دسته‌بندی حریصانه (\en{Greedy Collation Algorithm})}
+به دلیل تغییرات وسیع طول پاسخ‌ها در استدلال، توکن‌های پدینگ (\en{Padding Tokens}) هدررفت زیادی در توان محاسباتی ایجاد می‌کنند. از آنجا که برایند گرادیان ترنسفورمر بر مبنای تجمیع میکرودسته‌ها است:
+\begin{equation}
+    \nabla_\theta \mathcal{J}(\theta) = \sum_{m} \nabla_\theta \mathcal{J}_{\text{microbatch}_m}(\theta)
+\end{equation}
+الگوریتم \en{Greedy Collation} ابتدا توالی‌ها را بر مبنای طول به صورت نزولی مرتب کرده و آن‌ها را به صورت فشرده در ریزدسته‌هایی با سقف توکن معین جای‌دهی می‌کند. این رویکرد بدون تغییر در رفتار مدل، اتلاف توکن‌های پدینگ در هسته‌های پردازشی ترنسفورمر را به میزان \textbf{۱۹ درصد} کاهش داده است.
+
+\paragraph*{مشخصات فنی و هایپرپارامترهای مدل ترنسفورمر \model{Magistral}}
+جدول \ref{tab:magistral_transformer_specs} پیکربندی، مشخصات هندسی و هایپرپارامترهای معماری مدل‌های \model{Magistral} را نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات هندسی، ابعاد پردازشی و پارامترهای ترنسفورمر در خانواده \model{Magistral}}
+\label{tab:magistral_transformer_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{مولفه معماری / مشخصه فنی} & \textbf{Magistral Small} & \textbf{Magistral Medium} \\
+\midrule
+مدل پایه (\en{Backbone Model}) & \en{Mistral Small 3 Instruct} & \en{Mistral Medium 3 Instruct} \\
+تعداد کل پارامترها ($W$) & ۲۴ میلیارد پارامتر ($24\text{B}$) & مقیاس متوسط متراکم (\en{Medium Scale}) \\
+پشتیبانی چندوجهی (\en{Multimodal Support}) & انکودر بینایی ادغام‌شده بومی & انکودر بینایی ادغام‌شده بومی \\
+بیشینه طول توالی آموزش ($l_{\max} - l_{\text{cache}}$) & تا ۳۲,۰۰۰ توکن & تا ۳۲,۰۰۰ توکن ($16\text{k} \to 24\text{k} \to 32\text{k}$) \\
+سقف پنجره استنتاج و ارزیابی (\en{Eval Context Window}) & تا ۴۰,۰۰۰ توکن (\en{AIME / LCB}) & تا ۴۰,۰۰۰ توکن (\en{AIME / LCB}) \\
+راهبرد کنترل طول ترنسفورمر & جریمه خطی نرم (\en{Soft Length Penalty}) & جریمه خطی نرم (\en{Soft Length Penalty}) \\
+روش پایدارسازی حافظه کلید-مقدار & مقیاس‌بندی پویای $n_{\text{batch}}$ و $n_{\text{async}}$ & مقیاس‌بندی پویای $n_{\text{batch}}$ و $n_{\text{async}}$ \\
+مدیریت پدینگ در میکرودسته‌ها & دسته‌بندی حریصانه (\en{Greedy Collation}) & دسته‌بندی حریصانه (\en{Greedy Collation}) \\
+کاهش اتلاف پدینگ در محاسبات & ۱۹ درصد کاهش اتلاف & ۱۹ درصد کاهش اتلاف \\
+پروتکل انتقال وزن میان نودها & همگام‌سازی \en{NCCL} ($t < 5\text{s}$) & همگام‌سازی \en{NCCL} ($t < 5\text{s}$) \\
+دمای نمونه‌برداری ترنسفورمر ($\mathcal{T}$) & ۱.۰ & ۰.۷ \\
+آستانه بالایی ناحیه اعتماد ($\varepsilon_{\text{high}}$) & ۰.۳۰ & ۰.۲۶ تا ۰.۲۸ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

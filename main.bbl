@@ -1458,6 +1458,110 @@ A.~Liu, B.~Feng, B.~Wang, et~al.
   Language Model}.
 \newblock {\em arXiv preprint arXiv:2405.04434}, 2024.
 
+\bibitem{deepseek2024v2}
+{DeepSeek-AI}.
+\newblock {DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts
+  Language Model}.
+\newblock {\em arXiv preprint arXiv:2405.04434}, 2024.
+
+\bibitem{qiu2025gated}
+Zihan Qiu et~al.
+\newblock {Gated Attention for Large Language Models: Non-linearity, Sparsity,
+  and Attention-Sink-Free}.
+\newblock {\em arXiv preprint arXiv:2505.06708}, 2025.
+
+\bibitem{kimi2026attnres}
+{Kimi Team}.
+\newblock {Attention Residuals}.
+\newblock {\em Preprint}, 2026.
+
+\bibitem{elango2026latentmoe}
+Venmugil Elango et~al.
+\newblock {LatentMoE: Toward Optimal Accuracy per FLOP and Parameter in Mixture
+  of Experts}.
+\newblock {\em arXiv preprint arXiv:2601.18089}, 2026.
+
+\bibitem{su2026travelsmoe}
+Jianlin Su.
+\newblock {Travels in MoE: 6. Promoting Load Balance via Optimal Assignment}.
+\newblock \url{https://spaces.ac.cn/archives/11619}, 2026.
+
+\bibitem{schlag2021linear}
+Imanol Schlag, Kazuki Irie, and J{\"u}rgen Schmidhuber.
+\newblock {Linear Transformers Are Secretly Fast Weight Programmers}.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  9355--9366, 2021.
+
+\bibitem{yang2025gated}
+Songlin Yang, Jan Kautz, and Ali Hatamizadeh.
+\newblock {Gated Delta Networks: Improving Mamba2 with Delta Rule}.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{qiu2026flash}
+Haiquan Qiu and Quanming Yao.
+\newblock {Why Low-Precision Transformer Training Fails: An Analysis on Flash
+  Attention}.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{he2016deep}
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+\newblock {Deep Residual Learning for Image Recognition}.
+\newblock {\em arXiv preprint arXiv:1512.03385}, 2015.
+
+\bibitem{mistralai2025medium3}
+{Mistral AI}.
+\newblock Mistral medium 3.
+\newblock \url{https://mistral.ai/fr/news/mistral-medium-3}, 2025.
+
+\bibitem{lu2024mathvista}
+Pan Lu, Hritik Bansal, Tony Xia, Jiacheng Liu, Chunyuan Li, Hannaneh
+  Hajishirzi, Hao Cheng, Kai-Wei Chang, Michel Galley, and Jianfeng Gao.
+\newblock Mathvista: Evaluating mathematical reasoning of foundation models in
+  visual contexts.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2024.
+
+\bibitem{schulman2017proximal}
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+\newblock Proximal policy optimization algorithms.
+\newblock {\em arXiv preprint arXiv:1707.06347}, 2017.
+
+\bibitem{wang2024auxfree}
+Lean Wang, Huazuo Gao, Chenggang Zhao, Xu~Sun, and Damai Dai.
+\newblock Auxiliary-loss-free load balancing strategy for mixture-of-experts.
+\newblock {\em arXiv preprint arXiv:2408.15664}, 2024.
+
+\bibitem{minimax2025text01}
+{MiniMax}.
+\newblock Minimax-01: Scaling foundation models with lightning attention, 2025.
+
+\bibitem{qin2024lightning}
+Zhen Qin, Weigao Sun, Dong Li, Xuyang Shen, Weixuan Sun, and Yiran Zhong.
+\newblock Lightning attention-2: A free lunch for handling unlimited sequence
+  lengths in large language models.
+\newblock In {\em Proceedings of the 41st International Conference on Machine
+  Learning}, 2024.
+
+\bibitem{olsson2022induction}
+Catherine Olsson, Nelson Elhage, Neel Nanda, Nicholas Joseph, Nova DasSarma,
+  Tom Henighan, Ben Mann, Amanda Askell, Yuntao Bai, Anna Chen, et~al.
+\newblock In-context learning and induction heads.
+\newblock {\em arXiv preprint arXiv:2209.11895}, 2022.
+
+\bibitem{wu2024retrieval}
+Wenhao Wu, Yizhong Wang, Guangxuan Xiao, Hao Peng, and Yao Fu.
+\newblock Retrieval head mechanistically explains long-context factuality.
+\newblock {\em arXiv preprint arXiv:2404.15574}, 2024.
+
+\bibitem{shazeer2017moe}
+Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le,
+  Geoffrey Hinton, and Jeff Dean.
+\newblock Outrageously large neural networks: The sparsely-gated
+  mixture-of-experts layer.
+\newblock In {\em International Conference on Learning Representations}, 2017.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -1634,11 +1738,6 @@ Bruno Scherrer and Boris Lesner.
   markov decision processes.
 \newblock In {\em Advances in Neural Information Processing Systems (NIPS)},
   volume~25, 2012.
-
-\bibitem{schulman2017proximal}
-John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
-\newblock Proximal policy optimization algorithms.
-\newblock {\em arXiv preprint arXiv:1707.06347}, 2017.
 
 \bibitem{mnih2015human}
 Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei~A Rusu, Joel Veness,

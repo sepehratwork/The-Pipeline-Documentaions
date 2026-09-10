@@ -1,1 +1,241 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{مقدمه و فلسفه بنیادین معماری (\en{Architectural Philosophy})}
+مدل‌های زبانی در حال گذار پرشتاب از مکالمه‌های تک‌نوبته به جریان‌های کاری پیچیده و بلندمدت عامل‌محور (\en{Agentic Workflows}) نظیر برنامه‌نویسی نرم‌افزاری در سطح مخزن، پیمایش خودکار وب و تولید اسناد اداری هستند. این گذار دو چالش جدی ایجاد می‌کند: نخست، هزینه محاسباتی سرسام‌آور پردازش زمینه‌های فوق‌طولانی در فازهای آموزش و استنتاج؛ و دوم، نیازمندی به قابلیت‌های استدلالی چندگامی در شرایط با ریسک بالا. سری مدل‌های \model{MiniMax-M2} با تکیه بر دکترین \textbf{«فعال‌سازی کمینه، هوشمندی بیشینه در دنیای واقعی» (\en{Mini Activations Unleashing Max Real-World Intelligence})} طراحی شده است \cite{minimax2026m2}. 
+
+مدل پرچمدار \model{MiniMax-M2} یک ترنسفورمر دیکودر خالص تنک (\en{Sparse MoE}) با $62$ لایه، بعد پنهان $d_{\text{model}} = 3072$، اندازه واژگان $V = 200{,}064$ توکن و پنجره بافت بومی $192\text{K}$ توکن است. در این معماری، از میان $229.9$ میلیارد پارامتر کل ($229.9\text{B}$)، تنها $9.8$ میلیارد پارامتر ($9.8\text{B}$) به ازای پردازش هر توکن فعال می‌شوند. این ساختار بر چهار پایه استوار است:
+\begin{enumerate}
+    \item \textbf{توجه کامل با پرس‌وجوی گروهی (\en{Full Attention with GQA}):} به‌کارگیری توجه چگال سراسری به همراه $48$ سر کوئری و $8$ سر کلید-مقدار و تعبیه موقعیتی چرخشی (\en{RoPE}) در تمامی لایه‌ها، همراه با رد تجربی سازوکارهای توجه هیبریدی \cite{ainslie2023gqa, su2024roformer}.
+    \item \textbf{خبره‌های دانه‌ریز (\en{Fine-Grained Experts MoE}):} تقسیم ظرفیت لایه پیش‌خور به $256$ خبره ریزدانه با فعال‌سازی $8$ خبره در هر گام محاسباتی \cite{dai2024deepseekmoe}.
+    \item \textbf{مسیریابی مستقل سیگموئید و بایاس یادگیرنده (\en{Sigmoid Gating with Expert Biases}):} جایگزینی سافت‌مکس با نگاشت سیگموئید و حذف وابستگی مفرط به توابع زیان کمکی (\en{Auxiliary-Loss-Free Balancing}) \cite{wang2024auxfree}.
+    \item \textbf{پیش‌بینی چندتوکنی و رونوشت وزن (\en{Multi-Token Prediction - MTP}):} استفاده از ماژول‌های $K=3$ جهت غنی‌سازی گرادیان و رمزگشایی گمانه‌زنانه در زمان استنتاج \cite{gloeckle2024better, deepseek2024v3, leviathan2023fast}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع معماری بلوک ترنسفورمر MiniMax-M2 و ماژول MTP
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.90\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.1cm and 1.6cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=6.5cm, minimum height=0.9cm, font=\bfseries},
+    norm_node/.style={base, fill=gray!15, draw=gray!70!black, minimum width=6.5cm, minimum height=0.7cm},
+    attn_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=8.5cm, minimum height=2.3cm},
+    moe_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=8.5cm, minimum height=2.4cm},
+    mtp_box/.style={base, fill=purple!10, draw=purple!70!black, minimum width=8.5cm, minimum height=2.1cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=10pt, line width=1.2pt, inner sep=14pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black},
+    res_arrow/.style={-{Stealth[scale=1.1]}, line width=1.3pt, draw=blue!70!black}
+]
+
+    % ورودی
+    \node[io_node] (input) {توکن‌های ورودی (\en{Input Sequence: $t_1, t_2, \dots, t_T$})};
+    \node[io_node, below=0.7cm of input] (embed) {لایه تعبیه کلمات اشتراکی (\en{Shared Embedding})\\ $V = 200{,}064, \quad d_{\text{model}} = 3072$};
+
+    % بلوک ترنسفورمر لایه l
+    \node[norm_node, below=1.1cm of embed] (norm1) {\en{RMSNorm} پیش‌توجه};
+    
+    \node[attn_box, below=0.8cm of norm1] (attn) {
+        \textbf{\large لایه توجه کامل سراسری (\en{Full Attention with GQA})}\\[4pt]
+        \scriptsize $\bullet$ تعداد هدهای کوئری: $H_Q = 48$ \quad $|$ \quad تعداد هدهای کلید-مقدار: $H_{KV} = 8$ ($6\times$ فشرده‌سازی حافظه \en{KV})\\
+        \scriptsize $\bullet$ بعد هر سر توجه: $d_k = 64$ \quad $|$ \quad تعبیه موقعیتی چرخشی سراسری (\en{RoPE}) در تمامی لایه‌ها\\
+        \scriptsize $\bullet$ عدم استفاده از \en{SWA} و توجه خطی جهت صیانت از استدلال چندگامی در بافت‌های فراتر از $32\text{K}$
+    };
+
+    \node[norm_node, below=1.0cm of attn] (norm2) {\en{RMSNorm} پیش‌خبره};
+
+    \node[moe_box, below=0.8cm of norm2] (moe) {
+        \textbf{\large شبکه پیش‌خور مخلوط خبره‌های دانه‌ریز (\en{Fine-Grained MoE})}\\[4pt]
+        \scriptsize $\bullet$ پیکربندی: ۲۵۶ خبره دانه‌ریز مستقل، گزینش \en{Top-8} به ازای هر توکن (نرخ تنک‌سازی فعال‌سازی $3.125\%$)\\
+        \scriptsize $\bullet$ تابع فعال‌ساز گیت: سیگموئید مستقل $p_e(x) = \sigma(x^\top W_{g,e} + b_e)$ با حذف قید جمع-صفر سافت‌مکس\\
+        \scriptsize $\bullet$ توازن بار پویا از طریق ترم‌های بایاس یادگیرنده خبره ($b_e$) بدون نیاز به توابع زیان کمکی سنگین
+    };
+
+    % قاب بلوک ترنسفورمر
+    \node[block_frame, fit=(norm1) (attn) (norm2) (moe), label={[font=\bfseries\color{blue!70!black}]left:تکرار لایه‌های ترنسفورمر $\times 62$}] (block) {};
+
+    % خروجی مدل اصلی
+    \node[io_node, below=1.1cm of moe] (pred) {سر پیش‌بینی اصلی ترنسفورمر (\en{Output Head \& Cross-Entropy})\\ پیش‌بینی توکن آتی $w_{t+1}$ با بافت کامل تا $192\text{K}$};
+
+    % ماژول MTP
+    \node[mtp_box, below=0.9cm of pred] (mtp) {
+        \textbf{\large ماژول پیش‌بینی چندتوکنی (\en{Multi-Token Prediction - MTP})}\\[3pt]
+        \scriptsize $\bullet$ توسعه ساختار به $K=3$ ماژول متوالی از طریق رونوشت وزن (\en{Weight Copying}) و رژیم انجماد موقت\\
+        \scriptsize $\bullet$ هر ماژول: $\text{RMSNorm} \to \text{Linear Projection} \to \text{Transformer Block} \to \text{Shared Head}$\\
+        \scriptsize $\bullet$ پیش‌بینی هم‌زمان توکن‌های $t+2, t+3, t+4$ جهت غنی‌سازی آموزش و رمزگشایی گمانه‌زنانه در استنتاج
+    };
+
+    % خطوط مستقیم جریان
+    \draw[arrow] (input) -- (embed);
+    \draw[arrow] (embed) -- (norm1);
+    \draw[arrow] (norm1) -- (attn);
+    \draw[arrow] (attn) -- (norm2);
+    \draw[arrow] (norm2) -- (moe);
+    \draw[arrow] (moe) -- (pred);
+    \draw[arrow] (pred) -- (mtp);
+
+    % اتصالات باقیمانده (Residuals)
+    \draw[res_arrow] (embed.south) ++(2.8,0) -- ++(0,-0.6) |- (norm2.north -| attn.east) -- ++(0,-0.4) |- (norm2.north);
+    \draw[res_arrow] (norm2.south) ++(2.8,0) -- ++(0,-0.6) |- (pred.north -| moe.east) -- ++(0,-0.4) |- (pred.north);
+
+\end{tikzpicture}%
+}
+\caption{شِمای مهندسی جریان تانسور در بلوک ترنسفورمر \model{MiniMax-M2} و ادغام آن با ماژول‌های \en{MTP}.}
+\label{fig:minimax_m2_architecture}
+\end{figure}
+
+\paragraph*{مکانیزم توجه با پرس‌وجوی گروهی (\en{Grouped-Query Attention - GQA}) و \en{RoPE}}
+در لایه توجه \model{MiniMax-M2}، استفاده از توجه چندسری سنتی (\en{MHA}) به دلیل حجم انفجاری حافظه کَش کلید-مقدار در طول بافت $192\text{K}$ ناممکن است. مدل به جای آن از سازوکار \en{GQA} \cite{ainslie2023gqa} بهره می‌برد.
+
+\textbf{تحلیل جبر خطی و ابعاد هدهای توجه:}
+بعد بازنمایی $d_{\text{model}} = 3072$ است. تعداد سرهای کوئری $H_Q = 48$ و تعداد سرهای کلید-مقدار $H_{KV} = 8$ در نظر گرفته شده است. بنابراین، بعد هر سر برابر است با:
+\begin{equation}
+    d_k = \frac{d_{\text{model}}}{H_Q} = \frac{3072}{48} = 64
+\end{equation}
+ضریب اشتراک هدهای کوئری بر روی هر هد کلید-مقدار برابر است با:
+\begin{equation}
+    g = \frac{H_Q}{H_{KV}} = \frac{48}{8} = 6
+\end{equation}
+برای ورودی $\mathbf{X} \in \mathbb{R}^{T \times d_{\text{model}}}$، نگاشت‌های خطی با استفاده از ماتریس‌های وزنی $\mathbf{W}_Q \in \mathbb{R}^{d_{\text{model}} \times (H_Q d_k)}$ و $\mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{d_{\text{model}} \times (H_{KV} d_k)}$ انجام می‌گیرد. به ازای هر سر کوئری $i \in \{1, \dots, H_Q\}$، سر کلید و مقدار متناظر از طریق نگاشت نگاشت زیر تعیین می‌گردد:
+\begin{equation}
+    j = \left\lfloor \frac{i-1}{g} \right\rfloor + 1 \in \{1, \dots, H_{KV}\}
+\end{equation}
+
+\textbf{تعبیه موقعیتی چرخشی (\en{RoPE}):}
+برای برقراری اثر موقعیت نسبی توکن‌ها، عملگر دوران ارتوگونال $\mathbf{R}_{\Theta, m}^{d_k}$ بر روی بردارهای کوئری و کلید اعمال می‌شود \cite{su2024roformer}:
+\begin{equation}
+    \mathbf{q}_{m, i} = \mathbf{R}_{\Theta, m}^{d_k} (\mathbf{X}_m \mathbf{W}_{Q, i}), \quad \mathbf{k}_{n, j} = \mathbf{R}_{\Theta, n}^{d_k} (\mathbf{X}_n \mathbf{W}_{K, j})
+\end{equation}
+ماتریس تبدیل $\mathbf{R}_{\Theta, m}^{d_k}$ به صورت قطری-بلوکی دوبعدی تعریف می‌شود:
+\begin{equation}
+    \mathbf{R}_{\Theta, m}^{d_k} = \text{diag}\left( \mathbf{R}_{\theta_1, m}, \dots, \mathbf{R}_{\theta_{d_k/2}, m} \right), \quad \mathbf{R}_{\theta, m} = \begin{pmatrix} \cos(m\theta) & -\sin(m\theta) \\ \sin(m\theta) & \cos(m\theta) \end{pmatrix}
+\end{equation}
+که در آن فرکانس‌های زاویه‌ای با رابطه $\theta_r = 10000^{-2(r-1)/d_k}$ افت می‌کنند. ضرب داخلی حاصل به صورت صریح تابعی از جابجایی نسبی $m-n$ خواهد بود:
+\begin{equation}
+    \langle \mathbf{q}_{m, i}, \mathbf{k}_{n, j} \rangle = (\mathbf{X}_m \mathbf{W}_{Q, i})^\top \mathbf{R}_{\Theta, m}^{d_k \top} \mathbf{R}_{\Theta, n}^{d_k} (\mathbf{X}_n \mathbf{W}_{K, j}) = g(\mathbf{X}_m, \mathbf{X}_n, m-n)
+\end{equation}
+
+\textbf{فشرده‌سازی بافر \en{KV-Cache}:}
+استفاده از ساختار \en{GQA} نیاز به حافظه در فاز خودهمبسته را به میزان $6\times$ برابر نسبت به \en{MHA} کاهش می‌دهد:
+\begin{equation}
+    \text{Cache Ratio} = \frac{2 \times L \times H_Q \times d_k \times \text{Prec}}{2 \times L \times H_{KV} \times d_k \times \text{Prec}} = \frac{48}{8} = 6
+\end{equation}
+این ضریب تراکم، عامل کلیدی در امکان‌پذیر شدن طول زمینه بومی $192\text{K}$ در مقیاس عملیاتی است.
+
+\paragraph*{تحلیل نظری و تجربی رد مکانیزم‌های توجه خطی و پنجره‌ای (\en{Ablation of Efficient Attentions})}
+برخلاف مدل پیشین یعنی \model{MiniMax-Text-01} \cite{minimax2025text01} که توجه خطی لایتنینگ (\en{Lightning Attention}) \cite{qin2024lightning} را با توجه استاندارد ادغام کرده بود، در \model{MiniMax-M2} استفاده از هرگونه مکانیزم خطی و پنجره‌ای کنار گذاشته شده و توجه کامل در تمام ۶۲ لایه مستقر گردید.
+
+\textbf{۱. چالش‌های توجه خطی در استدلال چندگامی:}
+اگرچه ساختارهای خطی در آزمون‌های استاتیک اولیه نظیر \en{MMLU} و \en{LongBench} عملکرد قابل قبولی ارائه می‌دهند، اما در مقیاس‌های محاسباتی بزرگ، ناتوانی عمیقی در پردازش مسائل استدلالی زنجیره‌ای چندمرحله‌ای (\en{Multi-hop Reasoning}) بروز می‌دهند. علاوه بر این، زیرساخت توجه خطی به دلیل محدودیت شدید در مصرف پهنای‌باند حافظه، عدم سازگاری بومی با کَش پیشوند (\en{Prefix Caching}) و ناسازگاری با الگوریتم‌های رمزگشایی گمانه‌زنانه، پاسخگوی نیازمندی‌های سیستم استقرار بلادرنگ نبود.
+
+\textbf{۲. ارزیابی تجربی توجه پنجره لغزان ترکیبی (\en{Hybrid SWA}):}
+تیم توسعه، آزمایش‌های پیش‌آموزش گسترده‌ای را با مصرف تریلیون‌ها توکن جهت ارزیابی ترکیب توجه پنجره لغزان (\en{SWA}) \cite{beltagy2020longformer} با درصدهای مختلف، توکن‌های چاهک توجه (\en{Attention Sinks}) \cite{xiao2024efficient}، و رهگیری سرهای بازیابی و القایی انجام دادند \cite{olsson2022induction, wu2024retrieval}:
+\begin{itemize}
+    \item \textbf{افت در ارزیابی پیش‌آموزش:} در وظایف بازیابی طولانی، عملکرد مدل تمام‌توجه در بنچمارک \en{RULER 128K CWE} برابر با $90.0$ بود، در حالی که نسخه \en{Hybrid SWA} به $72.0$ سقوط کرد. در آزمون ترجمه درون‌بافتی \en{MTOB K-e Bleurt}، مدل پایه امتیاز $60.0$ را به دست آورد و مدل \en{SWA} به امتیاز $45.0$ تنزل یافت.
+    \item \textbf{افت در وظایف عامل‌محور (\en{Agent Tasks}):} پس از تنظیم دقیق ناظر (\en{SFT})، در کانتکست‌های زیر $32\text{K}$ تفاوت‌ها ناچیز بود؛ اما در کانتکست‌های بالای $32\text{K}$ مدل \en{SWA} به شدت دچار افت شد. برای نمونه در \en{SWE-verified} نمره مدل کامل برابر $54.7$ در برابر $50.2$ برای \en{SWA}، و در \en{Terminal-Bench} نمره مدل کامل $26.7$ در برابر $23.8$ برای \en{SWA} ثبت گردید.
+\end{itemize}
+این داده‌ها اثبات کرد که پوشش ناکامل توجه در ساختار \en{SWA} مانع از تبادل سیگنال میان مراحل متعدد حل مسئله می‌شود و استفاده از توجه متراکم کامل (\en{Full Attention}) الزامی است.
+
+\paragraph*{معماری مخلوط خبره‌های دانه‌ریز (\en{Fine-Grained MoE}) و گیت‌بندی سیگموئید (\en{Sigmoid Gating})}
+لایه‌های پیش‌خور در \model{MiniMax-M2} ساختاری کاملاً تنک دارند که بر اساس اصول دانه‌ریزی توسعه یافته است \cite{dai2024deepseekmoe}.
+
+\textbf{۱. تحلیل آماری و ترکیبیاتی خبره‌های دانه‌ریز:}
+به جای انتخاب از میان تعداد کمی خبره سنگین، لایه پیش‌خور به $E = 256$ خبره دانه‌ریز تفکیک شده که در هر گام محاسباتی، $k = 8$ خبره فعال می‌شوند. فضای تنوع ترکیبیاتی فعال‌سازی برابر است با:
+\begin{equation}
+    \binom{E}{k} = \binom{256}{8} = \frac{256!}{8! \times 248!} \approx 4.38 \times 10^{14}
+\end{equation}
+این گستردگی ابعادی به مدل اجازه می‌دهد تا تخصص‌های مفهومی بسیار ظریف را تفکیک نماید، در حالی که واریانس بار پردازشی توکن‌ها میان شتاب‌دهنده‌های فیزیکی با استناد به قضیه حد مرکزی کاهش یافته و از پدیده انسداد پردازشی جلوگیری می‌کند.
+
+\textbf{۲. مسیریابی مستقل سیگموئید در برابر سافت‌مکس:}
+در شبکه‌های مرسوم، گیت‌بندی خبره‌ها از طریق تابع سافت‌مکس صورت می‌گیرد \cite{shazeer2017moe}:
+\begin{equation}
+    P(e \mid \mathbf{x}) = \frac{\exp(\mathbf{x}^\top \mathbf{w}_{g, e})}{\sum_{j=1}^E \exp(\mathbf{x}^\top \mathbf{w}_{g, j})}
+\end{equation}
+سافت‌مکس یک قید جمع-صفر (\en{Zero-Sum}) تحمیل می‌کند که در آن تقویت احتمال یک خبره متضمن تضعیف خبره دیگر است. در \model{MiniMax-M2}، امتیاز تمایل هر خبره به صورت کاملاً غیروابسته با تابع لجستیک سیگموئید محاسبه می‌شود:
+\begin{equation}
+    s_e(\mathbf{x}) = \mathbf{x}^\top \mathbf{w}_{g, e} + b_e, \quad p_e(\mathbf{x}) = \sigma(s_e(\mathbf{x})) = \frac{1}{1 + e^{-s_e(\mathbf{x})}}
+\end{equation}
+که در آن $\mathbf{w}_{g, e} \in \mathbb{R}^{d_{\text{model}}}$ بردار وزن گیت و $b_e \in \mathbb{R}$ ترم بایاس یادگیرنده خبره است. پس از محاسبه، شاخص $k=8$ خبره برتر گزینش شده و سپس بازنرمال‌سازی موضعی انجام می‌گیرد:
+\begin{equation}
+    \mathcal{T}_k = \text{Top-}k\left(\{p_e(\mathbf{x})\}_{e=1}^E, k=8\right), \quad \tilde{p}_e(\mathbf{x}) = \frac{p_e(\mathbf{x})}{\sum_{j \in \mathcal{T}_k} p_j(\mathbf{x})}
+\end{equation}
+خروجی لایه پیش‌خور تنک برابر است با:
+\begin{equation}
+    \text{MoE}(\mathbf{x}) = \sum_{e \in \mathcal{T}_k} \tilde{p}_e(\mathbf{x}) \cdot \text{FFN}_e(\mathbf{x})
+\end{equation}
+
+\textbf{۳. تعادل بار خودکار با بایاس‌های یادگیرنده (\en{Learnable Biases}):}
+برای احتراز از فروپاشی توازن بار توکن‌ها بدون توسل به توابع زیان کمکی سنگین که بازنمایی مدل را مخدوش می‌سازند \cite{wang2024auxfree}، ترم‌های بایاس $b_e$ همگام با سایر وزن‌ها بهینه‌سازی می‌شوند. طبق قاعده زنجیره‌ای دیفرانسیل:
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial b_e} = \frac{\partial \mathcal{L}}{\partial p_e(\mathbf{x})} \cdot \frac{\partial p_e(\mathbf{x})}{\partial s_e(\mathbf{x})} \cdot \frac{\partial s_e(\mathbf{x})}{\partial b_e} = \frac{\partial \mathcal{L}}{\partial p_e(\mathbf{x})} \cdot p_e(\mathbf{x}) (1 - p_e(\mathbf{x}))
+\end{equation}
+این ساختار نوعی تعادل‌ساز خودکار درون‌زا ایجاد می‌کند؛ بدین معنا که بار اضافی وارده به یک خبره سبب سوق داده شدن مقدار بایاس به سمت مقادیر منفی‌تر گشته و احتمال تخصیص توکن در چرخه‌های بعدی کاهش می‌یابد.
+
+\paragraph*{سیستم پیش‌بینی چندتوکنی (\en{Multi-Token Prediction - MTP}) و شتاب‌بخشی استنتاج}
+جهت تعمیق سیگنال نظارتی در پیش‌آموزش و پشتیبانی از رمزگشایی گمانه‌زنانه در زمان استنتاج، ساختار \en{MTP} با الهام از \cite{gloeckle2024better, deepseek2024v3} در بدنه مدل تعبیه شده است.
+
+\textbf{۱. ساختار میکروبلوک‌های \en{MTP}:}
+هر ماژول پیش‌بینی گام $k \in \{1, 2, 3\}$ از یک لایه تصویر خطی، یک بلوک کامل ترنسفورمر، لایه‌های \en{RMSNorm} و سرهای پیش‌بینی مشترک تشکیل یافته است:
+\begin{align}
+    \mathbf{u}_t^{(k)} &= \left[ \text{RMSNorm}\left(\mathbf{h}_t^{(k-1)}\right) \;;\; \text{RMSNorm}\left(\text{Embed}(w_{t+k})\right) \right] \in \mathbb{R}^{2 \cdot d_{\text{model}}} \\
+    \mathbf{v}_t^{(k)} &= \mathbf{u}_t^{(k)} \mathbf{W}_{\text{proj}}^{(k)} \in \mathbb{R}^{d_{\text{model}}} \\
+    \mathbf{h}_t^{(k)} &= \text{TransformerBlock}_k\left(\mathbf{v}_t^{(k)}\right) \in \mathbb{R}^{d_{\text{model}}}
+\end{align}
+توزیع احتمال پیش‌بینی توکن گام $t+k+1$ به وسیله سر مشترک واژگان محاسبه می‌شود:
+\begin{equation}
+    P_k(w_{t+k+1} \mid w_{\le t+k}) = \text{Softmax}\left( \text{RMSNorm}\left(\mathbf{h}_t^{(k)}\right) \mathbf{W}_{\text{head}}^\top \right)
+\end{equation}
+
+\textbf{۲. تابع زیان و رژیم بازپخت:}
+در فاز اولیه پیش‌آموزش با ماژول $K=1$، تابع هدف کل با برهم‌نهی زیر هدایت می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{main}} + \lambda \mathcal{L}_{\text{MTP}}^{(1)}
+\end{equation}
+وزن زیان $\lambda$ در ابتدای آموزش برابر با $0.3$ تعیین شده و در فاز واپاشی پایانی به $0.1$ کاهش می‌یابد.
+
+\textbf{۳. توسعه ساختار با رونوشت وزن (\en{Weight Copying}):}
+در فاز نهایی پیش‌آموزش ممتد، ساختار \en{MTP} از ۱ به ۳ ماژول ($K=3$) ارتقا می‌یابد. به منظور ممانعت از ارسال گرادیان‌های ناپایدار از ماژول‌های تصادفی به مدل اصلی، وزن‌های ماژول‌ها مستقیماً از لایه‌های مدل اصلی رونوشت (\en{Copy-Initialized}) می‌شوند. ابتدا مدل اصلی برای مدت کوتاهی منجمد (\en{Frozen}) شده تا تلفات ماژول‌های \en{MTP} تثبیت گردد و سپس آموزش مشترک تمام مدل تا انتها پیگیری می‌شود.
+
+\textbf{۴. شتاب‌دهی استنتاج (\en{Speculative Decoding}):}
+در زمان استنتاج، ۳ ماژول \en{MTP} توکن‌های پیش‌نویس را به صورت موازی تولید کرده و مدل اصلی آن‌ها را در یک پاس رو به جلو واحد اعتبارسنجی می‌نماید \cite{leviathan2023fast}، که منجر به افزایش نرخ خروجی توکن بدون کوچک‌ترین افت در توزیع آماری تولید کلمات می‌گردد.
+
+\paragraph*{مشخصات فنی و پیکربندی هایپرپارامترهای معماری}
+پارامترها و پیکربندی‌های ساختاری مدل ترنسفورمر \model{MiniMax-M2} در جدول \ref{tab:minimax_m2_specs} به صورت تفصیلی مدون گردیده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات فنی و پیکربندی هایپرپارامترهای معماری ترنسفورمر در \model{MiniMax-M2}}
+\label{tab:minimax_m2_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ll}
+\toprule
+\textbf{مولفه معماری / هایپرپارامتر} & \textbf{مقدار / پیکربندی در MiniMax-M2} \\
+\midrule
+نوع معماری پایه & دیکودر خالص ترنسفورمر تنک (\en{Sparse Decoder-Only MoE}) \\
+تعداد کل پارامترها (\en{Total Parameters}) & ۲۲۹.۹ میلیارد ($229.9\text{B}$) \\
+پارامترهای فعال به ازای هر توکن (\en{Activated Parameters}) & ۹.۸ میلیارد ($9.8\text{B}$) \\
+تعداد کل لایه‌های ترنسفورمر ($L$) & ۶۲ لایه یکپارچه \\
+بعد پنهان مدل ($d_{\text{model}}$) & ۳۰۷۲ \\
+اندازه واژگان کلمات ($V$) & ۲۰۰,۰۶۴ توکن \\
+طول زمینه بومی (\en{Native Context Window}) & ۱۹۲,۰۰۰ توکن ($192\text{K}$) \\
+حجم کل توکن‌های پیش‌آموزش & ۲۹.۲ تریلیون توکن ($29.2\text{T}$) \\
+مکانیزم توجه & توجه کامل سراسری (\en{Full Multi-Head GQA}) \\
+تعداد هدهای کوئری ($H_Q$) & ۴۸ هد \\
+تعداد هدهای کلید-مقدار ($H_{KV}$) & ۸ هد \\
+بعد هر سر توجه ($d_k$) & ۶۴ \\
+ضریب فشرده‌سازی حافظه پنهان \en{KV-Cache} & ۶ برابر ($6\times$) \\
+کدگذاری موقعیت & تعبیه موقعیتی چرخشی (\en{RoPE}) در تمامی لایه‌ها \\
+تعداد کل خبره‌ها در لایه پیش‌خور ($E$) & ۲۵۶ خبره دانه‌ریز (\en{Fine-Grained Experts}) \\
+تعداد خبره‌های فعال به ازای توکن ($k$) & ۸ خبره فعال (نرخ فعال‌سازی $3.125\%$) \\
+سازوکار گیت‌بندی خبره‌ها & نگاشت مستقل سیگموئید (\en{Sigmoid Gating}) \\
+مکانیزم برقراری تعادل بار خبره‌ها & ترم‌های بایاس یادگیرنده ($b_e$) بدون تابع زیان کمکی سنگین \\
+تعداد ماژول‌های پیش‌بینی چندتوکنی ($K$) & توسعه یافته از $K=1$ به $K=3$ با رونوشت وزن (\en{Weight Copying}) \\
+ضریب اولیه تابع زیان \en{MTP} & مقداردهی اولیه $0.3$ و بازپخت تدریجی به $0.1$ \\
+کاربرد \en{MTP} در زمان استنتاج & تولید پیش‌نویس در رمزگشایی گمانه‌زنانه (\en{Speculative Decoding}) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
