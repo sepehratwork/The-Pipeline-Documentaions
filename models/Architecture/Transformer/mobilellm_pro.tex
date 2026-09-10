@@ -1,1 +1,257 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{مقدمه و فلسفه بنیادین معماری (\en{Architectural Philosophy})}
+توسعه مدل‌های زبانی پایه در مقیاس زیر ۲ میلیارد پارامتر (\en{Sub-2B}) که توانایی استقرار مستقیم بر روی سخت‌افزارهای کم‌توان لبه (\en{On-Device}) مانند پردازنده‌های تلفن همراه و پردازنده‌های عصبی گجت‌های پوشیدنی را داشته باشند، با چالشی سه‌گانه مواجه است: محدودیت شدید ظرفیت بازنمایی مدل به دلیل کمبود پارامتر، مصرف تصاعدی حافظه با گسترش طول زمینه، و گلوگاه‌های پهنای باند انتقال حافظه در زمان آزمون و تولید خودبازگشت. مکانیزم توجه کلاسیک \cite{vaswani2017attention} به علت پیچیدگی فضایی و محاسباتی $\mathcal{O}(N^2)$، اجرای زمینه‌های فراتر از چند هزار توکن را بر روی تجهیزات همراه ناممکن می‌سازد. مدل \model{MobileLLM-Pro} با دارا بودن ۱.۰۸۴ میلیارد پارامتر ($1.08\text{B}$) بر اساس معماری استاندارد ترنسفورمر فقط-دیکودر (\en{Decoder-Only}) و با بهره‌گیری از طراحی‌های پیشرفته سری \en{Llama} بنا نهاده شده است \cite{touvron2023llama, grattafiori2024llama3}. این مدل قادر است توالی‌هایی تا طول ۱۲۸,۰۰۰ توکن (\en{128k}) را پردازش نماید که چهار برابر بیشتر از مدل‌های هم‌رده نظیر \en{Gemma 3-1B} و \en{Qwen 3-0.6B} است \cite{team2025gemma3, yang2025qwen3}.
+
+این معماری کارایی کم‌نظیر خود را بر پایه پنج نوآوری ساختاری شکل داده است:
+\begin{enumerate}
+    \item \textbf{اشتراک‌گذاری فراگیر وزن‌های تعبیه (\en{Tied Embeddings}):} حذف ماتریس مجزای خروجی و صرفه‌جویی در ۲۶۰ میلیون پارامتر (~۲۵٪ از کل ظرفیت پارامتری مدل) با استفاده از نگاشت دوگانه ایزومتریک \cite{press2017using, liu2024mobilellm}.
+    \item \textbf{مکانیزم توجه چند-استعلامی گروهی (\en{Grouped-Query Attention - GQA}):} به‌کارگیری نسبت ۴ به ۲۰ برای کاهش ۴ برابری ابعاد حافظه موقت کلید-مقدار (\en{KV Cache}) \cite{ainslie2023gqa}.
+    \item \textbf{تناوب ساختاری توجه محلی-سراسری (\en{Interleaved 3:1 Local-Global Attention}):} جایگزینی سه لایه توجه محلی با پنجره لغزان ۵۱۲ توکن به ازای هر لایه توجه کامل، مقید به سراسری بودن لایه‌های ابتدا و انتها \cite{beltagy2020longformer, zaheer2021big}.
+    \item \textbf{کدگذاری موقعیت چرخشی پیوسته (\en{Full RoPE Spectrum}):} بسط فضای زاویه‌ای به دایره کامل مثلثاتی بدون نیاز به داده‌های چند ده‌هزار توکنی در پیش‌آموزش اولیه از طریق تقارن انتقالی \cite{su2024roformer}.
+    \item \textbf{شبکه پیش‌خور فوق‌عریض (\en{Wide FFN}):} گسترش بعد میانی با ضریب نامتعارف ۴.۸ برابر جهت جبران افت ظرفیت پدیداری مدل ناشی از ابعاد کوچک پنهان.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع معماری بلوک ترنسفورمر MobileLLM-Pro
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.1cm and 1.5cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=8cm, minimum height=0.95cm, font=\bfseries},
+    norm_node/.style={base, fill=gray!15, draw=gray!70!black, minimum width=6.5cm, minimum height=0.8cm},
+    attn_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=8.8cm, minimum height=2.8cm},
+    ffn_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=8.8cm, minimum height=2.3cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=12pt, line width=1.2pt, inner sep=14pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % ورودی
+    \node[io_node] (input) {دنباله شناسه‌های ورودی (\en{Input Sequence})\\ $\mathbf{w} = (w_1, w_2, \dots, w_N) \quad [N \le 128{,}000]$};
+    
+    \node[io_node, below=0.8cm of input] (embed) {
+        \textbf{ماتریس تعبیه مشترک ورودی و خروجی (\en{Shared Embeddings})}\\
+        $\mathbf{E}_{\text{in}} \in \mathbb{R}^{V \times d} \quad [V = 202{,}048, \; d = 1280] \implies \approx 260\text{M Parameters}$
+    };
+
+    % بلوک ترنسفورمر
+    \node[norm_node, below=1.3cm of embed] (pre_attn_norm) {
+        \textbf{نرمال‌سازی ریشه میانگین مربعات (\en{Pre-RMSNorm})}\\
+        $\hat{\mathbf{X}}_l = \text{RMSNorm}(\mathbf{X}_l) \in \mathbb{R}^{N \times 1280}$
+    };
+
+    \node[attn_box, below=0.85cm of pre_attn_norm] (attn) {
+        \textbf{\large لایه توجه ترکیبی محلی-سراسری (\en{Interleaved GQA Layer})}\\[3pt]
+        \scriptsize $\bullet$ ساختار سرهای استعلامی: ۲۰ سر کوئری ($H_Q=20$) و ۴ سر کلید-مقدار ($H_{KV}=4$) با بعد $d_h=64$\\
+        \scriptsize $\bullet$ \textbf{لایه سراسری (\en{Global}):} لایه‌های ۰ و ۲۹ و به ازای هر ۳ لایه محلی $\implies$ توجه کامل علّی $\mathcal{O}(N^2)$\\
+        \scriptsize $\bullet$ \textbf{لایه محلی (\en{Local}):} پنجره لغزان متقارن $W = 512$ توکن $\implies$ کاهش محاسبات به $\mathcal{O}(N \cdot W)$\\
+        \scriptsize $\bullet$ سیستم کدگذاری موقعیت چرخشی کامل بر روی تمام ابعاد سرها: $\mathbf{R}_{\Theta, p} \in \mathrm{SO}(64)$
+    };
+
+    \node[norm_node, below=0.85cm of attn] (pre_ffn_norm) {
+        \textbf{نرمال‌سازی ریشه میانگین مربعات شبکه پیش‌خور (\en{Pre-FFN RMSNorm})}\\
+        $\hat{\mathbf{X}}'_l = \text{RMSNorm}(\mathbf{X}'_l) \quad \text{با اتصال باقیمانده} \; \mathbf{X}'_l = \mathbf{X}_l + \text{Attn}(\hat{\mathbf{X}}_l)$
+    };
+
+    \node[ffn_box, below=0.85cm of pre_ffn_norm] (ffn) {
+        \textbf{\large شبکه پیش‌خور فوق‌عریض (\en{Wide SwiGLU FFN Layer})}\\[3pt]
+        \scriptsize $\bullet$ ضریب بسط ۴.۸ برابری: بُعد میانی $d_{\text{ffn}} = 4.8 \times 1280 = 6144$\\
+        \scriptsize $\bullet$ نگاشت گیت و صعودی: $\mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}} \in \mathbb{R}^{1280 \times 6144}$\\
+        \scriptsize $\bullet$ فعال‌ساز ناخطی: $\text{SwiGLU}(\mathbf{x}) = \left(\mathbf{x}\mathbf{W}_{\text{gate}} \odot \sigma(\mathbf{x}\mathbf{W}_{\text{gate}})\right) \odot (\mathbf{x}\mathbf{W}_{\text{up}})$\\
+        \scriptsize $\bullet$ نگاشت نزولی تراکمی: $\mathbf{W}_{\text{down}} \in \mathbb{R}^{6144 \times 1280}$
+    };
+
+    % قاب تکرار بلوک
+    \node[block_frame, fit=(pre_attn_norm) (attn) (pre_ffn_norm) (ffn), label={[font=\bfseries\color{blue!70!black}]left:تکرار بلوک‌های ۳۰ گانه ($L=30$)}] (block) {};
+
+    % خروجی
+    \node[norm_node, below=1.3cm of ffn] (final_norm) {
+        \textbf{نرمال‌سازی نهایی خروجی (\en{Final RMSNorm})}\\
+        $\mathbf{H}_{\text{final}} = \text{RMSNorm}(\mathbf{X}_{30}) \in \mathbb{R}^{N \times 1280}$
+    };
+
+    \node[io_node, below=0.8cm of final_norm] (lm_head) {
+        \textbf{نگاشت خطی معکوس به دایره واژگان (\en{Tied LM Head})}\\
+        $\mathbf{Z} = \mathbf{H}_{\text{final}} (\mathbf{E}_{\text{in}})^T \in \mathbb{R}^{N \times 202{,}048} \implies P(w_{t+1}) = \text{Softmax}(\mathbf{Z}_t)$
+    };
+
+    % خطوط جریان اصلی
+    \draw[arrow] (input) -- (embed);
+    \draw[arrow] (embed) -- (pre_attn_norm);
+    \draw[arrow] (pre_attn_norm) -- (attn);
+    \draw[arrow] (attn) -- (pre_ffn_norm);
+    \draw[arrow] (pre_ffn_norm) -- (ffn);
+    \draw[arrow] (ffn) -- (final_norm);
+    \draw[arrow] (final_norm) -- (lm_head);
+
+    % خطوط اتصالات باقیمانده (Residual Connections)
+    \draw[arrow, blue!70!black, line width=1.3pt] (pre_attn_norm.north) ++(3.5,0.2) -- ++(0,-0.3) -- ++(1.4,0) |- (pre_ffn_norm.east);
+    \draw[arrow, blue!70!black, line width=1.3pt] (pre_ffn_norm.north) ++(3.5,0.2) -- ++(0,-0.3) -- ++(1.4,0) |- (final_norm.east);
+
+    % اتصال بازگشتی وزن‌های مشترک (Tied Weights Connection)
+    \draw[arrow, purple!80!black, dashed, line width=1.4pt] (embed.west) -- ++(-1.8,0) |- node[near end, left, font=\footnotesize\bfseries, text=purple!80!black] {اشتراک وزن $(\mathbf{E}_{\text{in}})^T$} (lm_head.west);
+
+\end{tikzpicture}%
+}
+\caption{جریان داده، تبدیل تانسورها و ساختار سلسله‌مراتبی لایه‌ها در مدل زبانی \model{MobileLLM-Pro}.}
+\label{fig:mobilellm_pro_architecture}
+\end{figure}
+
+\paragraph*{هندسه منیفلد و تحلیل اشتراک وزن تعبیه‌ساز (\en{Tied Embeddings})}
+واژگان با ابعاد بزرگ در مدل‌های کوچک چگالی پارامتر را نامتوازن می‌سازد. در مدلی با اندازه واژگان $V = 202{,}048$ و بعد پنهان $d = 1280$، ماتریس ورودی تعبیه $\mathbf{E}_{\text{in}} \in \mathbb{R}^{V \times d}$ و ماتریس تصویرساز زبانی نهایی $\mathbf{W}_{\text{head}} \in \mathbb{R}^{d \times V}$ در صورت تفکیک فیزیکی، نیازمند تخصیص تعداد پارامتری معادل زیر هستند:
+\begin{equation}
+    P_{\text{emb}} = 2 \times (V \times d) = 2 \times (202{,}048 \times 1280) = 517{,}242{,}880 \approx 517.2\text{M}
+\end{equation}
+که بیش از ۴۷٪ از کل بودجه پارامتری مدل ۱ میلیاردی را اشغال می‌نماید. معماری \model{MobileLLM-Pro} با قید همسانی زیر، این فضا را مقید می‌سازد:
+\begin{equation}
+    \mathbf{W}_{\text{head}} = (\mathbf{E}_{\text{in}})^T
+\end{equation}
+این برابری دقیقاً ۲۵۸,۶۲۱,۴۴۰ پارامتر (~۲۶۰ میلیون پارامتر) را ذخیره می‌کند.
+
+\textbf{تحلیل تئوری اطلاعات و انتظام‌بخشی طیفی:}
+اگر بردار نمایه تک‌هات توکن ورودی $\mathbf{e}_t \in \{0, 1\}^V$ باشد، بردار پنهان اولیه $\mathbf{x}_t^{(0)} = \mathbf{e}_t \mathbf{E}_{\text{in}}$ در منیفلد ریمانی پنهان $\mathcal{M} \subset \mathbb{R}^d$ جای می‌گیرد. با فرض این که لایه‌های ترنسفورمر یک عملگر دگرگونی هومومورفیک $\Phi_\Theta: \mathbb{R}^d \to \mathbb{R}^d$ با ویژگی حفظ ساختار اطلاعاتی باشند، بردار لاجیت نهایی توکن بعدی برابر است با:
+\begin{equation}
+    \mathbf{z}_{t+1} = \Phi_\Theta(\mathbf{x}_t^{(0)}) \mathbf{W}_{\text{head}} = \Phi_\Theta(\mathbf{x}_t^{(0)}) (\mathbf{E}_{\text{in}})^T
+\end{equation}
+توزیع احتمال بر روی واژگان از تابع سافت‌مکس بر روی ضرب داخلی حاصل می‌شود:
+\begin{equation}
+    P(w_{t+1} = k \mid \mathbf{w}_{\le t}) = \frac{\exp\left(\langle \Phi_\Theta(\mathbf{x}_t^{(0)}), \mathbf{e}_k \mathbf{E}_{\text{in}} \rangle\right)}{\sum_{j=1}^V \exp\left(\langle \Phi_\Theta(\mathbf{x}_t^{(0)}), \mathbf{e}_j \mathbf{E}_{\text{in}} \rangle\right)}
+\end{equation}
+از منظر نظریه اطلاعات، با برقراری تساوی $\mathbf{W}_{\text{head}} = (\mathbf{E}_{\text{in}})^T$، فاصله بین دو واژه در فضای خروجی به ضرب داخلی شباهت کوسینوسی آن‌ها در فضای ورودی مقید می‌گردد. این ساختار نوعی خودتنظیم‌گری آماری (\en{Geometric Regularization}) ایجاد کرده و اجازه نمی‌دهد بردارهای واژگان کم‌تکرار به دلیل کمبود داده در فاز آموزش، مقادیر ویژه تکین و واگرا در ماتریس تبدیل پیدا کنند.
+
+\paragraph*{مکانیزم توجه چند-استعلامی گروهی (\en{GQA}) و تحلیل کش}
+در مکانیزم استاندارد \en{MHA}، حافظه پنهان مربوط به متغیرهای کلید و مقدار به ازای هر سر کوئری به‌طور مستقل ذخیره می‌گردد. برای ابعاد $d = 1280$ با تعداد سرهای کوئری $H_Q = 20$، بعد محاسباتی هر سر برابر است با:
+\begin{equation}
+    d_h = \frac{d}{H_Q} = \frac{1280}{20} = 64
+\end{equation}
+در مدل \model{MobileLLM-Pro} تعداد سرهای کلید-مقدار بر روی $H_{KV} = 4$ تثبیت شده است که نرخ اشتراک گروهی $g = \frac{H_Q}{H_{KV}} = \frac{20}{4} = 5$ را پدید می‌آورد \cite{ainslie2023gqa}.
+
+\textbf{فرمولاسیون جبر خطی لایه توجه:}
+برای ماتریس توکن‌های ورودی لایه $\mathbf{X} \in \mathbb{R}^{N \times d}$، افکنش‌ها به فرم زیر نگاشت می‌گردند:
+\begin{align}
+    \mathbf{Q}_i &= \mathbf{X} \mathbf{W}_Q^{(i)} \in \mathbb{R}^{N \times d_h} \quad (i = 1, \dots, 20) \\
+    \mathbf{K}_j &= \mathbf{X} \mathbf{W}_K^{(j)} \in \mathbb{R}^{N \times d_h} \quad (j = 1, \dots, 4) \\
+    \mathbf{V}_j &= \mathbf{X} \mathbf{W}_V^{(j)} \in \mathbb{R}^{N \times d_h} \quad (j = 1, \dots, 4)
+\end{align}
+که در آن سر کوئری $\mathbf{Q}_i$ با سر کلید $\mathbf{K}_{\lceil i/5 \rceil}$ و مقدار $\mathbf{V}_{\lceil i/5 \rceil}$ جفت می‌شود:
+\begin{equation}
+    \text{head}_i = \text{Softmax}\left(\frac{\mathbf{Q}_i \mathbf{K}_{\lceil i/5 \rceil}^T}{\sqrt{d_h}} + \mathbf{M}\right) \mathbf{V}_{\lceil i/5 \rceil} \in \mathbb{R}^{N \times d_h}
+\end{equation}
+سپس سرهای خروجی الحاق شده و به فضای اصلی تصویر می‌گردند:
+\begin{equation}
+    \text{Attn}(\mathbf{X}) = \left[ \text{head}_1 \;;\; \text{head}_2 \;;\; \dots \;;\; \text{head}_{20} \right] \mathbf{W}_O, \quad \mathbf{W}_O \in \mathbb{R}^{d \times d}
+\end{equation}
+
+\textbf{تحلیل چندبعدی مصرف حافظه میانگیر (\en{KV Cache Analysis}):}
+در پردازش دنباله‌های فوق‌طولانی ($N = 128{,}000$)، حجم حافظه پویا بر حسب بایت با فرض داده ممیز شناور ۱۶ بیتی ($b = 2 \text{ Bytes}$) در ۳۰ لایه مدل برابر است با:
+\begin{equation}
+    \text{Memory}_{\text{KV}} = 2 \times b \times L \times H_{KV} \times d_h \times N
+\end{equation}
+با جایگذاری مقادیر مدل \model{MobileLLM-Pro}:
+\begin{equation}
+    \text{Memory}_{\text{KV}} = 2 \times 2 \times 30 \times 4 \times 64 \times N = 30{,}720 \times N \text{ Bytes}
+\end{equation}
+در حالی که اگر توجه سنتی (\en{MHA}) استفاده می‌شد ($H_{KV} = 20$):
+\begin{equation}
+    \text{Memory}_{\text{MHA}} = 2 \times 2 \times 30 \times 20 \times 64 \times N = 153{,}600 \times N \text{ Bytes}
+\end{equation}
+این قیاس نشان می‌دهد مصرف حافظه نهان به میزان $\frac{153{,}600 - 30{,}720}{153{,}600} = 80\%$ کاهش یافته است که اجرای طول زمینه ۱۲۸ هزار توکن را بر روی حافظه اشتراکی تلفن‌های هوشمند میسر می‌سازد.
+
+\paragraph*{توجه متناوب ترکیبی محلی-سراسری (\en{Interleaved 3:1 Local-Global Attention})}
+طول زمینه ۱۲۸ هزار توکن موجب انفجار درجه دوم محاسبات $\mathcal{O}(N^2)$ می‌گردد. جهت بهینه‌سازی محاسباتی، معماری مدل از ترکیب تناوبی با نسبت ۳ به ۱ بهره می‌برد:
+\begin{itemize}
+    \item \textbf{لایه‌های توجه سراسری (\en{Global}):} لایه ۰، لایه ۲۹ و کلیه لایه‌های با شاخص $l \equiv 0 \pmod 4$. در این لایه‌ها ماتریس علّی کامل اعمال می‌شود:
+    \begin{equation}
+        \mathbf{M}_{\text{global}}[t, \tau] = \begin{cases} 0 & \tau \le t \\ -\infty & \tau > t \end{cases}
+    \end{equation}
+    \item \textbf{لایه‌های توجه محلی پنجره لغزان (\en{Local Sliding Window}):} در سه لایه متوالی میانی با عرض پنجره $W = 512$ توکن \cite{beltagy2020longformer, zaheer2021big}:
+    \begin{equation}
+        \mathbf{M}_{\text{local}}[t, \tau] = \begin{cases} 0 & t - W < \tau \le t \\ -\infty & \text{otherwise} \end{cases}
+    \end{equation}
+\end{itemize}
+
+\textbf{تحلیل تحلیلی کاهش مرتبه پیچیدگی عملیات:}
+تعداد کل ضرب‌های ماتریسی در لایه‌های محلی به ازای هر توکن به جای $N$ عمل، محدود به ثابت $W$ می‌گردد:
+\begin{equation}
+    \text{FLOPs}_{\text{local}} \propto \sum_{t=1}^N \min(t, W) \approx N \cdot W \ll \frac{N^2}{2}
+\end{equation}
+برای $N = 128{,}000$ و $W = 512$:
+\begin{equation}
+    \frac{\text{FLOPs}_{\text{local}}}{\text{FLOPs}_{\text{global}}} = \frac{N \cdot W}{N^2 / 2} = \frac{2 \times 512}{128{,}000} \approx 0.008
+\end{equation}
+این یعنی در ۷۵٪ از کل لایه‌های شبکه، هزینه محاسباتی توجه بیش از ۹۹.۲٪ افت نموده و به مرتبه خطی $\mathcal{O}(N)$ تقلیل می‌یابد، در حالی که حضور منظم لایه‌های سراسری در فواصل ۳ تایی به همراه لایه‌های مرزی ابتدا و انتها، تضمین می‌کند که بردارهای پنهان اطلاعات دوربرد را در سراسر عمق گراف انتزاعی ترنسفورمر منتقل نمایند.
+
+\paragraph*{کدگذاری موقعیت چرخشی (\en{Rotary Position Embedding - RoPE})}
+مدل \model{MobileLLM-Pro} از نگاشت‌های ارتوگونال در فضای مختلط دوگانه برای تزریق مختصات مکانی مطلق و بازیابی فاصله نسبی استفاده می‌کند \cite{su2024roformer}. فضای بعد هر سر $d_h = 64$ به ۳۲ زیرفضای دوبعدی ارتوگونال تجزیه می‌شود. برای فرکانس زاویه‌ای پایه با پارامتر $\theta_i$:
+\begin{equation}
+    \theta_i = 10000^{-\frac{2i}{d_h}} \quad (i = 0, 1, \dots, 31)
+\end{equation}
+تبدیل موقعیت برای مختصات مطلق $p \in [1, N]$ با ماتریس ارتوگونال چرخشی دوبعدی بیان می‌شود:
+\begin{equation}
+    \mathbf{R}_{\theta_i, p} = \begin{pmatrix} \cos(p\theta_i) & -\sin(p\theta_i) \\ \sin(p\theta_i) & \cos(p\theta_i) \end{pmatrix} \implies \begin{pmatrix} x'_{2i} \\ x'_{2i+1} \end{pmatrix} = \mathbf{R}_{\theta_i, p} \begin{pmatrix} x_{2i} \\ x_{2i+1} \end{pmatrix}
+\end{equation}
+ماتریس تبدیل کامل $\mathbf{R}_{\Theta, p} \in \mathrm{SO}(64)$ به فرم بلوکی-قطری حاصل جمع مستقیم است:
+\begin{equation}
+    \mathbf{R}_{\Theta, p} = \bigoplus_{i=0}^{31} \mathbf{R}_{\theta_i, p}
+\end{equation}
+ویژگی بنیادی این تبدیل، ناورایی ضرب داخلی تحت جابجایی است؛ به گونه‌ای که اگر بردار استعلام در موقعیت $p$ و بردار کلید در موقعیت $m$ باشد:
+\begin{equation}
+    \langle \mathbf{R}_{\Theta, p} \mathbf{q}, \mathbf{R}_{\Theta, m} \mathbf{k} \rangle = \mathbf{q}^T \mathbf{R}_{\Theta, p}^T \mathbf{R}_{\Theta, m} \mathbf{k} = \mathbf{q}^T \mathbf{R}_{\Theta, m-p} \mathbf{k}
+\end{equation}
+از دیدگاه تئوری طیفی، پوشش دوران زاویه‌ای برای $N = 128{,}000$ مقادیر زاویه را در بازه کامل $[0, 2\pi]$ توزیع می‌کند که این پیوستگی طیفی، مدل را قادر می‌سازد روابط نحوی و همبستگی اطلاعاتی میان توکن‌های فوق‌دور را بدون نیاز به پارامتر یادگیرنده مستقل کدگذاری نماید.
+
+\paragraph*{شبکه پیش‌خور فوق‌عریض با تابع فعال‌ساز \en{SwiGLU}}
+در معماری‌های متعارف ترنسفورمر، بعد میانی لایه پیش‌خور معادل $4 \times d$ تنظیم می‌شود. در مدل \model{MobileLLM-Pro}، به منظور ارتقای گنجایش حافظه دانشی (\en{Parametric Knowledge}) در غیاب ابعاد بزرگ پنهان، از نسبت بسط غیرمتعارف $4.8\times$ بهره گرفته شده است:
+\begin{equation}
+    d_{\text{ffn}} = 4.8 \times d = 4.8 \times 1280 = 6144
+\end{equation}
+این لایه از ساختار دروازه‌دار خطی بر پایه سویش (\en{SwiGLU}) استفاده می‌کند:
+\begin{align}
+    \text{SwiGLU}(\mathbf{x}) &= \left(\text{Swish}(\mathbf{x}\mathbf{W}_{\text{gate}}) \odot (\mathbf{x}\mathbf{W}_{\text{up}})\right) \mathbf{W}_{\text{down}} \\
+    \text{Swish}(z) &= z \cdot \sigma(z) = \frac{z}{1 + e^{-z}}
+\end{align}
+که در آن $\mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}} \in \mathbb{R}^{1280 \times 6144}$ و $\mathbf{W}_{\text{down}} \in \mathbb{R}^{6144 \times 1280}$ هستند.
+
+\textbf{تحلیل مشتقات و جریان گرادیان در فعال‌ساز:}
+مشتق تابع $\text{Swish}(z)$ نسبت به متغیر فعال‌سازی برابر است با:
+\begin{equation}
+    \frac{d}{dz}\text{Swish}(z) = \sigma(z) + z\sigma(z)(1 - \sigma(z)) = \sigma(z) + z\sigma(z) - z\sigma(z)^2
+\end{equation}
+ویژگی غیریکنواختی (\en{Non-monotonicity}) در مقادیر منفی کوچک و همگرایی به شیب ۱ در مقادیر مثبت بزرگ، مانع از اشباع گرادیان در لایه‌های میانی عریض می‌گردد. همچنین انتخاب عرض ۶۱۴۴ موجب افزایش چشمگیر رتبه تقریب ماتریسی (\en{Matrix Rank Capacity}) در نمایش توابع غیرخطی می‌گردد.
+
+\paragraph*{مشخصات فنی و پیکربندی هایپرپارامترهای معماری}
+کلیه پارامترهای تپولوژیک و ساختاری مدل \model{MobileLLM-Pro} در جدول \ref{tab:mobilellm_pro_specs} خلاصه شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات و پیکربندی هایپرپارامترهای معماری ترنسفورمر در مدل \model{MobileLLM-Pro}}
+\label{tab:mobilellm_pro_specs}
+\resizebox{0.95\textwidth}{!}{%
+\begin{tabular}{ll}
+\toprule
+\textbf{مولفه معماری / هایپرپارامتر} & \textbf{مقدار فنی در مدل \en{MobileLLM-Pro}} \\
+\midrule
+تعداد کل پارامترها (\en{Total Parameters}) & ۱,۰۸۴ میلیون پارامتر ($1.084\text{B}$) \\
+تعداد لایه‌های ترنسفورمر ($L$) & ۳۰ لایه \\
+بُعد پنهان مدل ($d_{\text{model}}$) & ۱۲۸۰ \\
+تعداد سرهای توجه استعلام کوئری ($H_Q$) & ۲۰ سر \\
+تعداد سرهای کلید و مقدار ($H_{KV}$) & ۴ سر (\en{Grouped-Query Attention}) \\
+بُعد هر سر توجه ($d_h$) & ۶۴ \\
+بُعد لایه میانی پیش‌خور ($d_{\text{ffn}}$) & ۶۱۴۴ (ضریب بسط $4.8\times$) \\
+اندازه واژگان ورودی و خروجی ($V$) & ۲۰۲,۰۴۸ توکن \\
+اشتراک‌گذاری وزن‌های تعبیه‌ساز (\en{Weight Tying}) & فعال ($\mathbf{W}_{\text{head}} = \mathbf{E}_{\text{in}}^T$، صرفه‌جویی ۲۶۰ میلیون پارامتر) \\
+بیشینه طول پنجره زمینه (\en{Context Length}) & ۱۲۸,۰۰۰ توکن ($128\text{k}$) \\
+مکانیزم توجه لایه‌ای & متناوب محلی-سراسری (نسبت ۳ لایه محلی به ۱ لایه سراسری) \\
+طول پنجره لغزان توجه محلی ($W$) & ۵۱۲ توکن \\
+قید لایه‌های مرزی توجه & لایه ۰ (آغازین) و لایه ۲۹ (پایانی) الزاماً سراسری \\
+روش کدگذاری مکانی & موقعیت چرخشی (\en{RoPE}) بر روی تمام ابعاد \\
+تابع فعال‌ساز شبکه پیش‌خور & \en{SwiGLU} \\
+ساختار نرمال‌سازی لایه‌ها & \en{RMSNorm} پیش‌لایه‌ای (\en{Pre-Normalization}) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
