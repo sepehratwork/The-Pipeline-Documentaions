@@ -1589,6 +1589,28 @@ Manzil Zaheer, Guru Guruganesh, Avinava Dubey, Joshua Ainslie, Chris Alberti,
 \newblock {\em Advances in Neural Information Processing Systems},
   33:17283--17297, 2020.
 
+\bibitem{waleffe2024empirical}
+Roger Waleffe, Wonmin Byeon, Duncan Riach, Brandon Norick, Vijay Korthikanti,
+  Tri Dao, Albert Gu, Ali Hatamizadeh, Sudhakar Singh, Deepak Narayanan, et~al.
+\newblock An empirical study of mamba-based language models.
+\newblock {\em arXiv preprint arXiv:2406.07887}, 2024.
+
+\bibitem{nvidia2025nemotronh}
+{NVIDIA}.
+\newblock Nemotron-h: A family of accurate and efficient hybrid
+  mamba-transformer models.
+\newblock {\em arXiv preprint arXiv:2504.03624}, 2025.
+
+\bibitem{deepseek2025v3}
+{DeepSeek-AI}.
+\newblock Deepseek-v3 technical report.
+\newblock {\em arXiv preprint arXiv:2412.19437}, 2025.
+
+\bibitem{nvidia2025nvfp4}
+{NVIDIA}.
+\newblock Pretraining large language models with nvfp4.
+\newblock {\em arXiv preprint arXiv:2509.25149}, 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.

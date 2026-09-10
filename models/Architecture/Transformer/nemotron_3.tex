@@ -1,1 +1,208 @@
-\item \textbf asd
+\item \model{Nemotron-3}
+
+\paragraph*{مقدمه و فلسفه بنیادین معماری (\en{Architectural Philosophy})}
+با افزایش وابستگی سامانه‌های هوش مصنوعی به استدلال‌های طولانی، بکارگیری ابزارها (\en{Tool Use}) و کانتکست‌های فوق‌طولانی تا سقف \en{1M} توکن، معماری‌های استاندارد ترنسفورمر به دلیل رشد خطی حافظه میانگیر کلید-مقدار (\en{KV Cache}) و مرتبه زمانی $\mathcal{O}(L^2)$ در کانتکست‌های بلند دچار افت شدید توان پردازشی می‌شوند \cite{vaswani2017attention}. خانواده مدل‌های \model{Nemotron 3} توسعه‌یافته توسط شرکت \en{NVIDIA} (شامل مدل‌های \en{Nano}، \en{Super} و \en{Ultra})، یک معماری دورگه (\en{Hybrid}) بر پایه ترکیب لایه‌های فضای حالت خطی \en{Mamba-2}، خودتوجهی تنک با سرهای اشتراکی (\en{GQA}) و شبکه خبرگان فشرده نوآورانه (\en{LatentMoE}) را معرفی می‌نماید \cite{dao2024transformers, waleffe2024empirical, nvidia2025nemotronh}.
+
+این معماری بر پایه چهار ستون اصلی مهندسی و تئوریک بنا شده است:
+\begin{enumerate}
+    \item \textbf{ترکیب دورگه غیریکنواخت (\en{Hybrid Mamba-MoE-Attention}):} جایگزینی بخش عمده لایه‌های توجه با لایه‌های زمان‌ثابت \en{Mamba-2} و ابقای تعداد بسیار محدودی لایه توجه فاقد \en{RoPE} جهت برقراری پیوندهای سراسری \cite{puvvada2025swan}.
+    \item \textbf{معماری خبرگان در فضای پنهان (\en{LatentMoE}):} تفکیک محاسبات خبرگان به فضای با ابعاد فشرده $\ell < d$ جهت شکستن گلوگاه تبادلات شبکه‌ای \en{All-to-All} و پهنای باند حافظه، همزمان با بیشینه‌سازی بودجه غیرخطی \cite{nvidia2025nemotronh}.
+    \item \textbf{پیش‌بینی همزمان چندتوکنی (\en{Multi-Token Prediction - MTP}):} الحاق ماژول‌های کمکی در انتهای مدل جهت ایجاد نظارت متراکم و تسریع استنتاج از طریق رمزگشایی فرضی (\en{Speculative Decoding}) بدون نیاز به مدل کمکی مجزا \cite{gloeckle2024better, deepseek2025v3}.
+    \item \textbf{آموزش بومی با قالب محاسباتی \en{NVFP4}:} کوانتیزاسیون ریزدانه پیشرفته با بلاک‌های ۱۶ عنصری و تفکیک لایه‌های حساس در دقت‌های بالاتر (\en{BF16} و \en{MXFP8}) برای حفظ پایداری کامل آموزش تا ۲۵ تریلیون توکن \cite{nvidia2025nvfp4, chen2025scaling}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع معماری بلوک هیبرید و LatentMoE در Nemotron-3
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0.9cm and 1.2cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=6.5cm, minimum height=0.9cm, font=\bfseries},
+    mamba_box/.style={base, fill=teal!12, draw=teal!75!black, minimum width=8.5cm, minimum height=1.3cm},
+    attn_box/.style={base, fill=cyan!12, draw=cyan!75!black, minimum width=8.5cm, minimum height=1.3cm},
+    latent_moe_box/.style={base, fill=orange!12, draw=orange!75!black, minimum width=8.8cm, minimum height=3.6cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=10pt, line width=1.2pt, inner sep=10pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % ورودی
+    \node[io_node] (input) {توکن‌های ورودی (\en{Input Tokens: } $\mathbf{x}_t \in \mathbb{R}^d$)};
+    \node[mamba_box, below=0.9cm of input] (mamba) {
+        \textbf{\large لایه مدلسازی توالی \en{Mamba-2} (\en{State Space Duality})}\\[3pt]
+        \scriptsize $\bullet$ حالت پنهان پیوسته با حافظه ثابت: $\mathbf{h}_t = \bar{\mathbf{A}}_t \mathbf{h}_{t-1} + \bar{\mathbf{B}}_t \mathbf{x}_t$\\
+        \scriptsize $\bullet$ هزینه حافظه زمان استنتاج $\mathcal{O}(1)$ مستقل از طول کانتکست $+$ تزریق ضمنی اطلاعات ترتیب مکانی
+    };
+
+    % اتصال و لایه توجه
+    \node[attn_box, below=0.9cm of mamba] (attn) {
+        \textbf{\large لایه خودتوجهی سراسری محدود (\en{Sparsified GQA Layer})}\\[3pt]
+        \scriptsize $\bullet$ پیکربندی گروه‌بندی‌شده کوئری با تنها ۲ سر برای کلید و مقدار ($H_{KV}=2$)\\
+        \scriptsize $\bullet$ حذف کامل تعبیه مکانی دوار (\en{No-RoPE}) جهت تضمین برون‌یابی پایدار تا کانتکست \en{1M}
+    };
+
+    % لایه LatentMoE
+    \node[latent_moe_box, below=1.0cm of attn] (latent_moe) {
+        \textbf{\large ساختار نوآورانه \en{LatentMoE}}\\[4pt]
+        \begin{tikzpicture}[node distance=0.4cm and 0.5cm, font=\scriptsize]
+            \node[draw, rounded corners=4pt, fill=yellow!25, draw=yellow!60!black, minimum width=3.8cm, minimum height=0.55cm] (router) {مسیریاب در بعد اصلی: $\mathbf{s} = \text{TopK}(\text{Softmax}(\mathbf{x}\mathbf{W}_g))$};
+            \node[draw, rounded corners=4pt, fill=purple!20, draw=purple!60!black, right=0.6cm of router, minimum width=3.5cm, minimum height=0.55cm] (shared) {خبره مشترک (\en{SE}) در بعد $d$};
+            
+            \node[draw, rounded corners=4pt, fill=red!15, draw=red!60!black, below=0.5cm of router, minimum width=3.8cm, minimum height=0.55cm] (down_proj) {افکنش به فضای پنهان: $\mathbf{z} = \mathbf{x}\mathbf{W}_{down} \in \mathbb{R}^\ell$};
+            \node[draw, rounded corners=4pt, fill=green!20, draw=green!60!black, below=0.5cm of down_proj, minimum width=3.8cm, minimum height=0.55cm] (latent_experts) {محاسبه خبرگان گزینشی در فضای پنهان $\ell$};
+            \node[draw, rounded corners=4pt, fill=red!15, draw=red!60!black, below=0.5cm of latent_experts, minimum width=3.8cm, minimum height=0.55cm] (up_proj) {افکنش به فضای اصلی: $\mathbf{y}_r = \mathbf{z}_r \mathbf{W}_{up} \in \mathbb{R}^d$};
+            
+            \draw[-{Stealth[scale=0.8]}] (down_proj) -- (latent_experts);
+            \draw[-{Stealth[scale=0.8]}] (latent_experts) -- (up_proj);
+        \end{tikzpicture}
+    };
+
+    % قاب بلوک دورگه
+    \node[block_frame, fit=(mamba) (attn) (latent_moe), label={[font=\bfseries\color{blue!70!black}]left:تکرار لایه‌های ترکیبی \en{Hybrid Block}}] (block) {};
+
+    % خروجی و سر MTP
+    \node[io_node, below=1.0cm of latent_moe] (head) {سر پیش‌بینی توکن اصلی (\en{Primary Head / AR Loss: } $\mathcal{L}_{AR}$)};
+    \node[io_node, below=0.7cm of head] (mtp) {لایه‌های پیش‌بینی چندتوکنی (\en{MTP Layers})\\ پیش‌بینی توکن‌های $t+2$ با نرخ پذیرش $\approx 97\%$ در \en{Speculative Decoding}};
+
+    % فلش‌های جریان داده
+    \draw[arrow] (input) -- (mamba);
+    \draw[arrow] (mamba) -- (attn);
+    \draw[arrow] (attn) -- (latent_moe);
+    \draw[arrow] (latent_moe) -- (head);
+    \draw[arrow] (head) -- (mtp);
+
+    % اتصالات باقیمانده (Residual)
+    \draw[arrow, blue!70!black, dashed] (input.east) -- ++(1.4,0) |- (attn.east);
+    \draw[arrow, blue!70!black, dashed] (attn.east) -- ++(1.4,0) |- (latent_moe.east);
+
+\end{tikzpicture}%
+}
+\caption{توپولوژی جریان داده و اجزای لایه‌ای در معماری دورگه \model{Nemotron 3} و ساختار تخصصی \en{LatentMoE}.}
+\label{fig:nemotron_3_architecture}
+\end{figure}
+
+\paragraph*{لایه‌های پردازش توالی و برتری مرتبه حافظه (\en{Sequence Modeling Layer})}
+در پردازش خودبازگشتی، در صورتی که لایه توجه استاندارد بکار رود، حجم حافظه مورد نیاز برای ذخیره‌سازی تانسورهای کلید و مقدار با رابطه زیر افزایش می‌یابد:
+\begin{equation}
+    \mathcal{M}_{KV}(L) = 2 \times B \times L \times H_{KV} \times d_k \times \text{sizeof(precision)} = \mathcal{O}(L)
+\end{equation}
+که در آن $B$ اندازه دسته، $L$ طول کانتکست و $H_{KV}$ تعداد سرهای کلید-مقدار است. 
+
+در معماری \model{Nemotron 3}، بخش اعظم مدل با لایه‌های \en{Mamba-2} جایگزین شده است که بر مبنای دوگانگی مدل فضای حالت ساختاریافته (\en{SSD}) عمل می‌کنند \cite{dao2024transformers}. معادله پیوسته سیستم با نگاشت بردار ورودی $x(t) \in \mathbb{R}^d$ به متغیر حالت $h(t) \in \mathbb{R}^{d_{state}}$ عبارت است از:
+\begin{align}
+    \frac{dh(t)}{dt} &= \mathbf{A}(t) h(t) + \mathbf{B}(t) x(t) \\
+    y(t) &= \mathbf{C}(t) h(t) + \mathbf{D}(t) x(t)
+\end{align}
+با گسسته‌سازی بر پایه تبدیل نگهدارنده مرتبه صفر (\en{Zero-Order Hold}) در گام زمانی $\Delta_t$:
+\begin{equation}
+    \bar{\mathbf{A}}_t = \exp(\Delta_t \mathbf{A}), \quad \bar{\mathbf{B}}_t = (\Delta_t \mathbf{A})^{-1}(\exp(\Delta_t \mathbf{A}) - \mathbf{I}) \cdot \Delta_t \mathbf{B}_t \approx \Delta_t \mathbf{B}_t
+\end{equation}
+فرم بازگشتی گسسته حاکم بر لایه به صورت زیر استخراج می‌شود:
+\begin{equation}
+    \mathbf{h}_t = \bar{\mathbf{A}}_t \mathbf{h}_{t-1} + \bar{\mathbf{B}}_t \mathbf{x}_t, \quad \mathbf{y}_t = \mathbf{C}_t \mathbf{h}_t + \mathbf{D} \mathbf{x}_t
+\end{equation}
+از آنجا که اندازه بردار پنهان $\mathbf{h}_t$ کاملاً متناهی و ثابت است:
+\begin{equation}
+    \mathcal{M}_{\text{Mamba}} = B \times d_{state} \times \text{sizeof(precision)} = \mathcal{O}(1)
+\end{equation}
+این استقلال پیچیدگی از طول کانتکست، مصرف حافظه استنتاج را تثبیت نموده و سرعت تولید توکن را در وظایف استدلالی بلند تا ۳.۳ برابر نسبت به ترنسفورمرهای متناظر افزایش می‌دهد.
+
+\paragraph*{مکانیسم توجه، سرکوب RoPE و پایداری کانتکست میلیونی}
+در معماری \model{Nemotron 3}، لایه‌های توجه بر مبنای دو ویژگی متمایز طراحی شده‌اند:
+\begin{enumerate}
+    \item \textbf{توجه با سرهای اشتراکی فشرده (\en{Grouped-Query Attention}):} برای کاهش بار حافظه در معدود لایه‌های توجه باقی‌مانده، تعداد سرهای کلید-مقدار به $H_{KV} = 2$ محدود شده است؛ بنابراین نسبت اشتراک $g = \frac{H_Q}{2}$ هزینه‌های دسترسی به حافظه را به حداقل می‌رساند.
+    \item \textbf{حذف کامل تعبیه مکانی دوار (\en{No-RoPE Design}):} در ترنسفورمرهای متداول، اعمال ماتریس دوران متعامد $\mathbf{R}_{\Theta, m}^d$ در فاز استنتاج برای طول‌های کانتکست فراتر از طول آموزش منجر به اغتشاش در فرکانس‌های زاویه‌ای و پدیده \en{Out-of-Distribution} می‌شود. در \model{Nemotron 3}، به دلیل ویژگی ذاتی لایه‌های \en{Mamba-2} در حفظ ساختار علّی ترتیبی:
+    \begin{equation}
+        \mathbf{h}_t = \sum_{j=0}^t \left( \prod_{k=j+1}^t \bar{\mathbf{A}}_k \right) \bar{\mathbf{B}}_j \mathbf{x}_j
+    \end{equation}
+    سیگنال موقعیت به شکل طبیعی در تانسورهای پنهان کدگذاری می‌شود؛ بنابراین نیازی به استفاده از \en{RoPE} در لایه‌های توجه نبوده و مدل بدون تغییر فاز در آزمون \en{RULER} در طول کانتکست ۱ میلیون توکن به نمره پایدار ۵۴.۱۹ دست می‌یابد \cite{hsieh2024ruler, puvvada2025swan}.
+\end{enumerate}
+
+\paragraph*{طراحی خبرگان آگاه از سخت‌افزار (\en{LatentMoE Architecture})}
+در سامانه‌های خوشه‌ای توزیع‌شده، حجم کل ارتباطات شبکه‌ای \en{All-to-All} برای توزیع و تجمیع توکن‌ها میان پردازنده‌ها به ازای هر توکن به صورت زیر بیان می‌شود:
+\begin{equation}
+    \text{Comm}_{\text{Standard}} = 2 \times K \times d \times \text{sizeof(precision)}
+\end{equation}
+که در آن $K$ تعداد خبرگان فعال و $d$ بعد پنهان مدل است. این مقدار کاملاً مستقل از بعد لایه میانی خبره ($m$) است. 
+
+\textbf{فرمولاسیون ریاضی \en{LatentMoE}:}
+در این معماری، بردار توکن ورودی $\mathbf{x} \in \mathbb{R}^d$ ابتدا به یک زیرفضای پنهان فشرده با بعد $\ell < d$ (با نسبت $\rho = \frac{d}{\ell} \approx 4$) افکنش می‌یابد:
+\begin{equation}
+    \mathbf{z} = \mathbf{x} \mathbf{W}_{down} \in \mathbb{R}^\ell, \quad \mathbf{W}_{down} \in \mathbb{R}^{d \times \ell}
+\end{equation}
+شبکه گیتینگ برای حفظ قدرت تفکیک، وزن‌های مسیریابی را روی بردار ورودی اولیه در بعد اصلی $d$ محاسبه می‌کند:
+\begin{equation}
+    \mathbf{s} = \text{Softmax}(\text{TopK}(\mathbf{x} \mathbf{W}_g, K')), \quad \mathbf{W}_g \in \mathbb{R}^{d \times N'}
+\end{equation}
+محاسبات خبرگان به طور کامل در فضای فشرده $\ell$ انجام می‌گیرد:
+\begin{equation}
+    \mathbf{e}_i(\mathbf{z}) = \mathbf{W}_2^{(i)} \cdot \phi(\mathbf{W}_1^{(i)} \mathbf{z}), \quad \mathbf{W}_1^{(i)} \in \mathbb{R}^{\ell \times m}, \; \mathbf{W}_2^{(i)} \in \mathbb{R}^{m \times \ell}
+\end{equation}
+خروجی‌های گزینش‌شده تجمیع شده و مجدداً به فضای $d$ افکنش می‌یابند:
+\begin{equation}
+    \mathbf{y}_{routed} = \left( \sum_{i \in \text{TopK}} s_i \mathbf{e}_i(\mathbf{z}) \right) \mathbf{W}_{up}, \quad \mathbf{W}_{up} \in \mathbb{R}^{\ell \times d}
+\end{equation}
+خبرگان مشترک (\en{Shared Experts}) بدون ورود به فضای نهفته مستقیماً بر روی بعد $d$ عمل می‌کنند:
+\begin{equation}
+    \mathbf{y}_{shared} = \mathbf{W}_2^{SE} \cdot \phi(\mathbf{W}_1^{SE} \mathbf{x}), \quad \mathbf{W}_1^{SE} \in \mathbb{R}^{d \times m_{SE}}, \; \mathbf{W}_2^{SE} \in \mathbb{R}^{m_{SE} \times d}
+\end{equation}
+خروجی نهایی حاصل جمع اتصالات باقیمانده و هر دو شاخه است:
+\begin{equation}
+    \mathbf{y} = \mathbf{x} + \mathbf{y}_{routed} + \mathbf{y}_{shared}
+\end{equation}
+
+\textbf{تحلیل ظرفیت و ارتباطات:}
+با کاهش بعد به $\ell$، تعداد کل خبرگان $N$ و خبرگان فعال $K$ با ضریب دقیق $\rho = \frac{d}{\ell}$ بازتنظیم می‌شوند:
+\begin{equation}
+    N' = N \cdot \left(\frac{d}{\ell}\right), \quad K' = K \cdot \left(\frac{d}{\ell}\right)
+\end{equation}
+در نتیجه حجم ترافیک تبادلی شبکه بدون تغییر باقی می‌ماند:
+\begin{equation}
+    \text{Comm}_{\text{LatentMoE}} = 2 \times K' \times \ell = 2 \times \left(K \frac{d}{\ell}\right) \times \ell = 2 K d = \text{Comm}_{\text{Standard}}
+\end{equation}
+در حالی که بودجه غیرخطی مدل که متناسب با $K_{active} \times m$ است، به میزان $\frac{d}{\ell} \approx 4$ برابر افزایش می‌یابد.
+
+\paragraph*{پیش‌بینی چندتوکنی (\en{Multi-Token Prediction - MTP})}
+در مدل‌های \en{Super} و \en{Ultra}، هدف بهینه‌سازی از طریق پیش‌بینی موازی توکن‌های آینده توسعه داده شده است \cite{gloeckle2024better}:
+\begin{equation}
+    \mathcal{L}_{\text{Total}} = \mathcal{L}_{AR} + \sum_{k=1}^{M} \lambda_k \mathcal{L}_{MTP}^{(k)}
+\end{equation}
+که در آن:
+\begin{equation}
+    \mathcal{L}_{MTP}^{(k)} = - \sum_{t=1}^{T-k} \log P_{\theta, \psi_k}(x_{t+k+1} \mid x_{\le t})
+\end{equation}
+بر اساس تئوری اطلاعات، این روش باعث بیشینه‌سازی اطلاعات متقابل میان بردارهای حالت زیرین و توالی‌های آتی می‌گردد ($\mathcal{I}(\mathbf{h}_t; X_{t+1:t+M+1}) \gg \mathcal{I}(\mathbf{h}_t; X_{t+1})$). در مرحله استنتاج، خروجی ماژول‌های \en{MTP} نقش مدل پیش‌نویس توکار (\en{Draft Model}) را با نرخ پذیرش تقریبی ۹۷٪ ایفا نموده و زمان تأخیر استنتاج را به شدت کاهش می‌دهند \cite{leviathan2023fast}.
+
+\paragraph*{مشخصات فنی و پیکربندی اجزای معماری}
+ویژگی‌های ساختاری و نحوه توزیع دقت محاسباتی در لایه‌های مختلف معماری \model{Nemotron 3} در جدول \ref{tab:nemotron_3_specs} مدون گردیده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات پیکربندی معماری، ابعاد و توزیع دقت‌های محاسباتی در خانواده \model{Nemotron 3}}
+\label{tab:nemotron_3_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{مولفه ساختاری / هایپرپارامتر} & \textbf{Nemotron-3-Nano (A3B)} & \textbf{Nemotron-3-Ultra / Super} \\
+\midrule
+تعداد کل پارامترها (\en{Total Parameters}) & ۳۰ میلیارد ($30\text{B}$) & مقیاس بسیار بزرگ (\en{Frontier Scale}) \\
+پارامترهای فعال به ازای هر توکن (\en{Activated}) & ۳ میلیارد ($3\text{B}$) & بهینه‌سازی‌شده بر مبنای \en{LatentMoE} \\
+ترکیب دورگه لایه‌ها (\en{Layer Pattern}) & متناوب: ۵ لایه \en{Mamba}، ۱ لایه \en{Attn} & ساختار یکپارچه \en{Hybrid Mamba-MoE} \\
+تعداد سرهای کلید-مقدار در توجه ($H_{KV}$) & ۲ سر (\en{Grouped-Query Attention}) & ۲ سر (\en{Grouped-Query Attention}) \\
+تعبیه موقعیت مکانی لایه‌های توجه & فاقد \en{RoPE} (وابسته به حالت درونی \en{Mamba}) & فاقد \en{RoPE} (وابسته به حالت درونی \en{Mamba}) \\
+معماری لایه خبرگان (\en{MoE Variant}) & ترکیب استاندارد \en{Mamba-MoE} & ساختار پنهان \en{LatentMoE} ($d/\ell \approx 4$) \\
+ابعاد فضای پنهان خبرگان ($\ell$) & معادل بعد مدل ($d$) & ۱۰۲۴ (با بعد مدل $d=4096$) \\
+تعداد کل / فعال خبرگان در \en{MoE} & تنک استاندارد & ۵۱۲ کل / ۲۲ فعال ($N'=512, K'=22$) \\
+ماژول پیش‌بینی چندتوکنی (\en{MTP}) & بدون \en{MTP} & مجهز به سرهای پیش‌بینی چندتوکنی \\
+قالب محاسباتی غالب در آموزش & شبیه‌سازی دقیق و اجرای \en{NVFP4} & آموزش بومی بر پایه موتور \en{NVFP4} \\
+فرمت نگاشت‌های پنهان ($W_{down}, W_{up}$) & نامربوط & \en{BF16} جهت حفظ کامل اطلاعات خطی \\
+فرمت پروجکشن خروجی \en{Mamba-2} & \en{MXFP8} (مهار پدیده \en{Flush-to-Zero}) & \en{MXFP8} (مهار پدیده \en{Flush-to-Zero}) \\
+فرمت نگاشت‌های توجه و انتهای شبکه & \en{BF16} (۱۵٪ انتهایی لایه‌های مدل) & \en{BF16} (۱۵٪ انتهایی لایه‌های مدل) \\
+حداکثر طول کانتکست پشتیبانی‌شده & ۱ میلیون توکن ($1\text{M}$ توکن) & ۱ میلیون توکن ($1\text{M}$ توکن) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
