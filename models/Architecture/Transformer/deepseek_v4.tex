@@ -1,1 +1,290 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مقدمه و فلسفه بنیادین معماری (\en{Architectural Philosophy})}
+مدل‌های زبانی بزرگ با پیشرفت در استدلال و پارادایم مقیاس‌پذیری زمان آزمون (\en{Test-Time Scaling})، نیازمند پشتیبانی بومی از زمینه‌های فوق‌طولانی هستند. مکانیزم توجه کلاسیک ترنسفورمر \cite{vaswani2017attention} به دلیل پیچیدگی محاسباتی $\mathcal{O}(N^2)$ و رشد خطی ابعاد حافظه میانگیر کلید-مقدار (\en{KV Cache})، پردازش متن‌های میلیونی را ناممکن می‌سازد. سری \model{DeepSeek-V4} شامل دو مدل \en{DeepSeek-V4-Pro} (با ۱.۶ تریلیون پارامتر کل و ۴۹ میلیارد پارامتر فعال) و \en{DeepSeek-V4-Flash} (با ۲۸۴ میلیارد پارامتر کل و ۱۳ میلیارد پارامتر فعال) با هدف پشتیبانی پایدار از طول زمینه \en{1M} توکن طراحی شده است. 
+
+این معماری بر پایه پنج رکن اساسی بنا شده است:
+\begin{enumerate}
+    \item \textbf{ابراتصالات با محدودیت چندگونگی (\en{mHC}):} توسعه جریان باقیمانده به چندبعدی و مقیدسازی ماتریس تبدیل به چندوجهی بیرکهوف \cite{xie2026mhc}.
+    \item \textbf{مکانیزم توجه ترکیبی (\en{Hybrid Attention}):} تلفیق متناوب توجه تنک فشرده (\en{CSA}) و توجه شدیداً فشرده (\en{HCA}).
+    \item \textbf{تکامل شبکه خبره‌ها (\en{DeepSeekMoE}):} معرفی تابع فعال‌ساز $\sqrt{\text{Softplus}(\cdot)}$ و مسیریابی درهم‌سازی (\en{Hash Routing}) در لایه‌های ابتدایی \cite{dai2024deepseekmoe, roller2021hash}.
+    \item \textbf{پیش‌بینی چندتوکنی (\en{Multi-Token Prediction - MTP}):} تعمیق یادگیری چندگامی با عمق پیش‌بینی یکنواخت \cite{gloeckle2024better}.
+    \item \textbf{بهینه‌سازی ماتریسی با \en{Muon}:} استفاده از تکرارهای نیوتن-شولتز دو مرحله‌ای جهت ارتوگونال‌سازی طیفی \cite{jordan2024muon, liu2025muon}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع معماری بلوک ترنسفورمر DeepSeek-V4
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.0cm and 1.5cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=6cm, minimum height=0.9cm, font=\bfseries},
+    mhc_node/.style={base, fill=purple!12, draw=purple!70!black, minimum width=6.8cm, minimum height=1.1cm},
+    attn_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=8.5cm, minimum height=2.4cm},
+    moe_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=8.5cm, minimum height=2.3cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=10pt, line width=1.2pt, inner sep=12pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % ورودی
+    \node[io_node] (input) {توکن‌های ورودی (\en{Input Tokens})};
+    \node[io_node, below=0.8cm of input] (embed) {لایه تعبیه کلمات (\en{Embedding Layer})\\ $\mathbf{X}_0 \in \mathbb{R}^{n_{\text{hc}} \times d}$ ($n_{\text{hc}}=4$)};
+
+    % بلوک ترنسفورمر
+    \node[mhc_node, below=1.2cm of embed] (pre_attn) {
+        \textbf{نگاشت پیش‌بلوک توجه (\en{Pre-Block Mixing})}\\
+        $\mathbf{u}_l = \mathbf{A}_l \mathbf{X}_l \in \mathbb{R}^{1 \times d} \quad \left[\mathbf{A}_l = \sigma(\tilde{\mathbf{A}}_l) \in [0,1]^{1 \times n_{\text{hc}}}\right]$
+    };
+
+    \node[attn_box, below=0.9cm of pre_attn] (attn) {
+        \textbf{\large لایه توجه ترکیبی (\en{Hybrid Attention Layer})}\\[3pt]
+        \scriptsize $\bullet$ \textbf{\en{CSA}:} فشرده‌سازی همپوشان ($m=4$) $+$ شاخص‌گذار آذرخش (\en{Lightning Indexer}) $+$ گزینش تنک \en{Top-$k$}\\
+        \scriptsize $\bullet$ \textbf{\en{HCA}:} فشرده‌سازی عمیق ناهمپوشان ($m'=128$) $+$ توجه چگال سراسری (\en{Dense Attention})\\
+        \scriptsize $\bullet$ شاخه پنجره لغزان محلی ($n_{\text{win}}=128$) $+$ چاه توجه (\en{Attention Sink}) $+$ تبدیل \en{Partial \& Inverse RoPE}\\
+        \scriptsize $\bullet$ افکنش خروجی گروه‌بندی‌شده (\en{Grouped Output Projection}) با $g$ گروه و بعد میانی $d_g$
+    };
+
+    \node[mhc_node, below=0.9cm of attn] (post_attn) {
+        \textbf{به‌روزرسانی باقیمانده توجه (\en{Post-Block Residual Mixing})}\\
+        $\mathbf{X}'_l = \mathbf{B}_l \mathbf{X}_l + \mathbf{C}_l \text{Attn}(\mathbf{u}_l) \quad \left[\mathbf{B}_l \in \mathcal{M} \text{ (Birkhoff)}, \; \mathbf{C}_l = 2\sigma(\tilde{\mathbf{C}}_l)\right]$
+    };
+
+    \node[mhc_node, below=0.9cm of post_attn] (pre_moe) {
+        \textbf{نگاشت پیش‌بلوک خبره‌ها (\en{Pre-Block Mixing})}\\
+        $\mathbf{u}'_l = \mathbf{A}'_l \mathbf{X}'_l \in \mathbb{R}^{1 \times d}$
+    };
+
+    \node[moe_box, below=0.9cm of pre_moe] (moe) {
+        \textbf{\large لایه شبکه خبره‌ها (\en{DeepSeekMoE Layer})}\\[3pt]
+        \scriptsize $\bullet$ لایه‌های ۰ تا ۲: مسیریابی بر پایه درهم‌سازی قطعی (\en{Hash Routing}) بر مبنای شناسه توکن\\
+        \scriptsize $\bullet$ لایه‌های ۳ به بعد: ۱ خبره اشتراکی $+$ خبره‌های مسیریابی‌شده تخصصی با گزینش \en{Top-6}\\
+        \scriptsize $\bullet$ گیتینگ هموار: $\text{Score} = \sqrt{\text{Softplus}(\mathbf{u}'_l \mathbf{W}_g)}$ بدون تابع زیان کمکی\\
+        \scriptsize $\bullet$ مهار فعال‌سازها: برش خطی \en{SwiGLU} در $[-10, 10]$ و سقف گیت بر روی $10$
+    };
+
+    \node[mhc_node, below=0.9cm of moe] (post_moe) {
+        \textbf{به‌روزرسانی باقیمانده خبره (\en{Post-Block Residual Mixing})}\\
+        $\mathbf{X}_{l+1} = \mathbf{B}'_l \mathbf{X}'_l + \mathbf{C}'_l \text{MoE}(\mathbf{u}'_l) \quad \left[\mathbf{B}'_l \in \mathcal{M} \text{ (Birkhoff)}, \; \mathbf{C}'_l = 2\sigma(\tilde{\mathbf{C}}'_l)\right]$
+    };
+
+    % قاب بلوک
+    \node[block_frame, fit=(pre_attn) (attn) (post_attn) (pre_moe) (moe) (post_moe), label={[font=\bfseries\color{blue!70!black}]left:تکرار بلوک ترنسفورمر $\times L$}] (block) {};
+
+    % خروجی
+    \node[io_node, below=1.1cm of post_moe] (pred) {سر پیش‌بینی نهایی (\en{Prediction Head / LM Loss})\\ $\mathbf{h}_L = \mathbf{X}_L^{[1]} \in \mathbb{R}^d$};
+    \node[io_node, below=0.8cm of pred] (mtp) {ماژول‌های پیش‌بینی چندتوکنی (\en{MTP Modules, Depth = 1})\\ پیش‌بینی هم‌زمان توکن $t+2$ با ضریب اتلاف $0.3$};
+
+    % خطوط جریان
+    \draw[arrow] (input) -- (embed);
+    \draw[arrow] (embed) -- (pre_attn);
+    \draw[arrow] (pre_attn) -- (attn);
+    \draw[arrow] (attn) -- (post_attn);
+    \draw[arrow] (post_attn) -- (pre_moe);
+    \draw[arrow] (pre_moe) -- (moe);
+    \draw[arrow] (moe) -- (post_moe);
+    \draw[arrow] (post_moe) -- (pred);
+    \draw[arrow] (pred) -- (mtp);
+
+    % مسیر جریان باقیمانده mHC در کناره‌ها
+    \draw[arrow, purple!80!black, line width=1.5pt] (embed.south) ++(-2.8,0) -- ++(0,-0.4) |- (post_attn.west);
+    \draw[arrow, purple!80!black, line width=1.5pt] (post_attn.south) ++(-2.8,0) -- ++(0,-0.4) |- (post_moe.west);
+
+\end{tikzpicture}%
+}
+\caption{جریان داده و تانسور در بلوک ترنسفورمر \model{DeepSeek-V4} با ادغام \en{mHC}، توجه هیبرید و \en{DeepSeekMoE}.}
+\label{fig:deepseek_v4_transformer_block}
+\end{figure}
+
+\paragraph*{ابراتصالات با محدودیت چندگونگی (\en{mHC})}
+در ترنسفورمر استاندارد، اتصال باقیمانده به‌صورت $\mathbf{x}_{l+1} = \mathbf{x}_l + \mathcal{F}_l(\mathbf{x}_l)$ است. ابراتصالات استاندارد (\en{HC}) \cite{zhu2025hyper} این جریان را به بعد چندگانه بسط می‌دهند:
+\begin{equation}
+    \mathbf{X}_l = \begin{bmatrix} \mathbf{x}_{l,1} \\ \mathbf{x}_{l,2} \\ \vdots \\ \mathbf{x}_{l,n_{\text{hc}}} \end{bmatrix} \in \mathbb{R}^{n_{\text{hc}} \times d}
+\end{equation}
+در این ساختار، گذار حالت میان لایه‌ها از رابطه خطی زیر پیروی می‌کند:
+\begin{equation}
+    \mathbf{X}_{l+1} = \mathbf{B}_l \mathbf{X}_l + \mathbf{C}_l \mathcal{F}_l(\mathbf{A}_l \mathbf{X}_l)
+\end{equation}
+که در آن $\mathbf{A}_l \in \mathbb{R}^{1 \times n_{\text{hc}}}$ نگاشت ورودی، $\mathbf{B}_l \in \mathbb{R}^{n_{\text{hc}} \times n_{\text{hc}}}$ ماتریس تبدیل باقیمانده، و $\mathbf{C}_l \in \mathbb{R}^{n_{\text{hc}} \times 1}$ نگاشت خروجی است.
+
+\textbf{تحلیل ناپایداری طیفی در \en{HC}:}
+در انتشار رو به جلو در عمق $L$، ماتریس تبدیل از حاصل‌ضرب زنجیره‌ای $\prod_{l=1}^L \mathbf{B}_l$ تبعیت می‌کند. در صورتی که بزرگ‌ترین مقدار ویژه ماتریس از یک تجاوز کند ($\lambda_{\max}(\mathbf{B}_l) > 1$)، نرم طیفی $\|\mathbf{B}_l\|_2 > 1$ منجر به رشد نمایی سیگنال و انفجار گرادیان می‌شود. برعکس، چنانچه $\|\mathbf{B}_l\|_2 < 1$ باشد، محوشدگی گرادیان رخ خواهد داد.
+
+\textbf{محدودسازی به چندوجهی بیرکهوف (\en{Birkhoff Polytope}):}
+معماری \model{DeepSeek-V4} ماتریس $\mathbf{B}_l$ را بر روی منیفلد ماتریس‌های تصادفی دوگانه (\en{Doubly Stochastic Matrices}) $\mathcal{M}$ مقید می‌نماید \cite{xie2026mhc}:
+\begin{equation}
+    \mathcal{M} \coloneqq \left\{ \mathbf{M} \in \mathbb{R}^{n_{\text{hc}} \times n_{\text{hc}}} \;\middle|\; \mathbf{M} \mathbf{1}_{n_{\text{hc}}} = \mathbf{1}_{n_{\text{hc}}}, \; \mathbf{1}_{n_{\text{hc}}}^T \mathbf{M} = \mathbf{1}_{n_{\text{hc}}}^T, \; \mathbf{M} \ge 0 \right\}
+\end{equation}
+بر اساس قضیه پرون-فروبنیوس، برای هر $\mathbf{B}_l \in \mathcal{M}$ داریم $\|\mathbf{B}_l\|_2 = 1$. بنابراین تبدیل همواره غیرانبساطی (\en{Non-expansive}) است:
+\begin{equation}
+    \|\mathbf{B}_l \mathbf{X}_l\|_F \le \|\mathbf{B}_l\|_2 \|\mathbf{X}_l\|_F \le \|\mathbf{X}_l\|_F
+\end{equation}
+علاوه بر این، مجموعه $\mathcal{M}$ تحت ضرب ماتریسی بسته است:
+\begin{equation}
+    \mathbf{M}_1, \mathbf{M}_2 \in \mathcal{M} \implies (\mathbf{M}_1 \mathbf{M}_2)\mathbf{1} = \mathbf{M}_1 (\mathbf{M}_2 \mathbf{1}) = \mathbf{M}_1 \mathbf{1} = \mathbf{1}
+\end{equation}
+این خاصیت پایداری مطلق عددی را در لایه‌های عمیق تضمین می‌کند.
+
+\textbf{پارامتری‌سازی پویا و الگوریتم سینکهورن-نُپ (\en{Sinkhorn-Knopp}):}
+برای تولید مشروط به بافت پارامترها، حالت ورودی ابتدا تخت شده و تحت نرمال‌سازی قرار می‌گیرد:
+\begin{equation}
+    \hat{\mathbf{X}}_l = \text{RMSNorm}(\text{vec}(\mathbf{X}_l)) \in \mathbb{R}^{1 \times (n_{\text{hc}} d)}
+\end{equation}
+سپس متغیرهای خام به‌صورت ترکیبی از مولفه‌های پویا و ایستا تولید می‌شوند:
+\begin{align}
+    \tilde{\mathbf{A}}_l &= \alpha_l^{\text{pre}} \cdot (\hat{\mathbf{X}}_l \mathbf{W}_l^{\text{pre}}) + \mathbf{S}_l^{\text{pre}} \\
+    \tilde{\mathbf{B}}_l &= \alpha_l^{\text{res}} \cdot \text{Mat}(\hat{\mathbf{X}}_l \mathbf{W}_l^{\text{res}}) + \mathbf{S}_l^{\text{res}} \\
+    \tilde{\mathbf{C}}_l &= \alpha_l^{\text{post}} \cdot (\hat{\mathbf{X}}_l \mathbf{W}_l^{\text{post}})^T + \mathbf{S}_l^{\text{post}}
+\end{align}
+جهت ممانعت از تداخل ویرانگر و منفی شدن وزن‌ها، قیود زیر اعمال می‌گردد:
+\begin{equation}
+    \mathbf{A}_l = \sigma(\tilde{\mathbf{A}}_l), \quad \mathbf{C}_l = 2\sigma(\tilde{\mathbf{C}}_l)
+\end{equation}
+برای تصویر $\tilde{\mathbf{B}}_l$ بر چندوجهی بیرکهوف، الگوریتم سینکهورن-نُپ با نگاشت نمایی اولیه مقداردهی شده و نرمال‌سازی متناوب سطری ($\mathcal{T}_r$) و ستونی ($\mathcal{T}_c$) اجرا می‌شود:
+\begin{equation}
+    \mathbf{M}^{(0)} = \exp(\tilde{\mathbf{B}}_l), \quad \mathbf{M}^{(t)} = \mathcal{T}_r\left(\mathcal{T}_c\left(\mathbf{M}^{(t-1)}\right)\right), \quad \mathbf{B}_l = \mathbf{M}^{(t_{\max}=20)}
+\end{equation}
+که در آن:
+\begin{equation}
+    \left[\mathcal{T}_c(\mathbf{M})\right]_{ij} = \frac{M_{ij}}{\sum_{k=1}^{n_{\text{hc}}} M_{kj}}, \quad \left[\mathcal{T}_r(\mathbf{M})\right]_{ij} = \frac{M_{ij}}{\sum_{k=1}^{n_{\text{hc}}} M_{ik}}
+\end{equation}
+
+\paragraph*{مکانیزم توجه ترکیبی (\en{Hybrid Attention Architecture: CSA \& HCA})}
+به منظور شکستن بن‌بست محاسباتی $\mathcal{O}(N^2)$ در پردازش ۱ میلیون توکن، مدل از ترکیب لایه‌های متناوب توجه تنک فشرده (\en{CSA}) و توجه شدیداً فشرده (\en{HCA}) بهره می‌برد.
+
+\textbf{۱. توجه تنک فشرده (\en{Compressed Sparse Attention - CSA}):}
+در این لایه، طول کلید و مقدار با نرخ $m=4$ فشرده شده و سپس توجه تنک پویا با الگوریتم \en{DSA} \cite{deepseek2025v32} اعمال می‌شود:
+\begin{align}
+    \mathbf{C}^a = \mathbf{H} \mathbf{W}^{aKV}, \quad \mathbf{C}^b &= \mathbf{H} \mathbf{W}^{bKV} \in \mathbb{R}^{n \times c} \\
+    \mathbf{Z}^a = \mathbf{H} \mathbf{W}^{aZ}, \quad \mathbf{Z}^b &= \mathbf{H} \mathbf{W}^{bZ} \in \mathbb{R}^{n \times c}
+\end{align}
+فشرده‌سازی با همپوشانی $2m$ توکن و با استفاده از بایاس‌های مکانی یادگیرنده $\mathbf{B}^a, \mathbf{B}^b \in \mathbb{R}^{m \times c}$ صورت می‌پذیرد:
+\begin{equation}
+    \left[\mathbf{S}_{mi:m(i+1)-1}^a \;;\; \mathbf{S}_{m(i-1):mi-1}^b\right] = \text{Softmax}_{\text{row}}\left(\left[\mathbf{Z}_{mi:m(i+1)-1}^a + \mathbf{B}^a \;;\; \mathbf{Z}_{m(i-1):mi-1}^b + \mathbf{B}^b\right]\right)
+\end{equation}
+\begin{equation}
+    \mathbf{C}_i^{\text{Comp}} = \sum_{j=mi}^{m(i+1)-1} \mathbf{S}_j^a \odot \mathbf{C}_j^a + \sum_{j=m(i-1)}^{mi-1} \mathbf{S}_j^b \odot \mathbf{C}_j^b \in \mathbb{R}^c
+\end{equation}
+
+\textbf{شاخص‌گذار آذرخش (\en{Lightning Indexer}):}
+جهت گزینش تنک، کوئری‌های کم‌رتبه و وزن‌های سرها تولید می‌شوند:
+\begin{equation}
+    \mathbf{c}_t^Q = \mathbf{h}_t \mathbf{W}^{DQ} \in \mathbb{R}^{d_c}, \quad \mathbf{q}_t^I = \mathbf{c}_t^Q \mathbf{W}^{IUQ} \in \mathbb{R}^{n_h^I \times c_I}, \quad \mathbf{w}_t^I = \mathbf{h}_t \mathbf{W}^w \in \mathbb{R}^{n_h^I}
+\end{equation}
+امتیاز تطابق شاخص $I_{t,s}$ برای بلوک $s$ ($s < \lfloor t/m \rfloor$) با فعال‌ساز \en{ReLU} محاسبه می‌شود:
+\begin{equation}
+    I_{t,s} = \sum_{h=1}^{n_h^I} w_{t,h}^I \cdot \text{ReLU}\left(\mathbf{q}_{t,h}^I \cdot \mathbf{K}_s^{\text{IComp}}\right)
+\end{equation}
+سپس بلوک‌های دارای بالاترین امتیاز در ساختار کَش تنک برگزیده می‌شوند:
+\begin{equation}
+    \mathcal{C}_t^{\text{SprsComp}} = \left\{ \mathbf{C}_s^{\text{Comp}} \;\middle|\; I_{t,s} \in \text{Top-}k(I_{t,:}) \right\}
+\end{equation}
+
+\textbf{توجه چندکوئری با مقادیر مشترک (\en{Shared Key-Value MQA}):}
+با استفاده از بردار مشترک $\mathbf{c}_t^Q$، کوئری‌های هسته توجه تولید شده و بر روی درایه‌های تنک اعمال می‌گردند \cite{shazeer2019fast}:
+\begin{equation}
+    \mathbf{q}_t = \mathbf{c}_t^Q \mathbf{W}^{UQ} \in \mathbb{R}^{n_h \times c}, \quad \mathbf{o}_{t,i} = \text{CoreAttn}\left(\mathbf{q}_{t,i}, \mathcal{C}_t^{\text{SprsComp}}, \mathcal{C}_t^{\text{SprsComp}}\right)
+\end{equation}
+
+\textbf{تصویر خروجی گروه‌بندی‌شده (\en{Grouped Output Projection}):}
+به دلیل بزرگی ابعاد $c \cdot n_h$، خروجی به $g$ گروه تقسیم شده و به بعد میانی $d_g < c \frac{n_h}{g}$ تصویر می‌گردد:
+\begin{equation}
+    \mathbf{o}_{t,i}^{G'} = \mathbf{o}_{t,i}^G \mathbf{W}_i^G \in \mathbb{R}^{d_g}, \quad \hat{\mathbf{o}}_t = \left[\mathbf{o}_{t,1}^{G'} \;;\; \dots \;;\; \mathbf{o}_{t,g}^{G'}\right] \mathbf{W}^O \in \mathbb{R}^d
+\end{equation}
+
+\textbf{۲. توجه شدیداً فشرده (\en{Heavily Compressed Attention - HCA}):}
+در \en{HCA}، فشرده‌سازی با ضریب عمیق $m'=128$ و بدون همپوشانی اعمال شده و محاسبات توجه به فرم چگال (\en{Dense}) بر روی تمام درایه‌های فشرده اجرا می‌شود:
+\begin{equation}
+    \mathbf{S}_{m'i:m'(i+1)-1} = \text{Softmax}_{\text{row}}(\mathbf{Z}_{m'i:m'(i+1)-1} + \mathbf{B}), \quad \mathbf{C}_i^{\text{Comp}} = \sum_{j=m'i}^{m'(i+1)-1} \mathbf{S}_j \odot \mathbf{C}_j
+\end{equation}
+
+\textbf{تمهیدات تکمیلی در لایه توجه:}
+\begin{itemize}
+    \item \textbf{نرمال‌سازی \en{RMSNorm} سرها:} اعمال مستقل بر روی کوئری‌ها و درایه‌های فشرده جهت تثبیت دامنه لاجیت‌ها.
+    \item \textbf{تعبیه چرخشی نسبی معکوس (\en{Partial \& Inverse RoPE}):} اعمال \en{RoPE} \cite{su2024roformer} تنها بر روی ۶۴ بعد انتهایی. با توجه به اشتراک کلید و مقدار، برای خنثی‌سازی اثر موقعیت مطلق در جمع وزن‌دار مقادیر، تبدیل معکوس با فاز منفی موقعیت توکن کوئری بر روی ۶۴ بعد انتهایی خروجی هسته اعمال می‌شود:
+    \begin{equation}
+        \mathbf{o}_{t,i}^{[\text{last 64}]} \leftarrow \mathbf{R}_{\Theta, -t} \cdot \mathbf{o}_{t,i}^{[\text{last 64}]} \implies \mathbf{R}_{\Theta, -t} \left(\sum_s \alpha_{t,s} \mathbf{R}_{\Theta, s} \mathbf{v}_s\right) = \sum_s \alpha_{t,s} \mathbf{R}_{\Theta, (s-t)} \mathbf{v}_s
+    \end{equation}
+    \item \textbf{پنجره لغزان محلی (\en{SWA}):} افزودن یک شاخه غیرفشرده موازی به طول $n_{\text{win}}=128$ برای برقراری اتصالات محلی ریزدانه.
+    \item \textbf{چاه توجه (\en{Attention Sink}):} تعبیه پارامتر یادگیرنده $z'_h$ در مخرج سافت‌مکس برای امکان جذب احتمال توکن‌های نامربوط \cite{xiao2024efficient}:
+    \begin{equation}
+        s_{h,i,j} = \frac{\exp(z_{h,i,j})}{\sum_k \exp(z_{h,i,k}) + \exp(z'_h)}
+    \end{equation}
+\end{itemize}
+
+\paragraph*{شبکه خبره‌ها (\en{DeepSeekMoE Evolution})}
+ساختار لایه‌های \en{FFN} بر مبنای تفکیک خبره‌های ریزدانه بنا نهاده شده است \cite{dai2024deepseekmoe}.
+
+\textbf{۱. تابع گیتینگ نوین $\sqrt{\text{Softplus}(\cdot)}$:}
+به جای تابع سیگموئید، امتیاز تمایل خبره‌ها از رابطه زیر محاسبه می‌شود:
+\begin{equation}
+    g(x) = \sqrt{\text{Softplus}(x)} = \sqrt{\ln(1 + e^x)}
+\end{equation}
+مشتق دیفرانسیلی این تابع نسبت به ورودی گیت برابر است با:
+\begin{equation}
+    \frac{dg(x)}{dx} = \frac{1}{2\sqrt{\ln(1 + e^x)}} \cdot \frac{e^x}{1 + e^x} = \frac{\sigma(x)}{2\sqrt{\text{Softplus}(x)}}
+\end{equation}
+در مقادیر بزرگ ($x \to +\infty$)، داریم $\text{Softplus}(x) \approx x$ و رفتار مجانبی تابع به فرم زیرخطی $g(x) \approx \sqrt{x}$ درمی‌آید. مشتق آن با نرخ $\frac{1}{2\sqrt{x}}$ زوال می‌یابد که مانع از تمرکز بار بیش از حد بر روی چند خبره خاص و بروز ناپایداری‌های عددی می‌گردد.
+
+\textbf{۲. مسیریابی درهم‌سازی (\en{Hash Routing}):}
+در ۳ لایه نخست ترنسفورمر، گیتینگ با مسیریابی هش بر مبنای شناسه توکن جایگزین شده تا بازنمایی لایه‌های زیرین قطعی و تثبیت گردد \cite{roller2021hash}:
+\begin{equation}
+    \text{Expert\_ID} = \text{Hash}(\text{Token\_ID}) \pmod{E_{\text{routed}}}
+\end{equation}
+
+\textbf{۳. مهار مقادیر \en{SwiGLU Clamping}:}
+مولفه خطی در دامنه $[-10, 10]$ مهار شده و سقف مولفه گیت بر روی $10$ تثبیت شده است \cite{shazeer2020glu}.
+
+\paragraph*{بهینه‌ساز میون (\en{Muon Optimizer}) و تکرارهای نیوتن-شولتز}
+جهت تسریع همگرایی پارامترهای ماتریسی دوبعدی، بهینه‌ساز \en{Muon} \cite{jordan2024muon, liu2025muon} با ارتوگونال‌سازی طیفی از طریق تکرارهای نیوتن-شولتز دومرحله‌ای به‌کار گرفته شده است:
+\begin{equation}
+    \mathbf{M}_k = a \mathbf{M}_{k-1} + b \left(\mathbf{M}_{k-1} \mathbf{M}_{k-1}^T\right) \mathbf{M}_{k-1} + c \left(\mathbf{M}_{k-1} \mathbf{M}_{k-1}^T\right)^2 \mathbf{M}_{k-1}
+\end{equation}
+\begin{itemize}
+    \item \textbf{فاز اول (تکرار ۱ تا ۸):} ضرایب $(a, b, c) = (3.4445, -4.7750, 2.0315)$ جهت تقارب فوق‌سریع مقادیر منفرد به سمت عدد ۱.
+    \item \textbf{فاز دوم (تکرار ۹ و ۱۰):} ضرایب $(a, b, c) = (2, -1.5, 0.5)$ جهت تثبیت دقیق مقادیر منفرد بر روی ۱ بر مبنای خاصیت مشتق صفر در چندجمله‌ای $g(\sigma) = 2\sigma - 1.5\sigma^3 + 0.5\sigma^5$ در نقطه تکین $\sigma=1$.
+\end{itemize}
+
+\paragraph*{مشخصات فنی و مقایسه هایپرپارامترهای معماری}
+پیکربندی دقیق دو مدل سری \model{DeepSeek-V4} در جدول \ref{tab:deepseek_v4_specs} مقایسه و مستند گردیده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مشخصات و پیکربندی هایپرپارامترهای معماری ترنسفورمر در سری \model{DeepSeek-V4}}
+\label{tab:deepseek_v4_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{مولفه معماری / هایپرپارامتر} & \textbf{DeepSeek-V4-Flash} & \textbf{DeepSeek-V4-Pro} \\
+\midrule
+تعداد کل پارامترها (\en{Total Parameters}) & ۲۸۴ میلیارد ($284\text{B}$) & ۱.۶ تریلیون ($1.6\text{T}$) \\
+پارامترهای فعال به ازای هر توکن (\en{Activated}) & ۱۳ میلیارد ($13\text{B}$) & ۴۹ میلیارد ($49\text{B}$) \\
+تعداد کل لایه‌های ترنسفورمر ($L$) & ۴۳ لایه & ۶۱ لایه \\
+بعد پنهان مدل ($d$) & ۴۰۹۶ & ۷۱۶۸ \\
+ساختار دو لایه ابتدایی توجه & پنجره لغزان خالص (\en{Pure SWA}) & توجه شدیداً فشرده (\en{HCA}) \\
+ساختار سایر لایه‌های توجه & متناوب بین \en{CSA} و \en{HCA} & متناوب بین \en{CSA} و \en{HCA} \\
+نرخ فشرده‌سازی در \en{CSA} ($m$) & ۴ & ۴ \\
+تعداد هدهای کوئری شاخص‌گذار (\en{CSA}) & ۶۴ هد & ۶۴ هد \\
+بعد هدهای شاخص‌گذار ($c_I$) & ۱۲۸ & ۱۲۸ \\
+تعداد بلوک‌های منتخب تنک (\en{Top-$k$}) & ۵۱۲ بلوک & ۱۰۲۴ بلوک \\
+نرخ فشرده‌سازی در \en{HCA} ($m'$) & ۱۲۸ & ۱۲۸ \\
+تعداد هدهای کوئری توجه ($n_h$) & ۶۴ هد & ۱۲۸ هد \\
+بعد هدهای توجه ($c$) & ۵۱۲ & ۵۱۲ \\
+بعد فشرده‌سازی کوئری ($d_c$) & ۱۰۲۴ & ۱۵۳۶ \\
+تعداد گروه‌های افکنش خروجی ($g$) & ۸ گروه & ۱۶ گروه \\
+بعد افکنش میانی هر گروه ($d_g$) & ۱۰۲۴ & ۱۰۲۴ \\
+طول پنجره لغزان محلی ($n_{\text{win}}$) & ۱۲۸ توکن & ۱۲۸ توکن \\
+ضریب بسط جریان باقیمانده \en{mHC} ($n_{\text{hc}}$) & ۴ & ۴ \\
+تعداد تکرار سینکهورن ($t_{\max}$) & ۲۰ تکرار & ۲۰ تکرار \\
+روش مسیریابی در ۳ لایه نخست \en{FFN} & درهم‌سازی (\en{Hash Routing}) & درهم‌سازی (\en{Hash Routing}) \\
+تعداد خبره‌های اشتراکی / مسیریابی‌شده & ۱ اشتراکی $+$ ۲۵۶ گزینشی & ۱ اشتراکی $+$ ۳۸۴ گزینشی \\
+تعداد خبره‌های فعال در هر توکن & ۶ خبره & ۶ خبره \\
+بعد پنهان هر خبره (\en{Intermediate Dim}) & ۲۰۴۸ & ۳۰۷۲ \\
+عمق پیش‌بینی چندتوکنی (\en{MTP Depth}) & ۱ توکن اضافی & ۱ توکن اضافی \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

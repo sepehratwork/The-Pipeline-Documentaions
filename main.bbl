@@ -1418,6 +1418,40 @@ A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.
   generation.
 \newblock {\em arXiv preprint arXiv:2509.19128}, 2025.
 
+\bibitem{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+  Aidan~N. Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
+\newblock Attention is all you need.
+\newblock {\em Advances in Neural Information Processing Systems}, 30, 2017.
+
+\bibitem{xie2026mhc}
+Z.~Xie, Y.~Wei, H.~Cao, C.~Zhao, C.~Deng, J.~Li, D.~Dai, H.~Gao, et~al.
+\newblock mhc: Manifold-constrained hyper-connections.
+\newblock {\em arXiv preprint arXiv:2512.24880}, 2026.
+
+\bibitem{roller2021hash}
+Stephen Roller, Sainbayar Sukhbaatar, Arthur Szlam, and Jason Weston.
+\newblock Hash layers for large sparse models.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~34, pages 17555--17566, 2021.
+
+\bibitem{zhu2025hyper}
+D.~Zhu, H.~Huang, Z.~Huang, Y.~Zeng, Y.~Mao, B.~Wu, Q.~Min, and X.~Zhou.
+\newblock Hyper-connections.
+\newblock In {\em The Thirteenth International Conference on Learning
+  Representations (ICLR)}, 2025.
+
+\bibitem{shazeer2019fast}
+Noam Shazeer.
+\newblock Fast transformer decoding: One write-head is all you need.
+\newblock {\em arXiv preprint arXiv:1911.02150}, 2019.
+
+\bibitem{xiao2024efficient}
+Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and Mike Lewis.
+\newblock Efficient streaming language models with attention sinks.
+\newblock In {\em The Twelfth International Conference on Learning
+  Representations (ICLR)}, 2024.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -2021,5 +2055,10 @@ D.~Nathawani, I.~Gitman, S.~Majumdar, et~al.
 R.~Berry, M.~Jordan, and L.~Soldaini.
 \newblock Decon: Data decontamination tools for language models.
 \newblock \url{https://github.com/allenai/decon}, 2025.
+
+\bibitem{wang2024auxlossfree}
+Lean Wang, Hao Gao, Chenggang Zhao, Xingkai Sun, and Damai Dai.
+\newblock Auxiliary-loss-free load balancing strategy for mixture-of-experts.
+\newblock {\em arXiv preprint arXiv:2408.15664}, 2024.
 
 \end{thebibliography}
