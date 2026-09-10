@@ -1452,6 +1452,12 @@ Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and Mike Lewis.
 \newblock In {\em The Twelfth International Conference on Learning
   Representations (ICLR)}, 2024.
 
+\bibitem{liu2024deepseekv2}
+A.~Liu, B.~Feng, B.~Wang, et~al.
+\newblock {DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts
+  Language Model}.
+\newblock {\em arXiv preprint arXiv:2405.04434}, 2024.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.

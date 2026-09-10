@@ -1,1 +1,227 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{مقدمه و فلسفه بنیادین معماری (\en{Architectural Philosophy})}
+گذار از پارادایم کدنویسی شهودی (\en{Vibe Coding}) به سمت مهندسی خودکار و عاملیتی (\en{Agentic Engineering})، نیازمند بازطراحی بنیادین در موازنه سه‌گانه محاسبات، پهنای باند حافظه (\en{Memory Bandwidth}) و ارتباطات بین‌گره‌ای در مقیاس عظیم است. مدل پرچمدار \model{GLM-5} با مقیاس‌بندی به ۷۴۴ میلیارد پارامتر کل و ۴۰ میلیارد پارامتر فعال به ازای هر توکن، بر مبنای رفع تنگناهای توالی‌های فوق‌طولانی (\en{Long-Context}) و کاهش سربار ارتباطی در موازی‌سازی خبره‌ها (\en{Expert Parallelism - EP}) پایه‌گذاری شده است \cite{glm5_2026}. 
+
+این معماری ترنسفورمر بر پنج نوآوری کلیدی استوار است:
+\begin{enumerate}
+    \item \textbf{توجه تنک محتوا-محور (\en{DeepSeek Sparse Attention - DSA}):} جایگزینی توجه چگال $\mathcal{O}(L^2)$ با مکانیزم شاخص‌گذاری پویا بر مبنای محتوا جهت مدیریت توالی‌های تا سقف \en{200K} توکن با نصف هزینه محاسباتی \cite{deepseek2025v32}.
+    \item \textbf{توجه چندنهفته با بهینه‌ساز تجزیه‌شده (\en{MLA with Muon Split}):} اعمال تعامد ماتریسی مستقل بر روی سرهای بازسازی به منظور پایداری مقیاس لاجیت‌ها بدون نیاز به برش مصنوعی \cite{liu2024deepseekv2, jordan2024muon}.
+    \item \textbf{تجدید پیکربندی ابعاد توجه (\en{MLA-256}):} افزایش بعد سر به ۲۵۶ و تقلیل تعداد سرها به ۶۴ جهت سازگاری با سقف حافظه سخت‌افزارهای ناهمگن در فاز رمزگشایی (\en{Decoding}).
+    \item \textbf{معماری خبره‌های تنک عریض و کم‌عمق (\en{Wide \& Shallow MoE}):} کاهش عمق لایه‌ها به ۸۰ لایه در ازای افزایش تعداد خبره‌ها به ۲۵۶ خبره جهت کمینه‌سازی تأخیر تبادلات \en{All-to-All}.
+    \item \textbf{پیش‌بینی چندتوکنی با اشتراک پارامتر (\en{MTP with Parameter Sharing}):} بازیافت کامل وزن‌های لایه \en{MTP} در ۳ گام متوالی جهت جهش نرخ پذیرش حدسی با سربار حافظه $\mathcal{O}(1)$ \cite{gloeckle2024better}.
+\end{enumerate}
+
+% =========================================================================
+% دیاگرام جامع معماری بلوک ترنسفورمر GLM-5
+% =========================================================================
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    node distance=1.0cm and 1.5cm,
+    base/.style={draw, rounded corners=6pt, align=center, line width=1pt, drop shadow},
+    io_node/.style={base, fill=blue!12, draw=blue!70!black, minimum width=7cm, minimum height=0.9cm, font=\bfseries},
+    norm_node/.style={base, fill=gray!15, draw=gray!70!black, minimum width=5.5cm, minimum height=0.7cm},
+    attn_box/.style={base, fill=teal!10, draw=teal!70!black, minimum width=9.2cm, minimum height=3.0cm},
+    moe_box/.style={base, fill=orange!12, draw=orange!70!black, minimum width=9.2cm, minimum height=2.8cm},
+    block_frame/.style={draw=blue!60!black, dashed, rounded corners=12pt, line width=1.2pt, inner sep=14pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.1pt, draw=gray!80!black}
+]
+
+    % ورودی
+    \node[io_node] (input) {توکن‌های ورودی (\en{Input Sequence: } $\mathbf{X} \in \mathbb{R}^{L \times d_{\text{model}}}$)};
+    \node[io_node, below=0.8cm of input] (embed) {لایه تعبیه و مقیاس‌پذیری (\en{Embedding Layer})\\ $d_{\text{model}} = 6144, \quad |\mathcal{V}| = 154,880$};
+
+    % لایه‌های اولیه متراکم
+    \node[norm_node, below=0.9cm of embed] (dense_layers) {
+        \textbf{۳ لایه ترنسفورمر متراکم اولیه (\en{Initial Dense Layers $\times 3$})}\\
+        \scriptsize $\bullet$ توجه \en{MLA-256} متراکم $+$ شبکه پیش‌خور چگال با بعد میانی ۱۲,۲۸۸
+    };
+
+    % بلوک تکرارشونده MoE + DSA
+    \node[norm_node, below=1.0cm of dense_layers] (pre_attn_norm) {\en{RMSNorm} پیش از توجه};
+
+    \node[attn_box, below=0.9cm of pre_attn_norm] (attn) {
+        \textbf{\large توجه تنک دیپ‌سیک (\en{DeepSeek Sparse Attention - DSA Layer})}\\[4pt]
+        \scriptsize $\bullet$ \textbf{شاخص‌گذار آذرخش (\en{Lightning Indexer}):} ۳۲ سر با بعد ۱۲۸ $\rightarrow$ محاسبه ضرب داخلی با فعال‌ساز \en{ReLU}\\
+        \scriptsize $\bullet$ \textbf{گزینش تنک قطعی (\en{Deterministic Top-$k$}):} استخراج پایدار $k=2048$ کلید با بیشترین شباهت محتوایی\\
+        \scriptsize $\bullet$ \textbf{هسته توجه \en{MLA-256}:} فشرده‌سازی کوئری به ۲۰۴۸ و \en{KV} به ۵۱۲ با ۶۴ سر توجه ($d_k=192, d_v=256$)\\
+        \scriptsize $\bullet$ \textbf{بهینه‌سازی \en{Muon Split}:} تعامد قطبی مستقل به ازای هر سر جهت تثبیت مقیاس لاجیت‌ها
+    };
+
+    \node[norm_node, below=0.9cm of attn] (post_attn_norm) {\en{RMSNorm} لایه پیش‌خور و جمع باقیمانده};
+
+    \node[moe_box, below=0.9cm of post_attn_norm] (moe) {
+        \textbf{\large لایه متخصص‌های تنک مقیاس‌بالا (\en{Sparse MoE Sublayer})}\\[4pt]
+        \scriptsize $\bullet$ \textbf{کاهش عمق و افزایش عرض:} مهار تأخیر \en{All-to-All} با ۷۵ لایه \en{MoE} و مجموع ۲۵۶ متخصص\\
+        \scriptsize $\bullet$ \textbf{شبکه مسیریابی گیت (\en{Softmax Routing}):} گزینش ۸ متخصص برتر (\en{Top-8 Routed Experts})\\
+        \scriptsize $\bullet$ \textbf{متخصص اشتراکی (\en{Shared Expert}):} ۱ متخصص همیشه فعال جهت تثبیت نمایش عام دانش پایه\\
+        \scriptsize $\bullet$ \textbf{ابعاد میانی:} بعد ۲,۰۴۸ با فعال‌ساز فاکتورگیری‌شده \en{SwiGLU}
+    };
+
+    \node[norm_node, below=0.9cm of moe] (post_moe_norm) {جمع باقیمانده لایه خبره‌ها};
+
+    % قاب بلوک MoE
+    \node[block_frame, fit=(pre_attn_norm) (attn) (post_attn_norm) (moe) (post_moe_norm), label={[font=\bfseries\color{blue!70!black}]left:تکرار لایه‌های تنک ترنسفورمر $\times 75$}] (block) {};
+
+    % خروجی
+    \node[io_node, below=1.2cm of post_moe_norm] (final_norm) {نرمال‌سازی نهایی و لایه تصویر به واژگان (\en{LM Head})\\ خروجی توکن گام بعد: $p(x_{t+1} \mid x_{\le t})$};
+    
+    \node[io_node, below=0.8cm of final_norm] (mtp) {
+        \textbf{ماژول پیش‌بینی چندتوکنی با اشتراک پارامتر (\en{3-Step Shared MTP})}\\[2pt]
+        \scriptsize بازیافت یکسان وزن‌های یک لایه منفرد ترنسفورمر برای پیش‌بینی هم‌زمان توکن‌های $x_{t+2}, x_{t+3}, x_{t+4}$
+    };
+
+    % اتصالات جریان مستقیم
+    \draw[arrow] (input) -- (embed);
+    \draw[arrow] (embed) -- (dense_layers);
+    \draw[arrow] (dense_layers) -- (pre_attn_norm);
+    \draw[arrow] (pre_attn_norm) -- (attn);
+    \draw[arrow] (attn) -- (post_attn_norm);
+    \draw[arrow] (post_attn_norm) -- (moe);
+    \draw[arrow] (moe) -- (post_moe_norm);
+    \draw[arrow] (post_moe_norm) -- (final_norm);
+    \draw[arrow] (final_norm) -- (mtp);
+
+    % خطوط جریان باقیمانده (Residuals)
+    \draw[arrow, blue!70!black, line width=1.3pt] (pre_attn_norm.north) ++(-3.2,0) -- ++(0,-0.3) |- (post_attn_norm.west);
+    \draw[arrow, orange!80!black, line width=1.3pt] (post_attn_norm.south) ++(-3.2,0) -- ++(0,-0.3) |- (post_moe_norm.west);
+
+\end{tikzpicture}%
+}
+\caption{جریان داده و تبدیل تانسورها در بلوک ترنسفورمر مدل \model{GLM-5} شامل لایه‌های متراکم اولیه، تلفیق توجه تنک \en{DSA} با \en{MLA-256}، شبکه خبره‌های عریض و ماژول اشتراکی \en{MTP}.}
+\label{fig:glm5_transformer_architecture}
+\end{figure}
+
+\paragraph*{لایه توجه چندنهفته و اصلاحات جبر خطی (\en{Multi-Latent Attention \& Muon Split})}
+مکانیزم توجه چندنهفته (\en{MLA}) \cite{liu2024deepseekv2} با فشرده‌سازی بردار کلید و مقدار به فضای با بعد پایین، ردپای حافظه \en{KV-Cache} را به شدت کاهش می‌دهد. بردار پنهان ورودی در گام $t$ با $\mathbf{h}_t \in \mathbb{R}^{d_{\text{model}}}$ ($d_{\text{model}}=6144$) ابتدا به فضای فشرده نگاشت می‌شود:
+\begin{align}
+    \mathbf{c}_t^{KV} &= \mathbf{W}^{DKV} \mathbf{h}_t \in \mathbb{R}^{d_c} \quad (d_c = 512) \\
+    \mathbf{c}_t^Q &= \mathbf{W}^{DQ} \mathbf{h}_t \in \mathbb{R}^{d_{cq}} \quad (d_{cq} = 2048)
+\end{align}
+که در آن $\mathbf{W}^{DKV}$ و $\mathbf{W}^{DQ}$ عملگرهای فشرده‌سازی با رتبه پایین (\en{Low-Rank Down-Projection}) هستند. سرهای کوئری، کلید و مقدار با ماتریس‌های تصویر بالارونده (\en{Up-Projection}) بازسازی می‌گردند:
+\begin{equation}
+    \mathbf{q}_t^C = \mathbf{W}^{UQ} \mathbf{c}_t^Q, \quad \mathbf{k}_t^C = \mathbf{W}^{UK} \mathbf{c}_t^{KV}, \quad \mathbf{v}_t^C = \mathbf{W}^{UV} \mathbf{c}_t^{KV}
+\end{equation}
+
+\textbf{تحلیل ماتریسی و ضرورت نوآوری \en{Muon Split}:}
+در بهینه‌ساز استاندارد \en{Muon} \cite{jordan2024muon}، به‌روزرسانی پارامترهای ماتریسی مستلزم تصویر دیفرانسیل گرادیان $\mathbf{G} = \nabla_{\mathbf{W}} \mathcal{L}$ بر منیفلد ماتریس‌های ارتوگونال است که از طریق حل مسئله بهینه‌سازی زیر با معیار نرم فروبنیوس حاصل می‌شود:
+\begin{equation}
+    \mathbf{O}^* = \arg\min_{\mathbf{O}} \|\mathbf{G} - \mathbf{O}\|_F^2 \quad \text{s.t.} \quad \mathbf{O}^T \mathbf{O} = \mathbf{I}
+\end{equation}
+بر پایه تجزیه مقادیر منفرد $\mathbf{G} = \mathbf{U} \mathbf{\Sigma} \mathbf{V}^T$، جواب تحلیلی ماتریس جهتی قطبی برابر با $\mathbf{O}^* = \mathbf{U} \mathbf{V}^T$ است که به شکل تکراری با بسط نیوتن-شولتز تقریب زده می‌شود:
+\begin{equation}
+    \mathbf{X}_0 = \frac{\mathbf{G}}{\|\mathbf{G}\|_2}, \quad \mathbf{X}_{k+1} = \frac{1}{2} \mathbf{X}_k \left(3\mathbf{I} - \mathbf{X}_k^T \mathbf{X}_k\right)
+\end{equation}
+چنانچه ماتریس کل سرهای بازسازی $\mathbf{W}^{UQ} \in \mathbb{R}^{(n_h d_k) \times d_{cq}}$ به عنوان یک تانسور واحد تحت تعامد قرار گیرد، نرم طیفی کلی ماتریس به عدد ۱ محدود شده و واریانس فعال‌سازی در بین سرهای گوناگون یکسان‌سازی اجباری می‌شود. این پدیده قابلیت سرهای مختلف در یادگیری پدیده‌های زبانی در مقیاس‌های گوناگون را سرکوب کرده و منجر به تضعیف کارایی در مقایسه با \en{GQA} می‌گردد.
+
+در معماری \model{GLM-5}، الگوریتم \en{Muon Split} ماتریس‌های بازسازی را به ازای هر سر مستقل قطعه‌بندی می‌کند:
+\begin{equation}
+    \mathbf{W}^{UQ} = \begin{bmatrix} \mathbf{W}_1^{UQ} \\ \mathbf{W}_2^{UQ} \\ \vdots \\ \mathbf{W}_{n_h}^{UQ} \end{bmatrix}, \quad \mathbf{W}_i^{UQ} \in \mathbb{R}^{d_k \times d_{cq}}
+\end{equation}
+سپس عملگر ارتوگونال‌سازی به صورت مجزا بر روی هر زیرماتریس اعمال می‌گردد:
+\begin{equation}
+    \mathbf{W}_i^{(t+1)} = \mathbf{W}_i^{(t)} - \eta \cdot \text{NewtonSchulz}\left(\nabla_{\mathbf{W}_i} \mathcal{L}\right), \quad \forall i \in \{1, \dots, n_h\}
+\end{equation}
+این ساختار به هر سر توجه آزادی درجه مقیاس مستقل بخشیده و منجر به تثبیت ذاتی دامنه لاجیت‌های ضرب داخلی $\frac{\mathbf{q}_i^T \mathbf{k}_i}{\sqrt{d_k}}$ در طول مراحل آموزش، بدون نیاز به اعمال توابع برش مصنوعی لاجیت (\en{Logit Clipping}) می‌گردد.
+
+\textbf{پیکربندی \en{MLA-256} و موازنه سقف حافظه (\en{Roofline Model}):}
+در فاز رمزگشایی (\en{Decoding})، ضرب داخلی نهفته ۵۷۶-بعدی هزینه زمانی سنگینی بر سخت‌افزارهای گوناگون تحمیل می‌کرد. در \model{GLM-5} ابعاد بازآرایی شده‌اند:
+\begin{itemize}
+    \item افزایش بعد سر ارزش ($d_v$) از ۱۲۸ به **۲۵۶** و بعد سر کلید ($d_k$) به **۱۹۲**.
+    \item کاهش تعداد سرها ($n_h$) با ضریب $\frac{1}{3}$ از ۹۶ به **۶۴** سر.
+\end{itemize}
+از آنجا که حجم محاسبات فاز پیش‌پر کردن (\en{Prefill}) تابعی از حاصل‌ضرب $n_h \cdot d_v$ است:
+\begin{equation}
+    64 \times 256 = 16,384 \quad \Longleftrightarrow \quad 96 \times 170.6 \approx 16,384
+\end{equation}
+بار محاسباتی فاز آموزش کاملاً بدون تغییر باقی می‌ماند، اما به دلیل کاهش تعداد سرها و تعریض پهنای داده برداری، تأخیر فراخوانی هسته‌های محاسباتی در فاز تولید توکن متوالی به میزان چشمگیری کاهش می‌یابد.
+
+\paragraph*{توجه تنک دیپ‌سیک (\en{DeepSeek Sparse Attention - DSA})}
+برای شکستن پیچیدگی زمانی و حافظه‌ای $\mathcal{O}(L^2)$ در طول زمینه‌های تا سقف \en{200K}، مدل \model{GLM-5} مکانیزم تنک محتوا-محور \en{DSA} را به کار می‌گیرد \cite{deepseek2025v32}.
+
+\textbf{۱. ساختار شاخص‌گذار آذرخش (\en{Lightning Indexer}):}
+به موازات هسته اصلی توجه، یک زیرشبکه با ۳۲ سر و بعد ۱۲۸ تعریف شده که توکن‌های کلید گذشته را متناسب با شباهت معنایی به توکن کوئری رتبه‌بندی می‌کند:
+\begin{equation}
+    S_{t, \tau} = \sum_{m=1}^{32} \text{ReLU}\left( \mathbf{q}_{t, m}^{\text{idx}} \cdot \mathbf{k}_{\tau, m}^{\text{idx}} \right), \quad \tau \le t
+\end{equation}
+
+\textbf{۲. گزینش قطعی تنک (\en{Deterministic Top-$k$ Selection}):}
+از میان تمامی توکن‌های گذشته، تنها زیرمجموعه $\mathcal{K}_t$ با اندازه ثابت $k=2048$ برگزیده می‌شود:
+\begin{equation}
+    \mathcal{K}_t = \operatorname{Top-}k\left( \{ S_{t, \tau} \}_{\tau=1}^t \right)
+\end{equation}
+به کارگیری عملگر قطعی \en{Top-$k$} (\en{torch.topk}) تکرارپذیری گرادیان‌ها و تطابق کامل میان توزیع فاز استنتاج و آموزش تقویتی را فراهم آورده و مانع از ریزش آنتروپی مدل می‌گردد.
+
+\textbf{۳. محاسبه توجه روی درایه‌های گزینش‌شده:}
+هسته توجه دقیقاً بر روی زیرمجموعه فیلترشده اعمال می‌گردد:
+\begin{equation}
+    \text{Attn}(\mathbf{q}_t) = \sum_{\tau \in \mathcal{K}_t} \frac{\exp\left( \frac{\mathbf{q}_t^T \mathbf{k}_\tau}{\sqrt{d_k}} \right)}{\sum_{\tau' \in \mathcal{K}_t} \exp\left( \frac{\mathbf{q}_t^T \mathbf{k}_{\tau'}}{\sqrt{d_k}} \right)} \mathbf{v}_\tau
+\end{equation}
+این ساختار تنک به صورت پیش‌آموزش ادامه‌دار (\en{Continued Pre-Training}) طی دو فاز پیش‌گرمایش چگال (۱۰۰۰ گام با نرخ یادگیری $5\times 10^{-3}$) و انطباق تنک (۲۰ میلیارد توکن با نرخ $1\times 10^{-5}$) پیاده‌سازی شده و برخلاف روش‌های پنجره لغزان (\en{SWA}) یا توجه خطی (\en{GDN})، بدون افت در دقت بازیابی عمیق، بیش از ۹۰٪ از محاسبات زائد توجه را حذف می‌کند.
+
+\paragraph*{لایه خبره‌های تنک عریض و کم‌عمق (\en{Sparse MoE Sublayer})}
+در بخش شبکه‌های پیش‌خور، مدل از ساختار تفکیک خبره‌ها با مقیاس بالا بهره می‌برد:
+\begin{itemize}
+    \item **تعداد کل خبره‌ها ($E_{\text{total}}$):** ۲۵۶ خبره.
+    \item **تعداد خبره‌های برگزیده به ازای هر توکن ($K_{\text{routed}}$):** ۸ خبره تخصصی.
+    \item **تعداد خبره اشتراکی ثابت ($E_{\text{shared}}$):** ۱ خبره مشترک که همواره بر تمامی توکن‌ها اعمال می‌شود.
+    \item **بعد میانی خبره‌ها:** ۲۰۴۸ با تابع فعال‌ساز $\text{SwiGLU}(\mathbf{x}) = (\text{Swish}(\mathbf{x}\mathbf{W}_1) \odot \mathbf{x}\mathbf{W}_3)\mathbf{W}_2$.
+\end{itemize}
+
+خروجی بلوک خبره‌ها به فرم زیر ترکیب می‌گردد:
+\begin{equation}
+    \mathbf{y} = \text{FFN}_{\text{shared}}(\mathbf{x}) + \sum_{i \in \text{Top-}8(\mathbf{s})} \frac{\exp(s_i)}{\sum_{j \in \text{Top-}8(\mathbf{s})} \exp(s_j)} \text{FFN}_i(\mathbf{x})
+\end{equation}
+که در آن $s_i = \mathbf{x}^T \mathbf{w}_{g, i}$ امتیاز گیت خبره $i$ است. 
+
+\textbf{تحلیل کاهش لایه‌ها به ۸۰ لایه:}
+در خوشه‌های عظیم توزیع‌شده، هزینه تأخیر موازی‌سازی خبره‌ها از رابطه $T_{\text{comm}} \approx L_{\text{MoE}} \times (2\alpha + 2\beta \frac{B \cdot S \cdot d}{P_{\text{EP}}})$ تبعیت می‌کند. با تقلیل تعداد کل لایه‌ها به ۸۰ (۳ لایه متراکم ابتدایی و ۷۵ لایه \en{MoE}) در ازای افزایش ظرفیت عرضی به ۲۵۶ خبره، تعداد گام‌های ارتباطی \en{All-to-All} کاهش یافته و گلوگاه شبکه در زمان آموزش و استنتاج مهار شده است.
+
+\paragraph*{پیش‌بینی چندتوکنی با اشتراک پارامتر (\en{MTP with Parameter Sharing})}
+به منظور افزایش بهره‌وری در رمزگشایی حدسی (\en{Speculative Decoding})، مدل از ساختار \en{MTP} سه گامی بهره می‌برد \cite{gloeckle2024better, deepseek2025v32}. برای جلوگیری از رشد خطی حافظه به ازای پیش‌بینی $n$ توکن، پارامترهای ماژول $\theta_{\text{MTP}}$ در طول ۳ مرحله پیش‌بینی به صورت کاملاً اشتراکی بازیافت می‌شوند:
+\begin{equation}
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{LM}}(x_{t+1} \mid x_{\le t}) + \sum_{k=1}^3 \lambda_k \mathcal{L}_{\text{MTP}}\left(x_{t+1+k} \mid x_{\le t}, x_{t+1}, \dots, x_{t+k}; \theta_{\text{MTP}}\right)
+\end{equation}
+این ساختار بدون افزایش ردپای پارامتری ($O(1)$ \en{Parameter Footprint})، طول گام پذیرش حدسی را از ۲.۵۵ توکن در \model{DeepSeek-V3.2} به **۲.۷۶ توکن** در \model{GLM-5} افزایش داده است.
+
+\paragraph*{مشخصات فنی و مقایسه هایپرپارامترهای معماری}
+جدول \ref{tab:glm5_specs} مقایسه ابعادی و پیکربندی ترنسفورمر مدل \model{GLM-5} در برابر نسل پیشین (\model{GLM-4.5}) را نمایش می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{پیکربندی و مقایسه هایپرپارامترهای معماری ترنسفورمر در مدل‌های \model{GLM-4.5} و \model{GLM-5}}
+\label{tab:glm5_specs}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{مولفه معماری / هایپرپارامتر} & \textbf{GLM-4.5} & \textbf{GLM-5} \\
+\midrule
+تعداد کل پارامترها (\en{Total Parameters}) & ۳۵۵ میلیارد ($355\text{B}$) & ۷۴۴ میلیارد ($744\text{B}$) \\
+تعداد پارامترهای فعال به ازای هر توکن (\en{Activated}) & ۳۲ میلیارد ($32\text{B}$) & ۴۰ میلیارد ($40\text{B}$) \\
+تعداد کل لایه‌ها (\en{Total Layers}) & ۹۲ لایه & ۸۰ لایه \\
+تعداد لایه‌های متراکم اولیه (\en{Dense Layers}) & ۳ لایه & ۳ لایه \\
+تعداد لایه‌های خبره‌ها (\en{MoE Layers}) & ۸۹ لایه & ۷۵ لایه \\
+بعد پنهان مدل ($d_{\text{model}}$) & ۵۱۲۰ & ۶۱۴۴ \\
+بعد میانی بلوک متراکم (\en{Dense Intermediate Dim}) & ۱۲,۲۸۸ & ۱۲,۲۸۸ \\
+بعد میانی هر خبره (\en{MoE Intermediate Dim}) & ۱۵۳۶ & ۲۰۴۸ \\
+تعداد کل خبره‌ها ($E_{\text{total}}$) & ۱۶۰ خبره & ۲۵۶ خبره \\
+تعداد خبره‌های فعال تخصصی ($K_{\text{routed}}$) & ۸ خبره & ۸ خبره \\
+تعداد خبره‌های اشتراکی ($E_{\text{shared}}$) & ۱ خبره & ۱ خبره \\
+مکانیزم توجه (\en{Attention Mechanism}) & \en{MLA} چگال استاندارد & \en{DSA} تنک محتوا-محور با شاخص‌گذار آذرخش \\
+تعداد سرهای نمایه‌ساز \en{DSA} ($n_{h,\text{index}}$) & – & ۳۲ سر (با بعد ۱۲۸) \\
+تعداد توکن‌های برگزیده در توجه تنک ($k$) & – & ۲۰۴۸ توکن (\en{Deterministic Top-$k$}) \\
+تعداد سرهای توجه اصلی ($n_h$) & ۹۶ سر & ۶۴ سر \\
+بعد سرهای کلید-کوئری ($d_k$) & ۱۲۸ & ۱۹۲ \\
+بعد سرهای ارزش ($d_v$) & ۱۲۸ & ۲۵۶ (\en{MLA-256}) \\
+بعد فشرده‌سازی کوئری (\en{Q LoRA Dim}) & – & ۲۰۴۸ \\
+بعد فشرده‌سازی کلید-مقدار (\en{KV LoRA Dim}) & – & ۵۱۲ \\
+بهینه‌ساز تعامد سرهای توجه & \en{Muon} یکپارچه & \en{Muon Split} مستقل به ازای هر سر \\
+ماژول پیش‌بینی چندتوکنی (\en{MTP}) & ۱ ماژول (عمق ۱) & ۱ ماژول اشتراکی در ۳ گام متوالی \\
+اندازه دایره واژگان (\en{Vocabulary Size}) & ۱۵۱,۵۵۲ & ۱۵۴,۸۸۰ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
