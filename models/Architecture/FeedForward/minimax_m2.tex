@@ -1,0 +1,48 @@
+\item \model{MiniMax-M2}
+
+\paragraph*{فلسفه مینی-اکتیویشن و ابعاد لایه \en{MoE}}
+خانواده مدل‌های \model{MiniMax-M2} \cite{minimax2026m2} (شامل نسخه‌های \en{M2}، \en{M2.5} و \en{M2.7}) بر مبنای فرضیه بنیادین «فعال‌سازی حداقلی پارامترها در ازای کارایی هوشمندانه حداکثری» طراحی شده‌اند. مدل پرچمدار \en{M2} دارای ۲۲۹.۹ میلیارد پارامتر کل است، اما در هر گام محاسباتی تنها ۹.۸ میلیارد پارامتر فعال می‌گردند:
+\begin{itemize}
+    \item \textbf{پیکربندی بلوک:} ۶۲ لایه ترنسفورمر دیکودر، بعد پنهان مدل $d = 3072$.
+    \item \textbf{متخصصان خرددانه:} ۲۵۶ متخصص روت‌شده با ابعاد فشرده که combinatorial diversity را به شدت بالا می‌برند.
+    \item \textbf{تعداد متخصصان فعال:} به ازای هر توکن، تعداد ۸ متخصص فعال می‌شوند ($K = 8$).
+\end{itemize}
+
+\paragraph*{گیتینگ سیگموئیدی مستقل در برابر سافت‌مکس}
+برخلاف ساختارهای رایج که از تابع \en{Softmax} برای وزن‌دهی متخصصان استفاده می‌کنند، مدل \en{M2} از گیتینگ سیگموئیدی مستقل بهره می‌برد:
+\begin{equation}
+    s_i(x) = \text{Sigmoid}(x W_r^i + b_i) = \frac{1}{1 + \exp\left(-(x W_r^i + b_i)\right)}
+\end{equation}
+که در آن $b_i$ بایاس اختصاصی هر متخصص است. در مکانیزم \en{Softmax}، قید جمع-صفر ($\sum_i p_i = 1$) باعث رقابت مخرب بین متخصصان می‌شود؛ تضعیف یک متخصص صرفاً حاصل افزایش احتمال متخصص دیگر است. در مقابل، گیتینگ سیگموئیدی به چندین متخصص اجازه می‌دهد همزمان با قطعیت بالا ($s_i \approx 1$) انتخاب شوند که این امر باعث پایداری بسیار بالاتر پویایی گرادیان می‌گردد.
+
+\paragraph*{ادغام درخت پیشوند در آموزش پیش‌خور (\en{Prefix Tree Merging})}
+در سناریوهای آموزش عامل‌محور (\en{Agentic RL}) که توالی‌های چندمرحله‌ای تا سقف ۱۹۲ هزار توکن امتداد می‌یابند، پیشوندهای پیام مشترک متعددی شکل می‌گیرد. سامانه \en{Forge} در لایه‌های پیش‌خور از تکنیک \en{Prefix Tree Merging} استفاده می‌کند که در آن محاسبات رو به جلو روی بخش‌های مشترک ورودی دقیقاً یک بار در لایه‌های متخصصان محاسبه شده و سپس شاخه‌بندی می‌شود؛ این رهیافت شتاب محاسباتی لایه‌های پیش‌خور را تا ۴۰ برابر بهبود می‌بخشد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=2.8cm, minimum height=0.7cm, align=center, rounded corners=3pt},
+    exp/.style={rectangle, draw=green!70!black, fill=green!10, thick, minimum width=1.4cm, minimum height=0.6cm, align=center, rounded corners=2pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (in) at (0,0) [box, fill=gray!15] {ورودی توکن ($d=3072$)};
+    \node (gate) at (0,1.5) [box, fill=purple!15] {گیتینگ سیگموئید مستقل: $\sigma(x W_r + b)$};
+    \node (topk) at (0,2.8) [box, fill=purple!25] {انتخاب غیروابسته $\text{Top-}8$};
+    
+    \node (e1) at (-2.5,4.2) [exp] {$E_1$};
+    \node (ed) at (0,4.2) {$\dots$};
+    \node (e8) at (2.5,4.2) [exp] {$E_8$};
+    
+    \node (out) at (0,5.6) [box, fill=green!15] {تلفیق خروجی پیش‌خور};
+
+    \draw [arrow] (in) -- (gate);
+    \draw [arrow] (gate) -- (topk);
+    \draw [arrow] (topk) -| (e1);
+    \draw [arrow] (topk) -- (ed);
+    \draw [arrow] (topk) -| (e8);
+    \draw [arrow] (e1) |- (out);
+    \draw [arrow] (e8) |- (out);
+\end{tikzpicture}
+\caption{مکانیزم گیتینگ سیگموئیدی مستقل در لایه‌های \en{MoE} مدل \model{MiniMax-M2}.}
+\label{fig:minimax_m2_moe}
+\end{figure}

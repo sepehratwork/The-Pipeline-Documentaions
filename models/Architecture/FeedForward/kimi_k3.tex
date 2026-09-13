@@ -1,0 +1,91 @@
+\item \model{Kimi K3}
+
+\paragraph*{معماری \en{Stable LatentMoE} و تنک‌سازی حداکثری}
+مدل چندوجهی پرچمدار \model{Kimi K3} \cite{kimiteam2026k3} مقیاس لایه‌های پیش‌خور را به ۲.۸ تریلیون پارامتر کل با ۱۰۴ میلیارد پارامتر فعال در ۹۳ لایه و بعد مدل $d = 7168$ گسترش داده است. برای غلبه بر چالش خطی بودن حجم ترافیک ارتباطی در موازی‌سازی متخصصان، معماری نوین \en{Stable LatentMoE} معرفی شده است. این ساختار فضای تخصص‌گرایی را با تفکیک بعد پنهان مدل از بعد پردازشی متخصصان، به یک فضای نهفته (\en{Latent Space}) انتقال می‌دهد.
+\begin{itemize}
+    \item \textbf{مقیاس تنک‌سازی:} لایه شامل ۸۹۶ متخصص روت‌شده است که به ازای هر توکن ۱۶ متخصص برگزیده می‌شوند ($K=16$)؛ این پیکربندی ضریب تنک‌سازی بی‌سابقه $\frac{896}{16} = 56$ را محقق می‌سازد.
+    \item \textbf{متخصصان اشتراکی:} در تمام لایه‌ها تعداد ۲ متخصص اشتراکی تمام‌عرض ($N_s = 2$) مستقیماً در بعد کامل $d$ فعال هستند.
+    \item \textbf{نگاشت نهفته:} توکن $x \in \mathbb{R}^d$ با ماتریس $W_\downarrow \in \mathbb{R}^{\ell \times d}$ به بردار فشرده $z \in \mathbb{R}^\ell$ با بعد $\ell = 3584$ ($0.5d$) تصویر می‌شود.
+\end{itemize}
+
+\paragraph*{فرمولاسیون ریاضی لایه پیش‌خور نهفته نرمال‌شده (\en{Normalized LatentMoE})}
+خروجی لایه پیش‌خور با ترکیب مسیرهای اشتراکی و روت‌شده به صورت تحلیلی زیر استخراج می‌گردد:
+\begin{equation}
+    u = \sum_{i \in \mathcal{T}_K(x)} p_i E_i^{\text{routed}}(W_\downarrow x), \quad y = \sum_{j=1}^{N_s} E_j^{\text{shared}}(x) + W_\uparrow \text{RMSNorm}(u)
+\end{equation}
+که در آن $W_\uparrow \in \mathbb{R}^{d \times \ell}$ نگاشت بازگشت به فضای اصلی است. افزودن عملگر $\text{RMSNorm}$ به بردار تلفیقی $u$ مانع از انتشار نوسانات مقیاس در زنجیره ۴ ضرب ماتریسی پی‌درپی شده و پایداری بهینه‌سازی را به شکل قطعی تضمین می‌کند.
+
+\paragraph*{تابع فعال‌ساز کران‌دار \en{SiTU-GLU}}
+به منظور جلوگیری از سرریز عددی در محاسبات با ممیز شناور پایین، تابع غیرخطی \en{SiTU-GLU} با اعمال کلاهک نرم (\en{Soft-capping}) روی دو شاخه گیت و صعودی بازطراحی شده است:
+\begin{equation}
+    \text{SiTU-GLU}(x) = \left[ \beta_1 \tanh\left(\frac{W_g x}{\beta_1}\right) \odot \text{Sigmoid}(W_g x) \right] \odot \left[ \beta_2 \tanh\left(\frac{W_u x}{\beta_2}\right) \right]
+\end{equation}
+با تنظیم هایپرپارامترهای $\beta_1 = 4$ و $\beta_2 = 25$:
+\begin{enumerate}
+    \item \textbf{اثبات کران‌داری مطلق خروجی:}
+    چون برای هر $z \in \mathbb{R}$ روابط $|\tanh(z)| < 1$ و $0 < \text{Sigmoid}(z) < 1$ برقرار است، در نرم بی‌نهایت داریم:
+    \begin{equation}
+        \|\text{SiTU-GLU}(x)\|_\infty \le \beta_1 \cdot 1 \cdot \beta_2 \cdot 1 = \beta_1 \beta_2 = 4 \times 25 = 100
+    \end{equation}
+    \item \textbf{بسط تیلور مرتبه اول در مبدا:}
+    با توجه به $\beta \tanh(z/\beta) = z - \frac{z^3}{3\beta^2} + \mathcal{O}(z^5)$، در نزدیکی مبدا این تابع رفتار مرتبه اول \en{SwiGLU} را با دقت تحلیلی حفظ می‌کند:
+    \begin{equation}
+        \text{SiTU-GLU}(x) = \text{SwiGLU}(x) + \mathcal{O}\left(\frac{\|x\|^3}{\beta^2}\right)
+    \end{equation}
+\end{enumerate}
+
+\paragraph*{توازن کوانتایلی (\en{Quantile Balancing - QB})}
+توازن بار متخصصان از طریق دوگان لاگرانژ برنامه خطی تطابق بیشینه استخراج می‌شود. فرض کنید $s \in \mathbb{R}^{m \times n}$ ماتریس امتیازات $m$ توکن روی $n$ متخصص با ظرفیت هدف $q = \frac{mk}{n}$ باشد. هدف دوگان به صورت زیر است:
+\begin{equation}
+    \min_{\alpha, \beta} \mathcal{D}(\alpha, \beta) = \sum_{i=1}^m \sum_{j=1}^n \max(0, s_{i,j} - \alpha_i - \beta_j) + k \sum_{i=1}^m \alpha_i + \frac{mk}{n} \sum_{j=1}^n \beta_j
+\end{equation}
+با بهینه‌سازی مختصاتی، به‌روزرسانی بایاس متخصصان بدون نیاز به هایپرپارامتر نرخ یادگیری حاصل می‌شود:
+\begin{equation}
+    \alpha_i^* = \text{quantile}_{1 - k/n}(s_i - \beta), \quad \beta_j^* = \text{quantile}_{1 - k/n}(s_{:,j} - \alpha)
+\end{equation}
+در زمان استنتاج، بایاس $b_j = -\beta_j^*$ منجمد شده و مسیریابی بدون نیاز به محاسبه کوانتایل صورت می‌گیرد. تخمین توزیع‌شده این کوانتایل از طریق هیستوگرام‌های محلی ۱۰۰۰ سطلی با تبادل \en{AllReduce} عدد صحیح پیاده‌سازی شده است.
+
+\paragraph*{سیستم موازی‌سازی \en{MoonEP}}
+در این سیستم برای هر رنک محاسباتی $R$، سقف تخصیص متخصصان کمکی به مرز محکم $M(I) \le \lceil E/R \rceil$ محدود شده است. این قضیه تضمین می‌کند که تمامی رنک‌ها همواره بار محاسباتی کاملاً ثابت و بدون تغییر شکل ماتریسی را تجربه کرده و سنکرون‌سازی پردازنده‌ها با میزبان حذف شود.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=3.4cm, minimum height=0.8cm, align=center, rounded corners=3pt},
+    gatebox/.style={rectangle, draw=red!70!black, fill=red!10, thick, minimum width=3.2cm, minimum height=0.8cm, align=center, rounded corners=3pt},
+    expert/.style={rectangle, draw=teal!70!black, fill=teal!10, thick, minimum width=1.5cm, minimum height=0.7cm, align=center, rounded corners=2pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (x) at (0,0) [box, fill=gray!15] {ورودی توکن ($x \in \mathbb{R}^d$)};
+    \node (shared) at (-4,2.2) [expert, minimum width=2.6cm, fill=teal!20] {۲ متخصص اشتراکی\\$E_j^{\text{shared}}(x)$};
+    \node (down) at (2.5,1.5) [box, fill=yellow!15] {نگاشت نهفته ($W_\downarrow$): $d \to \ell$};
+    \node (router) at (6.2,1.5) [gatebox] {مسیریاب \en{QB}};
+    
+    \node (e1) at (1.5,3.2) [expert] {$E_1^{\text{routed}}$};
+    \node (edots) at (3.5,3.2) {$\dots$};
+    \node (ek) at (5.5,3.2) [expert] {$E_{16}^{\text{routed}}$};
+    
+    \node (combine) at (3.5,4.6) [box] {تلفیق با فعالساز \en{SiTU-GLU}};
+    \node (norm) at (3.5,5.8) [box, fill=orange!15] {نرمال‌سازی $\text{RMSNorm}(u)$};
+    \node (up) at (3.5,7.0) [box, fill=yellow!15] {نگاشت صعودی ($W_\uparrow$): $\ell \to d$};
+    
+    \node (add) at (0,8.2) [circle, draw=blue!80!black, fill=blue!20, thick, minimum size=0.8cm] {$+$};
+    \node (out) at (0,9.4) [box, fill=green!15] {خروجی نهایی پیش‌خور ($y \in \mathbb{R}^d$)};
+
+    \draw [arrow] (x) -| (shared);
+    \draw [arrow] (x) -| (down);
+    \draw [arrow] (down) -- (e1);
+    \draw [arrow] (down) -- (ek);
+    \draw [arrow] (x) -| (router);
+    \draw [arrow] (router) |- (combine);
+    \draw [arrow] (e1) |- (combine);
+    \draw [arrow] (ek) |- (combine);
+    \draw [arrow] (combine) -- (norm);
+    \draw [arrow] (norm) -- (up);
+    \draw [arrow] (shared) |- (add);
+    \draw [arrow] (up) |- (add);
+    \draw [arrow] (add) -- (out);
+\end{tikzpicture}
+\caption{جریان محاسباتی ساختار \en{Stable LatentMoE} و فعال‌ساز \en{SiTU-GLU} در مدل \model{Kimi K3}.}
+\label{fig:kimi_k3_latentmoe}
+\end{figure}

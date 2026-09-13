@@ -1,0 +1,42 @@
+\item \model{Magistral}
+
+\paragraph*{پیکربندی لایه پیش‌خور متراکم}
+مدل‌های استدلالی خانواده \model{Magistral} \cite{mistralai2025magistral} شامل نسخه‌های \en{Magistral Small} (بر پایه ۲۴ میلیارد پارامتر) و \en{Magistral Medium}، از معماری لایه پیش‌خور متراکم (\en{Dense FFN}) مبتنی بر فعال‌ساز \en{SwiGLU} بدون ساختار متخصصان بهره می‌برند:
+\begin{equation}
+    \text{FFN}(x) = \left( (x W_u) \odot \left( (x W_g) \cdot \text{Sigmoid}(x W_g) \right) \right) W_d
+\end{equation}
+در این معماری، کلیه پارامترهای پیش‌خور در جریان یادگیری تقویتی برخط از پاداش‌های قابل‌وارسی (\en{Online RLVR}) بدون نیاز به سردسازی یا تقطیر اولیّه بهینه‌سازی شده‌اند.
+
+\paragraph*{تحلیل دینامیک وزن‌های لایه پیش‌خور در زیرفضای کم‌بعد (\en{PCA Weight Trajectory})}
+یکی از مهم‌ترین مشارکت‌های تحلیلی این پژوهش، تحلیل هندسی فضای وزن‌های لایه‌های پیش‌خور در طول فرایند آموزش \en{RL} است. فرض کنید وزن‌های مدل در نقاط بازرسی مختلف به صورت بردار باز شده $w^{(t)} \in \mathbb{R}^W$ باشند. با چیدن این بردارها، ماتریس انحراف از میانگین $X \in \mathbb{R}^{T \times W}$ تشکیل می‌شود. به دلیل بعد فوق‌العاده زیاد ($W \gg 10^9$)، از الگوریتم تکرارشونده لانچوز-آرنولدی (\en{Lanczos-Arnoldi}) \cite{saad2003iterative} برای استخراج دو بردار ویژه اول ماتریس کوواریانس $X^T X$ استفاده شده است:
+\begin{equation}
+    X^T X c_k = \lambda_k c_k, \quad k \in \{1, 2\}, \quad \|c_k\|_2 = 1
+\end{equation}
+با بازسازی فضای وزن‌ها حول نقطه بازرسی نهایی $w^*$:
+\begin{equation}
+    w(\alpha_1, \alpha_2) = w^* + \alpha_1 c_1 + \alpha_2 c_2
+\end{equation}
+ارزیابی مدل در صفحه حاصل از $(\alpha_1, \alpha_2)$ آشکار ساخت که مولفه اصلی اول $c_1$ دقیقاً بر راستای طول توالی استدلال منطبق است. پاداش خام حاصل از پاسخ‌ها رابطه مقیاس‌پذیری لگاریتمی مستقیمی با طول خروجی استدلالی نشان می‌دهد:
+\begin{equation}
+    \text{Reward}_{\text{raw}} \approx a \cdot \ln(\text{Output Length}) + b
+\end{equation}
+این نتیجه تایید می‌کند که پارامترهای لایه‌های پیش‌خور در فرایند \en{RL} بدون تخریب دانش پایه‌ای، ظرفیت پنهان خود را صرفاً در یک زیرفضای کم‌بعد در جهت تبیین و بسط گام‌به‌گام تفکر بازتنظیم می‌نمایند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=2.8cm, minimum height=0.8cm, align=center, rounded corners=3pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \draw[-{Latex[length=3mm]}, thick, gray] (-0.5,0) -- (6,0) node[below] {مولفه اول ($c_1$): راستای طول استدلال};
+    \draw[-{Latex[length=3mm]}, thick, gray] (0,-0.5) -- (0,4.5) node[left] {مولفه دوم ($c_2$)};
+    
+    \draw[thick, red!80!black, dashed] (0.8,0.8) .. controls (2.5,2.5) and (3.8,3.2) .. (5.0,3.8);
+    \node at (5.0,3.8) [circle, fill=red, inner sep=2pt, label=above:{\small نقطه نهایی $w^*$}] {};
+    \node at (0.8,0.8) [circle, fill=blue, inner sep=1.5pt, label=below:{\small شروع RL}] {};
+    
+    \node (eq) at (3,-1.2) [box, fill=orange!10] {$\text{Reward} \propto a \ln(\text{Length}) + b$};
+\end{tikzpicture}
+\caption{مسیر بهینه‌سازی پارامترهای پیش‌خور مدل \model{Magistral} در زیرفضای دوبعدی بردار ویژه اول و دوم.}
+\label{fig:magistral_pca}
+\end{figure}

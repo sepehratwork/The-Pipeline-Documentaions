@@ -1758,6 +1758,152 @@ Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, et~al.
 \newblock {MobileLLM-Pro Technical Report}.
 \newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
 
+\bibitem{gerber2025attention}
+Isaac Gerber.
+\newblock Attention is not all you need: The importance of feedforward networks
+  in transformer models.
+\newblock {\em arXiv preprint arXiv:2505.06633}, 2025.
+
+\bibitem{sajun2024historical}
+Ali~Reza Sajun, Imran Zualkernan, and Donthi Sankalpa.
+\newblock A historical survey of advances in transformer architectures.
+\newblock {\em Applied Sciences}, 14(10):4316, 2024.
+
+\bibitem{tan2025crystallization}
+Jun~Yu Tan.
+\newblock The crystallization of transformer architectures (2017--2025).
+\newblock {\em Stanford CS336 Technical Synthesis / Blog Analysis}, 2025.
+
+\bibitem{jaiswal2026memoryllm}
+Ajay Jaiswal, Lauren Hannah, Han-Byul Kim, Duc Hoang, Arnav Kundu, Mehrdad
+  Farajtabar, and Minsik Cho.
+\newblock {MemoryLLM}: Plug-n-play interpretable feed-forward memory for
+  transformers.
+\newblock {\em arXiv preprint arXiv:2602.00398}, 2026.
+
+\bibitem{mudarisov2026feedforward}
+Timur Mudarisov, Mikhail Burtsev, and Radu State.
+\newblock Feed-forward steering in transformer residual dynamics.
+\newblock {\em arXiv preprint arXiv:2608.02071}, 2026.
+
+\bibitem{goldwaser2026equivalence}
+Adrian Goldwaser, Michael Munn, Javier Gonzalvo, and Benoit Dherin.
+\newblock Equivalence of context and parameter updates in modern transformer
+  blocks.
+\newblock 2026.
+
+\bibitem{jiang2026powlu}
+Peijie Jiang, Yuqi Feng, Cunyin Peng, Qian Zhao, Jia Liu, KunLong Chen,
+  Zhiqiang Zhang, and Jun Zhou.
+\newblock {PowLU}: An activation function for stable pre-training of {LLMs}.
+\newblock {\em arXiv preprint arXiv:2605.25704}, 2026.
+
+\bibitem{liao2026revisiting}
+Feng-Ting Liao, Guan-Ting Yi, Tzu-Quan Lin, Meng-Hsi Chen, and Da~shan Shiu.
+\newblock Revisiting the shape convention of transformer language models.
+\newblock {\em arXiv preprint arXiv:2602.06471}, 2026.
+
+\bibitem{touvron2023llama}
+Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne
+  Lachaux, Timoth{\'e}e Lacroix, Baptiste Rozi{\`e}re, Naman Goyal, Eric
+  Hambro, Faisal Azhar, et~al.
+\newblock Llama: Open and efficient foundation language models.
+\newblock {\em arXiv preprint arXiv:2302.13971}, 2023.
+
+\bibitem{mousavihosseini2025transformers}
+Alireza Mousavi-Hosseini, Clayton Sanford, Denny Wu, and Murat~A. Erdogdu.
+\newblock When do transformers outperform feedforward and recurrent networks? a
+  statistical perspective.
+\newblock {\em arXiv preprint arXiv:2503.11272}, 2025.
+
+\bibitem{sun2025role}
+Haoyuan Sun, Ali Jadbabaie, and Navid Azizan.
+\newblock On the role of transformer feed-forward layers in nonlinear
+  in-context learning.
+\newblock {\em arXiv preprint arXiv:2501.18187}, 2025.
+
+\bibitem{geva2021transformer}
+Mor Geva, Roei Schuster, Jonathan Berant, and Omer Levy.
+\newblock Transformer feed-forward layers are key-value memories.
+\newblock pages 5484--5495, 2021.
+
+\bibitem{geva2022transformer}
+Mor Geva, Avi Caciularu, Kevin~Ro Wang, and Yoav Goldberg.
+\newblock Transformer feed-forward layers build predictions by promoting
+  concepts in the vocabulary space.
+\newblock pages 30--45, 2022.
+
+\bibitem{guo2025decoupling}
+Zhenyu Guo and Wenguang Chen.
+\newblock Decoupling knowledge and reasoning in transformers: A modular
+  architecture with generalized cross-attention.
+\newblock {\em arXiv preprint arXiv:2501.00823}, 2025.
+
+\bibitem{ye2025transformer}
+Mengyu Ye, Jun Suzuki, Tatsuro Inaba, and Tatsuki Kuribayashi.
+\newblock Transformer key-value memories are nearly as interpretable as sparse
+  autoencoders.
+\newblock 39, 2025.
+
+\bibitem{ikeda2025layerwise}
+Wataru Ikeda, Kazuki Yano, Ryosuke Takahashi, Jaesung Lee, Keigo Shibata, and
+  Jun Suzuki.
+\newblock Layerwise importance analysis of feed-forward networks in
+  transformer-based language models.
+\newblock 2025.
+
+\bibitem{verma2025merging}
+Neha Verma, Kenton Murray, and Kevin Duh.
+\newblock Merging feed-forward sublayers for compressed transformers.
+\newblock {\em arXiv preprint arXiv:2501.06126}, 2025.
+
+\bibitem{nandakumar2026theoretical}
+Vinoth Nandakumar, Yongli Xiang, Yunzhi Yao, Peike Li, and Tongliang Liu.
+\newblock A theoretical model for task routing in mixture-of-expert
+  transformers.
+\newblock {\em arXiv preprint arXiv:2606.14398}, 2026.
+
+\bibitem{ndubuaku2026controlled}
+Henry Ndubuaku, Karen Mosoyan, Jakub Mroz, Noah Cylich, Satyajit Kumar,
+  Parkirat Sandhu, Roman Shemet, and Justin~H Lee.
+\newblock A controlled study of attention-only transformers.
+\newblock {\em arXiv preprint arXiv:2607.18363}, 2026.
+
+\bibitem{roller2021hash}
+Stephen Roller, Sainbayar Sukhbaatar, Arthur Szlam, and Jason Weston.
+\newblock Hash layers for large sparse models.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~34, pages 17555--17566, 2021.
+
+\bibitem{ashkboos2024quarot}
+Saleh Ashkboos, Amirkeivan Mohtashami, Maximilian~L. Croci, Bo~Li, Martin
+  Jaggi, Dan Alistarh, and Torsten Hoefler.
+\newblock {QuaRot}: Outlier-free 4-bit inference in rotated {LLMs}.
+\newblock {\em arXiv preprint arXiv:2404.00456}, 2024.
+
+\bibitem{kimiteam2026k3}
+{Kimi Team}.
+\newblock Kimi {K3}: Open frontier intelligence.
+\newblock {\em arXiv preprint arXiv:2607.24653}, 2026.
+
+\bibitem{mistralai2025magistral}
+{Mistral AI}.
+\newblock Magistral.
+\newblock {\em arXiv preprint arXiv:2506.10910}, 2025.
+
+\bibitem{mobilellmpro2025}
+Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, Tarek Elgamal, Hanxian
+  Huang, Naveen Suda, et~al.
+\newblock {MobileLLM-Pro} technical report.
+\newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
+
+\bibitem{qiu2025demons}
+Zihan Qiu, Zeyu Huang, Bo~Zheng, Kaiyue Wen, Zekun Wang, Rui Men, Ivan Titov,
+  Dayiheng Liu, Jingren Zhou, and Junyang Lin.
+\newblock {Demons in the Detail: On Implementing Load Balancing Loss for
+  Training Specialized Mixture-of-Expert Models}.
+\newblock {\em CoRR, abs/2501.11873}, 2025.
+
 \bibitem{hochreiter1997lstm}
 Sepp Hochreiter and J{\"u}rgen Schmidhuber.
 \newblock Long short-term memory.
@@ -1888,12 +2034,6 @@ Z.~Xie, Y.~Wei, H.~Cao, C.~Zhao, C.~Deng, J.~Li, D.~Dai, H.~Gao, et~al.
 \newblock mhc: Manifold-constrained hyper-connections.
 \newblock {\em arXiv preprint arXiv:2512.24880}, 2026.
 
-\bibitem{roller2021hash}
-Stephen Roller, Sainbayar Sukhbaatar, Arthur Szlam, and Jason Weston.
-\newblock Hash layers for large sparse models.
-\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
-  volume~34, pages 17555--17566, 2021.
-
 \bibitem{zhu2025hyper}
 D.~Zhu, H.~Huang, Z.~Huang, Y.~Zeng, Y.~Mao, B.~Wu, Q.~Min, and X.~Zhou.
 \newblock Hyper-connections.
@@ -2015,13 +2155,6 @@ Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le,
   mixture-of-experts layer.
 \newblock In {\em International Conference on Learning Representations}, 2017.
 
-\bibitem{touvron2023llama}
-Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne
-  Lachaux, Timoth{\'e}e Lacroix, Baptiste Rozi{\`e}re, Naman Goyal, Eric
-  Hambro, Faisal Azhar, et~al.
-\newblock Llama: Open and efficient foundation language models.
-\newblock {\em arXiv preprint arXiv:2302.13971}, 2023.
-
 \bibitem{yang2025qwen3}
 An~Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo~Zheng, Bowen
   Yu, et~al.
@@ -2087,13 +2220,6 @@ Zixuan Jiang, Jiaqi Gu, Hanqing Zhu, and David~Z. Pan.
 Yann~N Dauphin, Angela Fan, Michael Auli, and David Grangier.
 \newblock {Language Modeling with Gated Convolutional Networks}.
 \newblock In {\em ICML}, volume~70, pages 933--941, 2017.
-
-\bibitem{qiu2025demons}
-Zihan Qiu, Zeyu Huang, Bo~Zheng, Kaiyue Wen, Zekun Wang, Rui Men, Ivan Titov,
-  Dayiheng Liu, Jingren Zhou, and Junyang Lin.
-\newblock {Demons in the Detail: On Implementing Load Balancing Loss for
-  Training Specialized Mixture-of-Expert Models}.
-\newblock {\em CoRR, abs/2501.11873}, 2025.
 
 \bibitem{an2024trainingfree}
 Chenxin An, Fei Huang, Jun Zhang, Shansan Gong, Xipeng Qiu, Chang Zhou, and

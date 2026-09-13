@@ -1,0 +1,51 @@
+\item \model{Qwen 3}
+
+\paragraph*{معماری پیش‌خور و حذف متخصصان اشتراکی}
+در معماری سری \model{Qwen 3} \cite{qwen2025qwen3}، مدل‌ها در دو کلاس متراکم (از ۰.۶ تا ۳۲ میلیارد پارامتر) و \en{MoE} خرددانه عرضه شده‌اند:
+\begin{itemize}
+    \item \textbf{مدل \en{Qwen3-30B-A3B}:} دارای ۴۸ لایه، ۱۲۸ متخصص کل، با فعال‌سازی ۸ متخصص در هر توکن ($K=8$).
+    \item \textbf{مدل \en{Qwen3-235B-A22B}:} پرچمدار با ۹۴ لایه، ۱۲۸ متخصص کل، با فعال‌سازی ۸ متخصص در هر توکن ($K=8$).
+\end{itemize}
+تغییر ساختاری بنیادین در لایه‌های پیش‌خور \en{MoE} این مدل در مقایسه با نسل قبل (\en{Qwen2.5-MoE})، **حذف کامل متخصصان اشتراکی (\en{Shared Experts})** است. در این طراحی، تمامی ۱۲۸ متخصص موجود در شبکه به صورت کاملاً روت‌شده و مستقل پیکربندی شده‌اند. این تصمیم باعث هدایت توکن‌ها به متخصصان کاملاً تفکیک‌شده شده و از متمرکز شدن گرادیان‌ها در متخصصان اشتراکی عام پیشگیری می‌کند.
+
+\paragraph*{زیان توازن بار در سطح دسته‌های جهانی (\en{Global-Batch Load Balancing Loss})}
+برای تضمین توازن بار در غیاب متخصصان اشتراکی، \model{Qwen 3} از فرمولاسیون توازن بار در سطح بچ جهانی \cite{qiu2025demons} بهره می‌گیرد. این زیان انحراف ترافیک را در سطح کل کارت‌های توزیع‌شده مهار می‌کند:
+\begin{equation}
+    \mathcal{L}_{\text{balance}} = \alpha N \sum_{i=1}^N f_i P_i
+\end{equation}
+که در آن $N = 128$ و مقادیر $f_i$ و $P_i$ بر روی دسته داده‌های توزیع‌شده جهانی محاسبه می‌گردند:
+\begin{equation}
+    f_i = \frac{1}{|\mathcal{B}_{\text{global}}|} \sum_{x \in \mathcal{B}_{\text{global}}} \mathbb{I}\left(i \in \mathcal{T}_K(x)\right), \quad P_i = \frac{1}{|\mathcal{B}_{\text{global}}|} \sum_{x \in \mathcal{B}_{\text{global}}} p_i(x)
+\end{equation}
+
+\paragraph*{مدل‌های متراکم \en{Qwen3}}
+در تمامی نسخه‌های متراکم، ساختار لایه پیش‌خور به صورت کلاسیک \en{SwiGLU}، بدون جملات بایاس در نگاشت‌های خطی و همراه با نرمال‌سازی \en{RMSNorm} در ورودی لایه پیاده‌سازی شده است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=3cm, minimum height=0.75cm, align=center, rounded corners=3pt},
+    exp/.style={rectangle, draw=purple!80!black, fill=purple!10, thick, minimum width=1.4cm, minimum height=0.65cm, align=center, rounded corners=2pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (in) at (0,0) [box, fill=gray!15] {ورودی توکن ($x$)};
+    \node (router) at (0,1.5) [box, fill=red!15] {مسیریاب با زیان توازن \en{Global-Batch}};
+    \node (topk) at (0,2.8) [box, fill=red!25] {انتخاب $\text{Top-}8$ از ۱۲۸ متخصص روت‌شده};
+    
+    \node (e1) at (-2.5,4.2) [exp] {$E_{i_1}$};
+    \node (ed) at (0,4.2) {$\dots$};
+    \node (e8) at (2.5,4.2) [exp] {$E_{i_8}$};
+    
+    \node (out) at (0,5.6) [box, fill=green!15] {خروجی پیش‌خور متخصصان};
+
+    \draw [arrow] (in) -- (router);
+    \draw [arrow] (router) -- (topk);
+    \draw [arrow] (topk) -| (e1);
+    \draw [arrow] (topk) -- (ed);
+    \draw [arrow] (topk) -| (e8);
+    \draw [arrow] (e1) |- (out);
+    \draw [arrow] (e8) |- (out);
+\end{tikzpicture}
+\caption{معماری پیش‌خور \en{MoE} مدل \model{Qwen 3} مبتنی بر حذف متخصص اشتراکی و توازن بار سراسری.}
+\label{fig:qwen3_moe}
+\end{figure}

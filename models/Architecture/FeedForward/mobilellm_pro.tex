@@ -1,0 +1,39 @@
+\item \model{MobileLLM-Pro}
+
+\paragraph*{طراحی FFN متراکم با ضریب انبساط ۴.۸ برابری}
+مدل \model{MobileLLM-Pro} \cite{mobilellmpro2025} با مقیاس ۱ میلیارد پارامتر برای محاسبات درون‌دستگاهی بهینه‌سازی شده است. این مدل شامل ۳۰ لایه ترنسفورمر با بعد مدل $d = 1280$ است. مهم‌ترین نوآوری معماری در بلوک پیش‌خور این مدل، بهره‌گیری از **ضریب انبساط نامتعارف $4.8\times$** در لایه \en{SwiGLU} است:
+\begin{equation}
+    d_{ff} = 4.8 \times d = 4.8 \times 1280 = 6144
+\end{equation}
+در حالی که بیشتر مدل‌های زبانی از ضرایب متعارف ۲.۶ تا ۳.۵ برابری استفاده می‌کنند، \model{MobileLLM-Pro} با اشتراک‌گذاری وزن‌های لایه تعبیه و واژگان (\en{Embedding Sharing})، ۲۶۰ میلیون پارامتر (حدود ۲۵٪ کل مدل) را آزاد کرده و این ظرفیت را به لایه‌های میانی \en{FFN} تزریق نموده است. این تصمیم با عمق کم مدل (۳۰ لایه) همخوانی داشته و ظرفیت نگاشت غیرخطی را به حداکثر می‌رساند.
+
+\paragraph*{کوانتایزاسیون ۴ بیتی آگاه از آموزش با بازه‌های یادگیرنده}
+برای پشتیبانی همزمان از پردازنده‌های مرکزی موبایل (\en{CPU}) و موتورهای شتاب‌دهنده هوش مصنوعی (\en{ANE/HTP})، لایه پیش‌خور تحت کوانتایزاسیون \en{INT4} آموزش می‌بیند:
+\begin{equation}
+    Q(W) = s_w \times \text{clip}\left( \text{round}\left(\frac{W}{s_w}\right), -8, 7 \right), \quad s_w = \frac{\max(-w_{\min}, w_{\max})}{7.5}
+\end{equation}
+در پیاده‌سازی شتاب‌دهنده‌ها به دلیل عدم پشتیبانی از کوانتایزاسیون گروهی، از کوانتایزاسیون در سطح کانال (\en{Channel-wise}) استفاده می‌شود. در این حالت، حدود $w_{\min}$ و $w_{\max}$ در طول پس‌انتشار گرادیان به عنوان پارامترهای بهینه‌سازی یاد گرفته می‌شوند (\en{Learnable Quantization Ranges}) که افت دقت لایه پیش‌خور در مقیاس ۴ بیتی را کاملاً جبران می‌نماید.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=2.6cm, minimum height=0.7cm, align=center, rounded corners=3pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (in) at (0,0) [box, fill=gray!15] {ورودی توکن ($d=1280$)};
+    \node (up) at (-2.2,1.8) [box] {نگاشت صعودی\\$1280 \to 6144$};
+    \node (gate) at (2.2,1.8) [box] {نگاشت گیت\\$1280 \to 6144$};
+    \node (mult) at (0,3.2) [circle, draw=orange!80!black, fill=orange!20, thick] {$\odot$};
+    \node (down) at (0,4.6) [box] {نگاشت نزولی\\$6144 \to 1280$};
+    \node (out) at (0,5.8) [box, fill=green!15] {خروجی لایه پیش‌خور};
+
+    \draw [arrow] (in) -| (up);
+    \draw [arrow] (in) -| (gate);
+    \draw [arrow] (up) |- (mult);
+    \draw [arrow] (gate) |- node[right, font=\small] {\en{Swish}} (mult);
+    \draw [arrow] (mult) -- (down);
+    \draw [arrow] (down) -- (out);
+\end{tikzpicture}
+\caption{پیکربندی متسع $4.8\times$ در بلوک پیش‌خور مدل \model{MobileLLM-Pro}.}
+\label{fig:mobilellm_ffn}
+\end{figure}

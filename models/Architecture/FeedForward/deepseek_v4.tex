@@ -1,0 +1,91 @@
+\item \model{DeepSeek-V4}
+
+\paragraph*{ساختار کلی لایه پیش‌خور و پارادایم \en{DeepSeekMoE}}
+در معماری \model{DeepSeek-V4} \cite{deepseek2026v4}، لایه‌های پیش‌خور به طور یکپارچه از ساختار متخصصان خرددانه (\en{Fine-Grained Experts}) بر پایه الگوی \en{DeepSeekMoE} \cite{dai2024deepseekmoe} بهره می‌برند. این ساختار از دو بخش مجزا تشکیل شده است: متخصصان اشتراکی (\en{Shared Experts}) که همواره برای همه توکن‌ها فعال بوده و وظیفه فشرده‌سازی و هدایت دانش مشترک را بر عهده دارند، و متخصصان مسیریابی‌شده (\en{Routed Experts}) با ابعاد باریک‌تر که امکان ترکیب‌پذیری ترکیبیاتی را فراهم می‌سازند.
+\begin{itemize}
+    \item \textbf{مدل \en{DeepSeek-V4-Flash}:} شامل ۴۳ لایه ترنسفورمر، بعد مدل $d = 4096$. هر لایه \en{MoE} دارای ۱ متخصص اشتراکی و ۲۵۶ متخصص روت‌شده است. بعد میانی هر متخصص $d_{ff} = 2048$ بوده و برای هر توکن، تعداد ۶ متخصص فعال می‌شوند ($K=6$). مجموع پارامترها ۲۸۴ میلیارد و پارامترهای فعال ۱۳ میلیارد است.
+    \item \textbf{مدل \en{DeepSeek-V4-Pro}:} شامل ۶۱ لایه ترنسفورمر، بعد مدل $d = 7168$. هر لایه \en{MoE} شامل ۱ متخصص اشتراکی و ۳۸۴ متخصص روت‌شده است. بعد میانی هر متخصص $d_{ff} = 3072$ بوده و در هر گام ۶ متخصص انتخاب می‌شوند ($K=6$). مجموع پارامترها ۱.۶ تریلیون و پارامترهای فعال ۴۹ میلیارد است.
+\end{itemize}
+
+\paragraph*{نوآوری در تابع تمایل مسیریاب (\en{Sqrt-Softplus Routing})}
+برخلاف مدل‌های نسل قبل که از تابع فعال‌ساز سیگموئید استفاده می‌کردند، در \model{DeepSeek-V4} امتیاز خام تمایل توکن به متخصصان توسط رادیکال سافت‌پلاس محاسبه می‌شود:
+\begin{equation}
+    s_i(x) = \sqrt{\text{Softplus}(x \cdot W_r^i)} = \sqrt{\ln\left(1 + \exp(x \cdot W_r^i)\right)}
+\end{equation}
+که در آن $W_r^i \in \mathbb{R}^{d}$ بردار وزن مسیریاب برای متخصص $i$-ام است.
+
+\paragraph*{تحلیل ریاضی و مشتقات فعال‌ساز مسیریاب}
+با بررسی رفتار مجانبی این تابع در کران‌های ورودی $z = x \cdot W_r^i$:
+\begin{enumerate}
+    \item در ناحیه منفی شدید ($z \to -\infty$):
+    \begin{equation}
+        \text{Softplus}(z) \approx \exp(z) \implies s_i \approx \exp(z/2)
+    \end{equation}
+    این شیب نمایی تعدیل‌شده، مانع از محو شدن سریع گرادیان نسبت به سیگموئید کلاسیک می‌گردد.
+    \item در ناحیه مثبت شدید ($z \to +\infty$):
+    \begin{equation}
+        \text{Softplus}(z) \approx z \implies s_i \approx \sqrt{z}
+    \end{equation}
+    مشتق مرتبه اول آن برابر است با:
+    \begin{equation}
+        \frac{d s_i}{dz} = \frac{\text{Sigmoid}(z)}{2\sqrt{\text{Softplus}(z)}} \implies \lim_{z \to +\infty} \frac{d s_i}{dz} = \lim_{z \to +\infty} \frac{1}{2\sqrt{z}} = 0
+    \end{equation}
+    این ویژگی رشد زیرخطی (\en{Sub-linear Growth}) موجب مهار نوسانات شدید در ابعاد لاجیت‌ها شده و آموزش در مقیاس تریلیونی را بدون نیاز به برش مصنوعی گرادیان پایدار می‌سازد.
+\end{enumerate}
+
+\paragraph*{تعادل بار بدون تابع زیان کمکی و مسیریابی هش در لایه‌های ابتدایی}
+برای توزیع یکنواخت توکن‌ها بدون خدشه‌دار شدن تابع هدف زبانی، از روش بدون زیان کمکی (\en{Auxiliary-Loss-Free}) همراه با یک شیفت بایاس قابل‌یادگیری $b_i$ بهره گرفته شده است:
+\begin{equation}
+    \mathcal{T}_K(x) = \text{argtopk}\left(\{ s_i(x) + b_i \}_{i=1}^N, K\right), \quad p_i(x) = \frac{s_i(x)}{\sum_{j \in \mathcal{T}_K(x)} s_j(x)}
+\end{equation}
+به منظور جلوگیری از عدم تعادل مقطعی در سطح توالی، یک زیان متوازن‌ساز درون‌رشته‌ای ناچیز با ضریب وزن $10^{-4}$ اضافه شده است. علاوه بر آن، در ۳ لایه ابتدایی شبکه، لایه‌های متراکم سنتی با لایه‌های \en{MoE} مبتنی بر مسیریابی هش (\en{Hash Routing}) \cite{roller2021hash} جایگزین شده‌اند که در آن‌ها انتساب به متخصصان بر مبنای شناسه توکن ورودی به صورت قطعی انجام می‌پذیرد:
+\begin{equation}
+    \text{Target}(t) = \text{Hash}(\text{Token\_ID}(t)) \pmod N
+\end{equation}
+
+\paragraph*{تکنیک‌های پایداری \en{Anticipatory Routing} و \en{SwiGLU Clamping}}
+جهت حذف جهش‌های تند زیان (\en{Loss Spikes})، دو راهبرد اعمال شده است:
+\begin{itemize}
+    \item \textbf{مسیریابی پیش‌دستانه (\en{Anticipatory Routing}):} برای شکستن چرخه بازخورد مثبت مقادیر دورافتاده، شاخص‌های مسیریابی در گام $t$ بر مبنای پارامترهای گذشته $\theta_{t-\Delta t}$ روی داده‌های پیش‌واکشی‌شده تعیین می‌گردند.
+    \item \textbf{کلمپینگ فعال‌ساز پیش‌خور:} مؤلفه خطی نگاشت \en{SwiGLU} به بازه $[-10, 10]$ و مؤلفه گیت آن حداکثر به عدد $10$ محدود شده است.
+\end{itemize}
+
+\paragraph*{کوانتایزاسیون \en{MXFP4} و مگا-کرنل \en{MegaMoE}}
+وزن‌های متخصصان روت‌شده از فرمت ۴ بیتی میکرواسکیل (\en{MXFP4}) با ساختار \en{E2M1} استفاده می‌کنند. در محاسبات مستقیم، این وزن‌ها به شکل کاملاً بدون اتلاف به \en{FP8} (\en{E4M3}) دیکوانتایز می‌شوند. برای تبادلات ارتباطاتی در موازی‌سازی متخصصان، کرنل همجوش \en{MegaMoE} طراحی شده که تمام مراحل توزیع (\en{Dispatch})، ماتریس‌های \en{Linear 1}، اعمال \en{SwiGLU} و ترکیب (\en{Combine}) را در قالب یک پایپ‌لاین موجی (\en{Wave-based}) تجمیع نموده و محاسبات را بر ارتباطات مسلط می‌سازد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=3.2cm, minimum height=0.8cm, align=center, rounded corners=3pt},
+    routebox/.style={rectangle, draw=purple!80!black, fill=purple!10, thick, minimum width=3cm, minimum height=0.8cm, align=center, rounded corners=3pt},
+    expert/.style={rectangle, draw=green!60!black, fill=green!10, thick, minimum width=1.6cm, minimum height=0.7cm, align=center, rounded corners=2pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (x) at (0,0) [box, fill=gray!15] {بردار ورودی توکن ($x$)};
+    \node (shared) at (-3.5,2.0) [expert, minimum width=2.8cm, fill=green!20] {متخصص اشتراکی ($E_{\text{shared}}$)};
+    \node (router) at (3.5,1.5) [routebox] {مسیریاب: $\sqrt{\text{Softplus}(\cdot)} + b_i$};
+    \node (topk) at (3.5,2.8) [routebox, fill=purple!20] {انتخاب $\text{Top-}6$ متخصص};
+    
+    \node (e1) at (1.5,4.3) [expert] {$E_{r_1}$};
+    \node (edots) at (3.5,4.3) {$\dots$};
+    \node (ek) at (5.5,4.3) [expert] {$E_{r_6}$};
+    
+    \node (clamp) at (3.5,5.6) [box, fill=orange!15] {تلفیق وزنی با کلمپینگ \en{SwiGLU}};
+    \node (add) at (0,6.8) [circle, draw=blue!80!black, fill=blue!20, thick, minimum size=0.8cm] {$+$};
+    \node (out) at (0,8.0) [box, fill=green!15] {خروجی لایه پیش‌خور \en{MoE}};
+
+    \draw [arrow] (x) -| (shared);
+    \draw [arrow] (x) -| (router);
+    \draw [arrow] (router) -- (topk);
+    \draw [arrow] (topk) -| (e1);
+    \draw [arrow] (topk) -- (edots);
+    \draw [arrow] (topk) -| (ek);
+    \draw [arrow] (e1) |- (clamp);
+    \draw [arrow] (ek) |- (clamp);
+    \draw [arrow] (shared) |- (add);
+    \draw [arrow] (clamp) |- (add);
+    \draw [arrow] (add) -- (out);
+\end{tikzpicture}
+\caption{ساختار بلوک پیش‌خور \en{MoE} در مدل \model{DeepSeek-V4} همراه با متخصص اشتراکی و گیتینگ رادیکال سافت‌پلاس.}
+\label{fig:deepseek_v4_moe}
+\end{figure}

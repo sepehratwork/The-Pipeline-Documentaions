@@ -1,0 +1,309 @@
+\item \model{مرور جامع پیشینه، مبانی نظری و تحولات نوین لایه‌های پیش‌خور (\en{Literature Review: Feed-Forward Networks})}
+
+\paragraph*{مقدمه و چشم‌انداز تاریخی تحول لایه‌های پیش‌خور (۲۰۱۷ تا ۲۰۲۶)}
+لایه‌های پیش‌خور (\en{Feed-Forward Networks - FFN}) که در ساختارهای متداول مدل‌های زبانی به عنوان پرسپترون‌های چندلایه (\en{MLP}) شناخته می‌شوند، قلب تپنده ظرفیت پارامتری در معماری ترنسفورمر \cite{vaswani2017attention} هستند. با وجود آن‌که این لایه‌ها بیش از دو-سوم کل پارامترهای غیرامبدینگ مدل‌های زبانی بزرگ را تشکیل می‌دهند، در سال‌های اولیه تمرکز پژوهش‌ها غالباً بر بهینه‌سازی سازوکار توجه (\en{Attention}) معطوف بود \cite{gerber2025attention}. با این حال، در بازه سال‌های ۲۰۱۷ تا ۲۰۲۶، لایه پیش‌خور شاهد دگرگونی‌های ساختاری و نظری بنیادینی بوده است \cite{sajun2024historical, tan2025crystallization}. مسیر تکامل این لایه‌ها را می‌توان در چهار عصر اصلی ترسیم نمود:
+\begin{itemize}
+    \item \textbf{عصر اول: بنیان‌گذاری (۲۰۱۷--۲۰۱۹):} تثبیت فرمول‌بندی دوبخشی استاندارد، به کارگیری نرمال‌سازی پسین (\en{Post-LN})، توابع فعال‌ساز اولیه نظیر \en{ReLU} و \en{GeLU} و انبساط ثابت بعد پنهان با ضریب ۴ برابر بعد مدل ($d_{\text{ff}} = 4d_{\text{model}}$) \cite{vaswani2017attention, sajun2024historical}.
+    \item \textbf{عصر دوم: مقیاس‌پذیری و ظهور گیتینگ (۲۰۲۰--۲۰۲۲):} مهاجرت همگانی به ساختار پیش‌نرمال‌سازی (\en{Pre-LN}) به منظور تسهیل جریان گرادیان، معرفی نرمال‌سازی جذر میانگین مربعات (\en{RMSNorm}) و ابداع واحدهای خطی گیت‌دار (\en{GLU}) به ویژه فرمول‌بندی \en{SwiGLU} توسط شازیر \cite{shazeer2020glu}.
+    \item \textbf{عصر سوم: تبلور و استانداردسازی منبع‌باز (۲۰۲۳--۲۰۲۴):} تثبیت بسته معماری استاندارد بر پایه مدل‌های سری \model{LLaMA}، حذف کامل بردارهای بایاس، و تنظیم دقیق ضریب انبساط بهینه به میزان $\frac{8}{3}d_{\text{model}}$ جهت حفظ برابری محاسباتی \cite{tan2025crystallization}.
+    \item \textbf{عصر چهارم: واگرایی ساختاری، تخصص‌گرایی و سیستم‌های دینامیکی (۲۰۲۴--۲۰۲۶):} شکستن مرزهای سنتی از طریق تفکیک حافظه پارامتری از جریان پسماند \cite{jaiswal2026memoryllm}، فرمول‌بندی به عنوان هدایت‌گر مماسی در جریان پسماند \cite{mudarisov2026feedforward}، معادل‌سازی تحلیلی اثر کانتکست با پچ‌های وزنی مرتبه یک \cite{goldwaser2026equivalence}، رفع ناپایداری‌های ممیز شناور پایین با توابع توانی مانند \en{PowLU} \cite{jiang2026powlu} و تغییر ساختار هندسی به فرم ساعت‌شنی عمیق (\en{Hourglass Transformers}) \cite{liao2026revisiting}.
+\end{itemize}
+
+در شکل زیر، دیاگرام مفهومی جامع از سیر تکامل تاریخی و تغییر پارادایم ساختاری لایه‌های پیش‌خور در مدل‌های زبانی ارائه شده است.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.5cm and 1.2cm,
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, very thick, rounded corners, minimum height=1.2cm, minimum width=2.8cm, align=center, font=\small\bfseries},
+    era/.style={rectangle, draw=orange!80!black, fill=orange!10, dashed, thick, rounded corners, inner sep=0.3cm},
+    arrow/.style={-{Stealth[scale=1.2]}, thick, color=blue!80!black}
+]
+    % Nodes for Eras
+    \node[box] (era1) {دوره اول (۲۰۱۷--۲۰۱۹)\\\en{Foundations}\\پست‌نرم، \en{ReLU/GeLU}\\انبساط ثابت $4d$};
+    \node[box, right=of era1] (era2) {دوره دوم (۲۰۲۰--۲۰۲۲)\\\en{Scale-Up}\\پیش‌نرم، \en{RMSNorm}\\ظهور \en{SwiGLU} و \en{GLU}};
+    \node[box, right=of era2] (era3) {دوره سوم (۲۰۲۳--۲۰۲۴)\\\en{LLaMA Standardization}\\حذف کامل بایاس‌ها\\انبساط متعادل $\frac{8}{3}d$};
+    \node[box, right=of era3] (era4) {دوره چهارم (۲۰۲۴--۲۰۲۶)\\\en{New Frontiers}\\هدایت مماسی، \en{PowLU}\\حافظه تفکیک‌شده و \en{Hourglass}};
+
+    % Connectors
+    \draw[arrow] (era1) -- (era2);
+    \draw[arrow] (era2) -- (era3);
+    \draw[arrow] (era3) -- (era4);
+
+    % Sub-captions
+    \node[below=0.3cm of era1, font=\footnotesize, text=gray!80!black] {نسبت پارامتری $8:3$ به نفع \en{FFN}};
+    \node[below=0.3cm of era2, font=\footnotesize, text=gray!80!black] {ضرب گیت و بهبود غیرخطی};
+    \node[below=0.3cm of era3, font=\footnotesize, text=gray!80!black] {همگرایی به بسته استاندارد};
+    \node[below=0.3cm of era4, font=\footnotesize, text=gray!80!black] {تفسیرپذیری و پایداری در مقیاس بالا};
+\end{tikzpicture}%
+}
+\caption{گاه‌شمار تکاملی پارادایم‌های حاکم بر لایه‌های پیش‌خور در مدل‌های زبانی مبتنی بر ترنسفورمر \cite{tan2025crystallization, sajun2024historical}}
+\label{fig:ffn_evolution_timeline}
+\end{figure}
+
+\paragraph*{فرمول‌بندی پایه و استخراج ریاضی برابری پارامتری \en{SwiGLU}}
+در معماری کلاسیک، لایه پیش‌خور استاندارد با ورودی بردار حالت پنهان $x \in \mathbb{R}^d$ و بعد میانی $d_{\text{ff}} = 4d$ دارای فرمول‌بندی زیر است:
+\begin{equation}
+    \text{FFN}_{\text{Standard}}(x) = \sigma(x W_1 + b_1) W_2 + b_2
+\end{equation}
+که در آن ماتریس‌های وزن $W_1 \in \mathbb{R}^{d \times d_{\text{ff}}}$ و $W_2 \in \mathbb{R}^{d_{\text{ff}} \times d}$ تعداد پارامترهای زیر را به خود اختصاص می‌دهند:
+\begin{equation}
+    N_{\text{vanilla}} = 2 \cdot d \cdot d_{\text{ff}} = 2 \cdot d \cdot (4d) = 8d^2
+\end{equation}
+
+در مقابل، معماری مدرن \en{SwiGLU} با هدف افزایش توان تفکیک ویژگی‌ها و بهره‌گیری از ضرب مضاعف (\en{Multiplicative Gating})، از سه ماتریس نگاشت خطی مجزا شامل نگاشت گیت $W_{\text{gate}} \in \mathbb{R}^{d \times d'_{\text{ff}}}$، نگاشت بالا $W_{\text{up}} \in \mathbb{R}^{d \times d'_{\text{ff}}}$ و نگاشت پایین $W_{\text{down}} \in \mathbb{R}^{d'_{\text{ff}} \times d}$ بهره می‌برد \cite{shazeer2020glu}:
+\begin{equation}
+    \text{SwiGLU}(x) = \left( \text{SiLU}(x W_{\text{gate}}) \odot (x W_{\text{up}}) \right) W_{\text{down}}
+\end{equation}
+که در آن $\text{SiLU}(z) = z \cdot \text{sigmoid}(z) = \frac{z}{1 + e^{-z}}$ و $\odot$ ضرب هادامارد (\en{Hadamard Product}) است.
+
+\textbf{اشتقاق ریاضی برابری تعداد پارامترها (\en{Parameter-Matching Derivation}):}
+تعداد پارامترهای غیرامبدینگ بلوک \en{SwiGLU} بدون احتساب بایاس‌ها برابر است با:
+\begin{equation}
+    N_{\text{SwiGLU}} = 3 \cdot d \cdot d'_{\text{ff}}
+\end{equation}
+به منظور حفظ بودجه محاسباتی و پارامتری دقیقاً معادل با مدل دو-ماتریسی پیشین با ضریب انبساط $e = 4$:
+\begin{equation}
+    3 d \cdot d'_{\text{ff}} = 2 d \cdot (e d) \implies d'_{\text{ff}} = \frac{2e}{3} d
+\end{equation}
+با جایگذاری ضریب کلاسیک $e = 4$:
+\begin{equation}
+    d'_{\text{ff}} = \frac{8}{3}d \approx 2.667d
+\end{equation}
+این اشتقاق دقیقاً منطق تنسیق پهنای پنهان مدل‌های مدرن نظیر LLaMA را تبیین می‌نماید که برای تراز پارامتری با شبکه کلاسیک، بعد میانی را بر مضربی از $\frac{8}{3}d$ قرار می‌دهند \cite{tan2025crystallization, touvron2023llama}.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    auto,
+    block/.style={rectangle, draw=blue!80!black, fill=blue!10, thick, rounded corners, minimum width=2.4cm, minimum height=0.9cm, align=center, font=\small},
+    operator/.style={circle, draw=orange!80!black, fill=orange!20, thick, inner sep=0pt, minimum size=0.8cm, font=\large\bfseries},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=blue!90!black}
+]
+    % Traditional FFN
+    \node (in1) at (0,0) {$x \in \mathbb{R}^d$};
+    \node[block, above=0.8cm of in1] (w1) {$W_1 \in \mathbb{R}^{d \times 4d}$};
+    \node[block, above=0.8cm of w1, fill=green!10, draw=green!60!black] (act1) {$\text{ReLU} / \text{GeLU}$};
+    \node[block, above=0.8cm of act1] (w2) {$W_2 \in \mathbb{R}^{4d \times d}$};
+    \node[above=0.8cm of w2] (out1) {$y \in \mathbb{R}^d$};
+    
+    \draw[arrow] (in1) -- (w1);
+    \draw[arrow] (w1) -- (act1);
+    \draw[arrow] (act1) -- (w2);
+    \draw[arrow] (w2) -- (out1);
+    \node[below=0.4cm of in1, font=\bfseries] {(الف) لایه پیش‌خور استاندارد کلاسیک};
+
+    % SwiGLU FFN
+    \node (in2) at (7,0) {$x \in \mathbb{R}^d$};
+    \node[block, above left=0.8cm and 0.2cm of in2] (wgate) {$W_{\text{gate}} \in \mathbb{R}^{d \times \frac{8}{3}d}$};
+    \node[block, above right=0.8cm and 0.2cm of in2] (wup) {$W_{\text{up}} \in \mathbb{R}^{d \times \frac{8}{3}d}$};
+    \node[block, above=0.7cm of wgate, fill=green!10, draw=green!60!black] (silu) {$\text{SiLU}$};
+    \node[operator, above right=1.0cm and 0.5cm of silu] (hadamard) {$\odot$};
+    \node[block, above=0.8cm of hadamard] (wdown) {$W_{\text{down}} \in \mathbb{R}^{\frac{8}{3}d \times d}$};
+    \node[above=0.8cm of wdown] (out2) {$y \in \mathbb{R}^d$};
+
+    \draw[arrow] (in2) |- (wgate);
+    \draw[arrow] (in2) |- (wup);
+    \draw[arrow] (wgate) -- (silu);
+    \draw[arrow] (silu) |- (hadamard);
+    \draw[arrow] (wup) |- (hadamard);
+    \draw[arrow] (hadamard) -- (wdown);
+    \draw[arrow] (wdown) -- (out2);
+    \node[below=0.4cm of in2, font=\bfseries] {(ب) معماری مدرن \en{SwiGLU}};
+\end{tikzpicture}%
+}
+\caption{مقایسه ساختار محاسباتی و جریان تانسوری در لایه پیش‌خور استاندارد دو-لایه و لایه سه-ماتریسی \en{SwiGLU} \cite{shazeer2020glu}}
+\label{fig:ffn_architectures_comparison}
+\end{figure}
+
+\paragraph*{جداسازی آماری و تحلیل پیچیدگی نمونه (\en{Statistical Separation on $q$STR})}
+برای اثبات چرایی برتری ترنسفورمر نسبت به شبکه‌های پیش‌خور معمولی در یادگیری زبان، موسوی‌حسینی و همکاران \cite{mousavihosseini2025transformers} مسئله رگرسیون توکن‌های تنک ($q$-Sparse Token Regression یا $q\text{STR}$) را بر روی پرامپت‌های با ساختار زیر تعریف نمودند:
+\begin{equation}
+    p = \left( \begin{pmatrix} x_1 \\ t_1 \end{pmatrix}, \dots, \begin{pmatrix} x_N \\ t_N \end{pmatrix} \right), \quad x_i \in \mathbb{R}^d, \quad t_i \in [N]^q
+\end{equation}
+که در آن برچسب هر موقعیت $y_i = g(x_{t_{i,1}}, \dots, x_{t_{i,q}})$ به زیرمجموعه تنک و وابسته به زمینه‌ای با اندازه $q \ll N$ وابسته است و $g: \mathbb{R}^{qd} \to \mathbb{R}$ نگاشتی غیرخطی با تقریب شبکه دو لایه است.
+
+\textbf{اثبات تحلیلی کران پایین شبکه‌های تمام‌متصل (\en{FFN Sample Complexity Lower Bound}):}
+Mousavi-Hosseini et al. \cite{mousavihosseini2025transformers} در قضیه ۶ نشان دادند که به ازای هر الگوریتم بهینه‌سازی مبتنی بر نقاط مانا با فرود گرادیان و تنظیم‌کننده وزنی $\ell_2$ (کلاس $\mathcal{A}_{\text{SP}} \cup \mathcal{A}_{\text{ERM}}$)، در شبکه‌ای که لایه اول آن تصویر خطی تمام‌متصل $W \in \mathbb{R}^{m_1 \times Nd}$ بر روی کل بردار توالی $x = (x_1^\top, \dots, x_N^\top)^\top$ باشد، ردیف‌های وزن $w_k$ ضرورتاً در فضای تولیدشده توسط داده‌های آموزشی $x^{(1)}, \dots, x^{(n)}$ به دام می‌افتند:
+\begin{equation}
+    w_k \in \text{span}\left(x^{(1)}, \dots, x^{(n)}\right)
+\end{equation}
+از آن‌جا که بعد این زیرفضا حداکثر $n$ است، خطای جمعیتی پیش‌بینی با ماتریس پایه‌های ارتونرمال $V \in \mathbb{R}^{n \times Nd}$ به واریانس شرطی برچسب هدف مقید می‌شود:
+\begin{equation}
+    \mathbb{E}_{u, t_1} \left[ \text{Var}\left(y \mid u, t_1, Vx\right) \right] = 1 - \frac{1}{Nd} \sum_{t_1=1}^N \sum_{i=1}^n \|P_{t_1}^\top v^{(i)}\|_2^2 = 1 - \frac{n}{Nd}
+\end{equation}
+بنابراین، شبکه‌های پیش‌خور صرف به حداقل $n = \Omega(Nd)$ نمونه برای یادگیری نیاز دارند که نشان‌دهنده وابستگی خطی نامطلوب به طول پنجره کانتکست $N$ است. 
+
+در مقابل، ترنسفورمر دارای لایه خودتوجهی با تعداد سرهای $H \ge q$ همراه با لایه \en{FFN} می‌تواند با تفکیک وظیفه توجه (گزینش توکن‌های مربوطه) و FFN (تقریب تابع غیرخطی $g$) به کران خطای جمعیتی زیر دست یابد که \textbf{کاملاً مستقل از طول توالی $N$} است \cite{mousavihosseini2025transformers}:
+\begin{equation}
+    R^{\text{TR}}(\hat{\Theta}_n) \le \mathcal{O}(\varepsilon_{\text{2NN}}) + \tilde{\mathcal{O}} \left( C_1 \sqrt{\frac{m_g q(d+q) + q^3 + qd^2}{n}} \right)
+\end{equation}
+
+\paragraph*{نقش حیاتی FFN در یادگیری درون‌متنی غیرخطی (\en{Nonlinear In-Context Learning})}
+سان و همکاران \cite{sun2025role} نقشی نوین برای FFNها به عنوان عامل تحقق یادگیری درون‌متنی (\en{ICL}) توابع غیرخطی اثبات کردند. 
+بر اساس گزاره ۱ و گزاره ۱۱ در مرجع \cite{sun2025role}، ترنسفورمرهای متشکل از لایه‌های خودتوجهی خطی (\en{Linear Self-Attention - LSA})، بدون حضور لایه غیرخطی FFN، صرف‌نظر از تعداد لایه‌ها و عمق مدل، از نظر جبری قادر به حل رگرسیون غیرخطی در کانتکست نیستند و خطای آن‌ها همواره توسط خطای بهترین تقریب خطی محدود می‌شود:
+\begin{equation}
+    \mathbb{E}_x \left[ (\hat{y}_{\text{TF-lin}} + y_{\text{query}})^2 \right] \ge \min_{\alpha, \beta} \mathbb{E}_x \left[ (\langle x_{\text{query}}, \beta \rangle + \alpha + y_{\text{query}})^2 \right]
+\end{equation}
+
+\textbf{تحلیل بلوک دوخطی به مثابه رگرسیون کرنل درجه دوم (Theorem 2):}
+با افزودن لایه پیش‌خور دوخطی (\en{Bilinear Feed-Forward Layer}) با فرم ضرب هادامارد $Z + (W_0 Z) \odot (W_1 Z)$، سطر $j$ از خروجی FFN مقادیر زیر را محاسبه می‌کند:
+\begin{equation}
+    Z^+[j, i] = (W_{0,j} x_i) \cdot (W_{1,j} x_i) = x_i^\top (W_{0,j}^\top W_{1,j}) x_i
+\end{equation}
+این رابطه پایه تمامی مونوپولیوم‌های درجه دوم را به صورت بردار زیر تولید می‌کند:
+\begin{equation}
+    \bar{x}_i = \left( 1, x_i[1], \dots, x_i[d], x_i[1]^2 - 1, x_i[1]x_i[2], \dots, x_i[d]^2 - 1 \right)^\top
+\end{equation}
+طبق لم ۳ در مرجع \cite{sun2025role}، این متغیرها در فضای ضرب داخلی $\langle u, v \rangle = \mathbb{E}_{x \sim \mathcal{N}(0, I)}[uv]$ یک مجموعه ارتونرمال با بعد $\binom{d+2}{2}$ تشکیل می‌دهند. متعاقباً، لایه توجه خطی پس از FFN، عملاً یک گام فرود گرادیان پیش‌شرط‌شده (\en{Preconditioned Gradient Descent}) را روی فضای رگرسیون کرنل با ماتریس وزن بهینه $\Gamma^\star \approx -\mathbb{E}[\bar{x}\bar{x}^\top]^{-1}$ پیاده‌سازی می‌کند.
+
+\textbf{فرود مختصات بلوکی در اعماق مدل (\en{Block-Coordinate Descent}):}
+طبق قضیه ۴ در مرجع \cite{sun2025role}، اگر بعد فضای پنهان کمتر از بعد پایه تانسوری باشد ($\bar{d} < \binom{d+2}{2}$)، خطای مدل تک‌لایه دارای کران پایین ذاتی $\mathcal{L} \ge \binom{d+2}{2} - \bar{d}$ خواهد بود. مدل‌های ترنسفورمر عمیق با پشته‌سازی لایه‌های متناوب توجه و FFN بر این محدودیت فائق می‌آیند؛ هر لایه FFN زیرمجموعه‌ای از ویژگی‌های چندجمله‌ای $b_\ell$ را تولید می‌کند و لایه‌های پیاپی فرآیند فرود مختصات بلوکی (\en{BCD}) را در فضای کرنل ابعاد بالا اجرا می‌نمایند \cite{sun2025role}:
+\begin{equation}
+    w_j^{(\ell)} = \begin{cases} 
+        w_j^{(\ell-1)} - \eta^{(\ell)} \partial_{w_j} \mathcal{L}(w)\big|_{w=w^{(\ell-1)}}, & \text{if } j \in b_\ell \\ 
+        w_j^{(\ell-1)}, & \text{if } j \notin b_\ell 
+    \end{cases}
+\end{equation}
+
+\paragraph*{لایه FFN به مثابه حافظه کلید-مقدار و بستار توجه متقاطع تعمیم‌یافته}
+از دیدگاه بازنمایی دانش، گوا و همکاران \cite{geva2021transformer, geva2022transformer} ساختار لایه FFN را به عنوان حافظه عصبی تداعی‌گر (\en{Associative Key-Value Memory}) معرفی کردند که در آن لایه اول وظیفه آشکارسازی الگوها (\en{Keys}) و لایه دوم وظیفه تزریق توزیع واژگانی مفاهیم (\en{Values}) را در جریان پسماند ایفا می‌کند. 
+
+\textbf{اثبات قضیه بستار توجه متقاطع (\en{FFN as a Closure of Generalized Cross-Attention}):}
+گو و چن \cite{guo2025decoupling} مبنای ریاضی این تداعی را به اثبات رساندند. فرض کنید یک پایگاه دانش سراسری مشترک به صورت ماتریس $E \in \mathbb{R}^{|E| \times d_E}$ در نظر گرفته شود. توجه متقاطع آستانه‌دار با فعال‌ساز \en{ReLU} برای ورودی $H_\ell \in \mathbb{R}^{N \times d}$ عبارت است از:
+\begin{equation}
+    C_\ell = \text{ReLU}\left( \frac{Q_\ell K_\ell^\top}{\sqrt{d_k}} + B_1^\ell(E) \right) V_\ell + b_2^\ell
+\end{equation}
+که در آن $Q_\ell = H_\ell W_Q^\ell$، $K_\ell = E W_K^\ell$ و $V_\ell = E W_V^\ell$. با فرض ایستایی دانش $E$ در جریان استنتاج، فرآیند تا کردن وزن‌ها (\en{Weight Folding}) به صورت زیر انجام می‌شود:
+\begin{align}
+    W_{(K, E)}^\ell &= E W_K^\ell, \quad W_{(V, E)}^\ell = E W_V^\ell, \quad b_1^\ell = B_1^\ell(E) \\
+    W_1^\ell &= W_{(Q, K, E)}^\ell \equiv \frac{W_Q^\ell (W_{(K, E)}^\ell)^\top}{\sqrt{d_k}} \in \mathbb{R}^{d \times |E|}, \quad W_2^\ell = W_{(V, E)}^\ell \in \mathbb{R}^{|E| \times d}
+\end{align}
+با جایگذاری در معادله توجه، خروجی حاصل مستقیماً به ساختار \en{FFN} استاندارد تبدیل می‌شود:
+\begin{equation}
+    C_\ell = \text{ReLU}\left( H_\ell W_1^\ell + b_1^\ell \right) W_2^\ell + b_2^\ell \equiv \text{FFN}(H_\ell)
+\end{equation}
+این استخراج ریاضی اثبات می‌کند که لایه FFN معمولی، در حقیقت تقریب بسته‌ای (\en{Closure}) از یک ماژول توجه متقاطع به یک پایگاه داده متراکم جهانی در حافظه پنهان وزن‌ها است \cite{guo2025decoupling}.
+
+\paragraph*{ارزیابی تفسیرپذیری: حافظه FFN در برابر خودرمزگذارهای تنک (\en{SAEs})}
+یه و همکاران \cite{ye2025transformer} با استفاده از بنچمارک استاندارد \en{SAEBench}، کیفیت ویژگی‌های درونی لایه FFN (تحت رویکرد \en{TopK FF-KV} و \en{Normalized FF-KV}) را مستقیماً در برابر خودرمزگذارهای تنک (\en{SAEs}) و ترنسکودرها (\en{Transcoders}) ارزیابی کردند. 
+بر اساس نتایج تجربی:
+\begin{itemize}
+    \item \textbf{واریانس تبیین‌شده (\en{Explained Variance}):} روش‌های مبتنی بر FFN ذاتی به دلیل بهره‌گیری از خودِ ماتریس شبکه، دارای واریانس تبیین‌شده کامل ($1.00$) هستند؛ در حالی که SAEها به دلیل اتلاف سیگنال ناشی از تقریب، نمره‌ای بین $0.59$ تا $0.70$ ثبت می‌کنند.
+    \item \textbf{امتیاز جذب (\en{Absorption Score}):} نمره جذب در FFN طبیعی معادل $0.000 \pm 0.001$ بود که برتری قاطعی نسبت به SAE ($0.087 \pm 0.17$) دارد؛ این امر نشان می‌دهد نورون‌های FFN دچار پدیده تجزیه و شکستگی افراطی یک مفهوم ساده به چندین مفهوم فرعی (\en{Over-splitting}) نمی‌شوند.
+    \item \textbf{پدیده توهم ویژگی (\en{Feature Hallucination}):} بررسی بیشینه امتیاز کسینوسی (\en{Max-Cosine Score - MCS}) نشان داد که بیش از ۴۱٪ از ویژگی‌های کشف‌شده در ترنسکودرها، دارای همبستگی زیر ۰.۳ با ویژگی‌های حقیقی FFN هستند که حکایت از ساختگی بودن بخش قابل توجهی از ویژگی‌های استخراج‌شده توسط مدل‌های پروکسی دارد \cite{ye2025transformer}.
+\end{itemize}
+
+\paragraph*{سیستم‌های دینامیکی پیوسته و هدایت مماسی در جریان پسماند (\en{Tangential Steering})}
+موداریسوف و همکاران \cite{mudarisov2026feedforward} جریان پسماند ترنسفورمر را به عنوان یک سیستم دینامیکی از برهم‌کنش ذرات بر روی منیفلد ابرکره واحد $\mathbb{S}^{d-1}$ فرمول‌بندی کردند. با تبدیل بردار پسماند به $x_i = r_i u_i$ که در آن $u_i \in \mathbb{S}^{d-1}$ بردار جهت و $r_i = \|x_i\|_2$ اندازه بردار است:
+\begin{equation}
+    \dot{u}_i = \frac{1}{r_i} P_{u_i} \left[ A_i(U) + \Phi_i(u_i) \right], \quad P_u = I - u u^\top
+\end{equation}
+که در آن $P_u$ ماتریس تصویر ارتوگونال بر فضای مماس است. 
+
+\textbf{تجزیه متعامد به مؤلفه‌های مماسی و شعاعی:}
+خروجی لایه پیش‌خور را می‌توان به دو بخش افراز کرد:
+\begin{equation}
+    \Phi(u) = \underbrace{\langle u, \Phi(u) \rangle u}_{\text{مؤلفه شعاعی}} + \underbrace{P_u \Phi(u)}_{\text{مؤلفه مماسی}}
+\end{equation}
+از آن‌جا که $P_u u = 0$، مؤلفه شعاعی هیچ نقشی در تغییر جهت بردار پسماند نداشته و صرفاً اندازه بردار و در نتیجه سرعت حرکت زاویه‌ای را تغییر می‌دهد. بر این اساس، \textbf{تنها مؤلفه مماسی $P_u \Phi(u)$ است که اطلاعات محتوایی و چرخش‌های معنایی را به جلو می‌راند}. آزمایش‌های بالینی روی مدل‌های متنوع (شامل \model{GPT-2}, \model{Pythia}, \model{Mistral}, \model{Llama-3}) اثبات کرد که حذف مؤلفه مماسی موجب صعود فاجعه‌بار افت اعتبارسنجی (تا بیش از ۱۲ نات) می‌شود، در حالی که حذف مؤلفه شعاعی عملکرد مدل را با خطایی ناچیز حفظ می‌نماید \cite{mudarisov2026feedforward}. علاوه بر این، ارزیابی طیف عملگر ژاکوبی مماس:
+\begin{equation}
+    J_\star = P_{u_\star} \left( V + \alpha D\Phi(u_\star) - \rho_\star I \right) \big|_{T_{u_\star} \mathbb{S}^{d-1}}
+\end{equation}
+نشان داد که FFN با تزریق مدهای با علائم مختلط (مدهای زینی در بیش از ۸۲٪ موارد)، مانع از انقباض و فروپاشی رتبه ناشی از تجمیع سراسری مکانیسم توجه می‌گردد.
+
+\paragraph*{نظریه کنترل‌پذیری و معادل‌سازی اثر کانتکست با پچ‌های وزنی (\en{In-Context Weight Patches})}
+گلدواسر و همکاران \cite{goldwaser2026equivalence} چارچوب کنترل‌پذیری ورودی و خروجی را پایه‌گذاری کردند و اثبات نمودند که تأثیر متن ورودی و زمینه (\en{Context}) در ترنسفورمرهای مدرن فاقد بایاس، با اعمال یک پچ پارامتری رتبه-۱ بر روی وزن‌های FFN دقیقاً برابری می‌کند.
+
+\textbf{تعاریف کنترل‌پذیری ورودی و خروجی (Definitions 1 \& 2):}
+تابع $f(z; \theta_f)$ را کنترل‌پذیر ورودی گوییم هرگاه برای هر دو ورودی $z$ و $z + \Delta z$، آپدیت پارامتری $\Delta_z \theta_f$ موجود باشد به طوری که $f(z + \Delta z; \theta_f) = f(z; \theta_f + \Delta_z \theta_f)$. همچنین $g(v; \theta_g)$ را کنترل‌پذیر خروجی گوییم هرگاه برای هر تغییر بردار مطلوب $\Delta y$، آپدیتی وجود داشته باشد که $g(v; \theta_g + \Delta_v \theta_g) = g(v; \theta_g) + \Delta y$.
+
+\textbf{فرمول‌بندی پچ‌های وزنی رتبه-۱ برای بلوک‌های مدرن (Theorem 1):}
+به ازای تغییر بردار خروجی توجه ناشی از کانتکست $\Delta v = v_C - v$ و بردارهای نرمال‌شده $z_C = \text{RMSNorm}(v_C)$ و $z = \text{RMSNorm}(v)$، پچ‌های معادل‌ساز عبارتند از:
+\begin{align}
+    \Delta W_{\text{gate}} &= \frac{W_{\text{gate}} (z_C - z) z^\top}{\|z\|_2^2}, \quad \Delta W_{\text{up}} = \frac{W_{\text{up}} (z_C - z) z^\top}{\|z\|_2^2} \\
+    \Delta m &= (v_C - v) \oslash f(W_{\text{gate}} z_C, W_{\text{up}} z_C)
+\end{align}
+که در آن $m$ بردار مقیاس لایه \en{RMSNorm} پسین است. 
+
+\textbf{وارون‌سازی تحلیلی \en{RMSNorm} با روش ضرایب لاگرانژ:}
+به دلیل ناپایداری عددی تقسیم بر عناصر نزدیک به صفر در معادله فوق، Goldwaser et al. \cite{goldwaser2026equivalence} مسئله بهینه‌سازی زیر را حل نمودند:
+\begin{equation}
+    \min_y \|y \odot m - g\|_2^2 \quad \text{s.t.} \quad \frac{1}{n} \sum_{k=1}^n y_k^2 - 1 = 0
+\end{equation}
+با تشکیل معادله لاگرانژین و مشتق‌گیری جزئی، فرم تحلیلی مؤلفه‌ها حاصل می‌شود:
+\begin{equation}
+    y_k = \frac{g_k m_k}{m_k^2 - \mu}
+\end{equation}
+که در آن پارامتر $\mu = \lambda/n$ ریشه یکتای تابع اکیداً صعودی زیر در بازه $(-\infty, \min_k m_k^2)$ است و به سرعت توسط جستجوی دودویی تعیین می‌گردد:
+\begin{equation}
+    F(\mu) = \frac{1}{n} \sum_{k=1}^n \frac{(g_k m_k)^2}{(m_k^2 - \mu)^2} - 1 = 0
+\end{equation}
+همچنین این پژوهش در قضیه ۴ اثبات می‌کند که در معماری‌های با نرمال‌سازی پسین فاقد ضریب مقیاس آموزش‌پذیر $m$، به دلیل تحدید خروجی بر روی ابرکره با شعاع $\sqrt{d}$، کنترل‌پذیری خروجی از نظر هندسی ناممکن است.
+
+\paragraph*{پایداری آموزش در دقت‌های پایین و تابع فعال‌ساز \en{PowLU}}
+با ورود به مقیاس‌های فراتر از صد میلیارد پارامتر و استفاده از قالب‌های ممیز شناور \en{FP8} و \en{FP4}، ساختار \en{SwiGLU} به دلیل همگرایی به تابع درجه دوم $x^2$ در مقادیر مثبت بزرگ، باعث تشدید کانال‌های پرت و بروز پرش‌های شدید گرادیان (\en{Loss Spikes}) می‌شود \cite{jiang2026powlu}.
+جیانگ و همکاران \cite{jiang2026powlu} تابع فعال‌ساز توان-خطی (\en{Power Linear Unit - PowLU}) را به صورت زیر معرفی کردند:
+\begin{equation}
+    \text{PowLU}(x) = \begin{cases} 
+        x \cdot x^{\frac{m}{\sqrt{x}+1}} \cdot \text{sigmoid}(x), & \text{if } x > 0 \\ 
+        x^2 \cdot \text{sigmoid}(x), & \text{if } x \le 0 
+    \end{cases}
+\end{equation}
+
+\textbf{اثبات تحلیلی یکنوایی و استخراج کران بالای پارامتر $m$:}
+با مشتق‌گیری از لگاریتم تابع $g(x) = \ln(\text{PowLU}(x))$ و اعمال تغییر متغیر $t = \sqrt{x} > 0$:
+\begin{equation}
+    g'(x) = \frac{(t+1)^2 + m(t + 1 - t \ln t)}{t^2(t+1)^2} + \frac{1}{1 + e^{t^2}}
+\end{equation}
+شرط صعودی بودن اکید در ناحیه مقادیر فرین منجر به نامساوی $m \le \frac{(t+1)^2}{t \ln t - t - 1} \equiv M(t)$ می‌شود. نقطه کمینه تابع $M(t)$ از طریق حل معادله استعلایی زیر به دست می‌آید:
+\begin{equation}
+    \ln t = 2 + \frac{4}{t-1} \implies t^\star \approx 11.02 \implies M(t^\star) \approx 10.02
+\end{equation}
+بنابراین، بازه مجاز برای تضمین یکنوایی اکید $0 < m < 10.02$ است (مقدار بهینه تجربی $m=3.0$). این تابع نرخ رشد را به فرم خطی $\mathcal{O}(x)$ مهار کرده و پایداری پیش‌آموزش در فرمت \en{FP8} را در مقیاس‌های $7.9\text{B}$ و $124\text{B}$ بدون پرش گرادیان تضمین می‌نماید \cite{jiang2026powlu}.
+
+\paragraph*{مهندسی ساختار کلان: اهمیت لایه‌ای، فشرده‌سازی و معماری ساعت‌شنی}
+تحقیقات متأخر مفروضات سنتی در خصوص شکل‌بندی هندسی یکنواخت FFN را بازتعریف نموده‌اند:
+\begin{itemize}
+    \item \textbf{تمرکز لایه‌ای در میانه شبکه (\en{middle\_70}):} ایکدا و همکاران \cite{ikeda2025layerwise} با آموزش مدل‌ها از ابتدا با ثابت نگه داشتن بودجه پارامتری کل، ثابت کردند که تمرکز ابعاد FFN در ۷۰٪ لایه‌های میانی و غیرفعال‌سازی FFN در لایه‌های ابتدایی و انتهایی، عملکرد وظایف پایین‌دستی را به طور میانگین $+1.29\%$ ارتقا می‌دهد. همچنین با افزایش عمق شبکه (از ۱۲ به ۴۰ لایه)، مرکز ثقل اهمیت FFN از لایه‌های انتهایی به سمت لایه‌های ابتدایی شیفت پیدا می‌کند تا از اشباع ناشی از بافت‌گیری افراطی توجه جلوگیری نماید.
+    \item \textbf{ادغام زیرلایه‌ها با تخصیص خطی جانکر-ولگنانت:} ورما و همکاران \cite{verma2025merging} با استفاده از شاخص تشابه هسته‌ای مرکزی (\en{CKA})، همبستگی بالایی میان خروجی FFN لایه‌های مجاور یافتند و نشان دادند با حل مسئله تخصیص خطی برای جایگشت ارتونرمال نورون‌ها ($\pi^\star = \arg\max \sum C(j, \pi(j))$) می‌توان بیش از یک‌سوم لایه‌های FFN را پس از آموزش ادغام و گره زد (\en{Weight Tying}) بدون آن‌که افت معناداری در بنچمارک‌ها رخ دهد.
+    \item \textbf{ترنسفورمرهای ساعت‌شنی (\en{Hourglass Transformers}):} لیائو و همکاران \cite{liao2026revisiting} قرارداد پهنای «باریک-پهن-باریک» FFN را معکوس کردند. با پشته‌سازی $K$ زیربلوک پسماند با بعد پنهان باریک‌تر از بعد مدل ($d_h < d_{\text{model}}$) و فشرده‌سازی لایه توجه ($d_{\text{attn}} < d_{\text{model}}$)، ابعاد جریان پسماند تعریض شده و تعداد لایه‌های مدل کاهش می‌یابد. این جابجایی هندسی موجب کاهش ۵۰ درصدی حجم حافظه \en{KV-Cache} در طول زمینه $64\text{K}$ و تسریع ۱.۹۳ برابری رمزگشایی توکن‌ها می‌گردد.
+    \item \textbf{معماری \model{MemoryLLM}:} جیسوال و همکاران \cite{jaiswal2026memoryllm} لایه‌های FFN را کاملاً از جریان پسماند جدا کرده و آن‌ها را مستقیماً روی امبدینگ‌های اولیه توکن‌ها آموزش دادند. این امر امکان پیش‌محاسبه خروجی لایه‌ها به صورت جدول‌های جستجوی توکنی (\en{ToLs}) بر روی دیسک را مطابق قانون زیپف فراهم کرده و حافظه فعال پردازنده را به یک‌سوم کاهش می‌دهد.
+    \item \textbf{تخصیص وظایف در شبکه‌های MoE:} نانداکومار و همکاران \cite{nandakumar2026theoretical} از طریق الگوهای نحوی و جدول‌های دانشی اثبات کردند که اندازه هر متخصص در شبکه‌های MoE دقیقاً معادل پیچیدگی ذاتی وظیفه مقیاس می‌شود ($c(k) = \sum |\tau| + |\Delta_k|$) و روتر با اتکا بر سر توجه نحوی، وظایف را به صورت مجزا تفکیک می‌کند.
+    \item \textbf{آزمون ضرورت در مدل‌های توجه-محض (\en{SAN}):} ندوبواکو و همکاران \cite{ndubuaku2026controlled} با حذف کامل لایه‌های FFN و انتقال بودجه به عمق لایه‌های توجه، نشان دادند که شکاف اعتبارسنجی در شرایط هم‌پارامتر به رقم ناچیز $0.0055$ نات کاهش می‌یابد. این پژوهش از طریق پایش رتبه پایدار ماتریس‌ها اثبات کرد که ماتریس طرح‌ریزی خروجی توجه ($W_O$) وظیفه انباشت ظرفیت دانش FFN را بر عهده می‌گیرد و ضعف مدل‌های بدون FFN منحصراً در پیش‌بینی توکن‌های با کانتکست ضعیف است.
+\end{itemize}
+
+\paragraph*{سنتز مقایسه‌ای ادبیات پژوهشی لایه‌های پیش‌خور}
+در جدول زیر، مقایسه راهبردی کلیه رویکردها، نوآوری‌های فرمولی و نقش محوری لایه FFN در متون علمی پوشش داده شده ارائه گردیده است.
+
+\begin{table}[htbp]
+\centering
+\caption{سنتز تطبیقی پژوهش‌های بنیادین در حوزه لایه‌های پیش‌خور ترنسفورمر (۲۰۱۷--۲۰۲۶)}
+\label{tab:ffn_literature_synthesis}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lllll}
+\toprule
+\textbf{مرجع پژوهشی} & \textbf{رویکرد محوری} & \textbf{ساختار ریاضی لایه \en{FFN}} & \textbf{تمرکز بهینه‌سازی / تئوری} & \textbf{دستاورد کلیدی} \\
+\midrule
+Vaswani et al. \cite{vaswani2017attention} & ساختار اولیه & $\max(0, xW_1+b_1)W_2+b_2$ & انبساط بعد با ضریب ۴ & تخصیص دو-سوم پارامترها به \en{FFN} \\
+Shazeer \cite{shazeer2020glu} & گیتینگ چندگانه & $(\text{SiLU}(xW_{\text{gate}}) \odot xW_{\text{up}})W_{\text{down}}$ & برابری پارامتری $\frac{8}{3}d$ & بهبود قاطع همگرایی با فعال‌ساز \en{SwiGLU} \\
+Geva et al. \cite{geva2021transformer} & تفسیرپذیری & $\sum \phi(x \cdot k_i) v_i$ & حافظه تداعی‌گر کلید-مقدار & کشف نورون‌های ذخیره‌کننده واقعیات \\
+Mousavi-Hosseini et al. \cite{mousavihosseini2025transformers} & جداسازی آماری & تقریب دو لایه با فعال‌ساز تنک & پیچیدگی رادماخر و قضیه $q\text{STR}$ & اثبات نیاز FFN به $\Omega(Nd)$ نمونه در برابر $\tilde{\mathcal{O}}(1)$ ترنسفورمر \\
+Sun et al. \cite{sun2025role} & یادگیری غیرخطی \en{ICL} & ضرب دوخطی پسماند $Z \odot (W_0 Z \odot W_1 Z)$ & تقریب کرنل و فرود مختصات بلوکی & ناتوانی توجه خطی؛ FFN عامل تحقق \en{ICL} غیرخطی \\
+Guo \& Chen \cite{guo2025decoupling} & استخراج حافظه & بستار توجه متقاطع با وزن‌های تاشده & تا کردن ماتریس‌ها (\en{Folding}) & اثبات ریاضی FFN به عنوان حالت بسته توجه متقاطع \\
+Ye et al. \cite{ye2025transformer} & ارزیابی \en{SAEBench} & فرمول‌بندی \en{TopK} و \en{Normalized} & تحلیل تشابه کسینوسی (\en{MCS}) & ابطال برتری ادعایی SAE نسبت به نورون‌های درونی FFN \\
+Mudarisov et al. \cite{mudarisov2026feedforward} & دینامیک پیوسته & میدان هدایت مماسی $P_u \Phi(u)$ & سیستم‌های دینامیکی روی $\mathbb{S}^{d-1}$ & تفکیک مؤلفه مماسی و مهار فروپاشی رتبه با مدهای زینی \\
+Goldwaser et al. \cite{goldwaser2026equivalence} & کنترل‌پذیری پارامتری & پچ‌های رتبه-۱ و وارون‌سازی لاگرانژ & کنترل‌پذیری ورودی و خروجی & معادل‌سازی دقیق اثر کانتکست با به‌روزرسانی وزن FFN \\
+Jiang et al. \cite{jiang2026powlu} & پایداری در دقت پایین & تابع توانی دوضابطه‌ای \en{PowLU} & یکنوایی برای $m < 10.02$ & حذف پرش‌های زیان ناشی از رشد $x^2$ در \en{FP8} \\
+Ikeda et al. \cite{ikeda2025layerwise} & مکان‌یابی عمقی & تمرکز در ۷۰٪ لایه‌های میانی & تحلیل اهمیت لایه‌ای استاندارد & برتری پیکربندی \en{middle\_70} بر توزیع یکنواخت \\
+Verma et al. \cite{verma2025merging} & فشرده‌سازی پس‌آموزش & هم‌ترازی ماتریسی با الگوریتم جانکر & تشابه بازنمایی \en{CKA} & ادغام یک‌سوم لایه‌های FFN با حفظ ۹۹٪ دقت \\
+Liao et al. \cite{liao2026revisiting} & معماری ساعت‌شنی & پشته‌های فرعی ساعت‌شنی ($d_h < d$) & تعریض جریان پسماند و کاهش عمق & کاهش ۵۰٪ حافظه \en{KV-Cache} و شتاب ۱.۹۳ برابری رمزگشایی \\
+Jaiswal et al. \cite{jaiswal2026memoryllm} & تفکیک کامل پسماند & حافظه توکنی مستقل $\text{FFN}_L(\text{LN}(X_0))$ & جدول‌های جستجو (\en{ToL}) و \en{SVD} & امکان بارگذاری دینامیک حافظه مطابق قانون زیپف \\
+Nandakumar et al. \cite{nandakumar2026theoretical} & مسیریابی \en{MoE} & متخصصان تفکیک‌شده نحوی و معنایی & پیچیدگی بر پایه زبان‌های گسسته & مقیاس‌پذیری ظرفیت متخصص با پیچیدگی ساختار وظیفه \\
+Ndubuaku et al. \cite{ndubuaku2026controlled} & آزمون ضرورت & حذف FFN و انتقال بودجه به عمق توجه & دینامیک طیفی رتبه پایدار & کاهش شکاف به $0.0055$ نات؛ اثبات نقش حافظه‌ای FFN \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

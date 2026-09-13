@@ -1,0 +1,54 @@
+\item \model{GLM-5}
+
+\paragraph*{طراحی لایه پیش‌خور در مقیاس ۷۴۴ میلیارد پارامتر}
+مدل \model{GLM-5} \cite{glm5team2026} مبتنی بر معماری \en{MoE} با مقیاس ۷۴۴ میلیارد پارامتر کل و ۴۰ میلیارد پارامتر فعال به ازای هر توکن پیکربندی شده است. به منظور کنترل و کاهش سربار ارتباطات موازی‌سازی متخصصان (\en{Expert Parallelism - EP}) در کلاسترهای عظیم پردازشی، شمار لایه‌ها از ۸۹ لایه (در \en{GLM-4.5}) به ۸۰ لایه کاهش داده شده و در مقابل، ظرفیت کانالی متخصصان ارتقا یافته است:
+\begin{itemize}
+    \item \textbf{لایه‌های متراکم ابتدایی (\en{Dense Layers}):} ۳ لایه نخست شبکه ترنسفورمر دارای ساختار متراکم سنتی با بعد پنهان مدل $d = 6144$ و بعد میانی پیش‌خور $d_{\text{dense}} = 12288$ هستند.
+    \item \textbf{لایه‌های متخصصان (\en{MoE Layers}):} ۷۵ لایه بعدی از ساختار \en{MoE} استفاده می‌کنند.
+    \item \textbf{تعداد و ابعاد متخصصان:} هر لایه شامل ۲۵۶ متخصص روت‌شده خرددانه و ۱ متخصص اشتراکی است. بعد پنهان میانی هر متخصص با رشدی ۳۳ درصدی نسبت به نسل پیشین به $d_{ff} = 2048$ رسیده است.
+    \item \textbf{نرخ فعال‌سازی:} برای هر توکن، $K = 8$ متخصص روت‌شده به همراه ۱ متخصص اشتراکی برگزیده می‌شوند.
+\end{itemize}
+
+\paragraph*{کوانتایزاسیون آگاه از آموزش \en{W4A8} در سطح متخصصان}
+جهت میزبانی و استنتاج بهینه مدل ۷۴۴ میلیاردی روی ماشین‌های داخلی نظیر \en{Atlas 800T A3}، استراتژی کوانتایزاسیون ترکیبی \en{W4A8} بر پایه ابزار \en{msModelSlim} پیاده‌سازی شده است:
+\begin{equation}
+    W_{\text{MoE}}^{\text{quant}} = \text{Quantize}_{\text{INT4}}(W_{\text{MoE}}), \quad X_{\text{MoE}}^{\text{quant}} = \text{Quantize}_{\text{INT8}}(X_{\text{MoE}})
+\end{equation}
+در این طرح، لایه‌های توجه و لایه‌های متراکم ابتدایی از دقت \en{W8A8} بهره می‌برند، در حالی که ماتریس‌های وزن متخصصان در لایه‌های \en{MoE} به فرمت ۴ بیتی (\en{INT4}) فشرده شده‌اند تا مصرف حافظه \en{HBM} تا بیش از ۶۰ درصد کاهش یابد. برای مهار مقادیر فرین و تثبیت دامنه عددی، از روش چرخش متعامد \en{QuaRot} \cite{ashkboos2024quarot} پیش از کوانتایزاسیون و از متد \en{Flex\_AWQ\_SSZ} برای کالیبراسیون مقیاس استفاده شده است.
+
+\paragraph*{همپوشانی محاسبات و بهینه‌سازی گرادیان متخصصان}
+در زیرساخت آموزش، محاسبات گرادیان وزن‌های متخصصان خارج از مسیر بحرانی به تعویق می‌افتد (\en{Deferred Weight Gradient Computation}). همچنین، در سطح ارتباطات بین‌کارت‌ها، کتابخانه \en{FlashComm} وظیفه دارد با شکستن اعمال جمع چندمرحله‌ای (\en{AllReduce})، تبادل داده متخصصان را کاملاً با اجرای محاسبات ضرب ماتریسی (\en{GEMM}) همپوشانی دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=3cm, minimum height=0.8cm, align=center, rounded corners=3pt},
+    exp/.style={rectangle, draw=teal!80!black, fill=teal!10, thick, minimum width=1.5cm, minimum height=0.7cm, align=center, rounded corners=2pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (in) at (0,0) [box, fill=gray!15] {ورودی توکن ($x \in \mathbb{R}^{6144}$)};
+    \node (shared) at (-3.2,1.8) [exp, minimum width=2.4cm, fill=teal!20] {متخصص اشتراکی\\($d_{ff}=2048$)};
+    \node (router) at (3.2,1.8) [box, fill=purple!15] {مسیریاب و انتخاب $\text{Top-}8$};
+    
+    \node (e1) at (1.2,3.6) [exp] {$E_1$};
+    \node (ed) at (3.2,3.6) {$\dots$};
+    \node (e8) at (5.2,3.6) [exp] {$E_8$};
+    
+    \node (combine) at (3.2,5.0) [box, fill=purple!10] {ترکیب وزنی با ضرایب نرمال};
+    \node (sum) at (0,6.2) [circle, draw=blue!80!black, fill=blue!20, thick, minimum size=0.8cm] {$+$};
+    \node (out) at (0,7.4) [box, fill=green!15] {خروجی بلوک پیش‌خور};
+
+    \draw [arrow] (in) -| (shared);
+    \draw [arrow] (in) -| (router);
+    \draw [arrow] (router) -| (e1);
+    \draw [arrow] (router) -- (ed);
+    \draw [arrow] (router) -| (e8);
+    \draw [arrow] (e1) |- (combine);
+    \draw [arrow] (e8) |- (combine);
+    \draw [arrow] (shared) |- (sum);
+    \draw [arrow] (combine) |- (sum);
+    \draw [arrow] (sum) -- (out);
+\end{tikzpicture}
+\caption{پیکربندی لایه پیش‌خور ترکیبی \en{MoE} مدل \model{GLM-5} با فشرده‌سازی کوانتایز شده \en{W4A8}.}
+\label{fig:glm5_moe}
+\end{figure}

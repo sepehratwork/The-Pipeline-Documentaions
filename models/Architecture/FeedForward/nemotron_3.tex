@@ -1,0 +1,51 @@
+\item \model{Nemotron 3}
+
+\paragraph*{معماری هیبرید \en{Mamba-Transformer} و نقش لایه‌های پیش‌خور}
+در خانواده مدل‌های \model{NVIDIA Nemotron 3} \cite{nvidia2025nemotron3} (شامل نسخه‌های \en{Nano}، \en{Super} و \en{Ultra})، لایه‌های پیش‌خور \en{MoE} نه تنها با لایه‌های توجه سنتی، بلکه به طور عمده با لایه‌های خطی \en{Mamba-2} \cite{dao2024transformers} ترکیب شده‌اند تا توان پردازشی استنتاج در توالی‌های فوق‌طولانی تا ۱ میلیون توکن به حداکثر برسد.
+
+\paragraph*{معماری سخت‌افزار-آگاه \en{LatentMoE}}
+در پردازش حجم بالای توکن‌ها، گلوگاه تبادل داده بین متخصصان به صورت خطی با بعد پنهان مدل ($d$) و تعداد متخصصان فعال ($K$) تغییر می‌کند: $\text{Volume} \propto K \cdot d$. مدل‌های \en{Super} و \en{Ultra} با بهره‌گیری از **\en{LatentMoE}**، بردار توکن ورودی را پیش از هدایت به متخصصان به یک بعد پنهان فشرده‌تر $\ell < d$ (با ضریب فشرده‌سازی $\frac{d}{\ell} \approx 4$) نگاشت می‌دهند:
+\begin{equation}
+    z = W_\downarrow x \in \mathbb{R}^\ell, \quad W_\downarrow \in \mathbb{R}^{\ell \times d}
+\end{equation}
+این فشرده‌سازی ۴ برابری در بار ارتباطاتی، به تیم طراحی اجازه می‌دهد تعداد کل متخصصان ($N$) و متخصصان فعال ($K$) را دقیقاً با همان ضریب ۴ برابری افزایش دهند:
+\begin{equation}
+    N' = N \cdot \frac{d}{\ell}, \quad K' = K \cdot \frac{d}{\ell}
+\end{equation}
+در نتیجه، تنوع تخصص‌گرایی و بودجه محاسبات غیرخطی لایه پیش‌خور که متناسب با $K \times d_{ff}$ است به شدت منبسط می‌شود، در حالی که هزینه ارتباطی ثابت باقی می‌ماند. شبکه مسیریاب و متخصصان اشتراکی بدون تغییر در بعد اصلی $d$ به فعالیت خود ادامه می‌دهند.
+
+\paragraph*{آموزش لایه‌های پیش‌خور در دقت ممیز بومی \en{NVFP4}}
+در مقیاس‌های بزرگ، پیش‌آموزش لایه‌های متخصصان تا سقف ۲۵ تریلیون توکن با فرمت عددی \en{NVFP4} انجام شده است. وزن‌های متخصصان در فرمت \en{E2M1} ذخیره شده و از مقیاس‌بندی میکروبلاک‌های ۱۶ عنصری با فرمت \en{E4M3} استفاده می‌نمایند. برای پایداری پس‌انتشار گرادیان، تبدیل تصادفی هادامارد (\en{Random Hadamard Transform - RHT}) روی اکتیویشن‌های ورودی به ضرب گرادیان وزن اعمال گردیده تا پدیده تجمع انرژی در کانال‌های منفرد شکسته شود.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=3.2cm, minimum height=0.7cm, align=center, rounded corners=3pt},
+    exp/.style={rectangle, draw=green!70!black, fill=green!10, thick, minimum width=1.4cm, minimum height=0.6cm, align=center, rounded corners=2pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (in) at (0,0) [box, fill=gray!15] {ورودی توکن ($x \in \mathbb{R}^d$)};
+    \node (down) at (2.5,1.5) [box, fill=yellow!15] {نگاشت نزولی ($W_\downarrow$)\\$d \to \ell = d/4$};
+    \node (router) at (-2.5,1.5) [box, fill=purple!15] {مسیریاب در فضای اصلی $d$};
+    
+    \node (e1) at (0.8,3.0) [exp] {$E_1$};
+    \node (ed) at (2.5,3.0) {$\dots$};
+    \node (ek) at (4.2,3.0) [exp] {$E_{K'}$};
+    
+    \node (comb) at (2.5,4.3) [box] {ترکیب وزنی در فضای $\mathbb{R}^\ell$};
+    \node (up) at (2.5,5.5) [box, fill=yellow!15] {نگاشت صعودی ($W_\uparrow$)\\$\ell \to d$};
+    \node (out) at (0,6.8) [box, fill=green!15] {خروجی لایه پیش‌خور};
+
+    \draw [arrow] (in) -| (down);
+    \draw [arrow] (in) -| (router);
+    \draw [arrow] (router) |- (comb);
+    \draw [arrow] (down) -| (e1);
+    \draw [arrow] (down) -| (ek);
+    \draw [arrow] (e1) |- (comb);
+    \draw [arrow] (ek) |- (comb);
+    \draw [arrow] (comb) -- (up);
+    \draw [arrow] (up) |- (out);
+\end{tikzpicture}
+\caption{دیاگرام ساختار پیش‌خور \en{LatentMoE} در مدل \model{Nemotron 3}.}
+\label{fig:nemotron_latentmoe}
+\end{figure}

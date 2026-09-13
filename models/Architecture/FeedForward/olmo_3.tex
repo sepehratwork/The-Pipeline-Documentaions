@@ -1,0 +1,64 @@
+\item \model{OLMo 3}
+
+\paragraph*{پیکربندی لایه پیش‌خور متراکم}
+مدل‌های خانواده \model{OLMo 3} \cite{olmo2025olmo3} در دو مقیاس ۷ و ۳۲ میلیارد پارامتر با هدف شفافیت کامل آموزشی عرضه شده‌اند. لایه‌های پیش‌خور این مدل‌ها از نوع متراکم (\en{Dense}) مبتنی بر \en{SwiGLU} هستند:
+\begin{itemize}
+    \item \textbf{مدل \en{OLMo 3 7B}:} دارای ۳۲ لایه، بعد مدل پنهان $d_{\text{model}} = 4096$.
+    \item \textbf{مدل \en{OLMo 3 32B}:} دارای ۶۴ لایه، بعد مدل پنهان $d_{\text{model}} = 5120$.
+    \item \textbf{نرمال‌سازی:} اعمال \en{Pre-RMSNorm} در ورودی لایه و نرمال‌سازی در خروجی بلوک‌ها.
+    \item \textbf{واپاشی وزن‌ها (\en{Weight Decay}):} نرخ زوال وزن برابر با $0.1$ بر روی کلیه ماتریس‌های لایه پیش‌خور اعمال شده است.
+\end{itemize}
+
+\paragraph*{پویایی داده‌ها و تداخل حوزه‌ای در پارامترهای پیش‌خور (\en{Domain Tradeoffs})}
+در آموزش فاز میانی (\en{Midtraining}) با دادگان \en{Dolma 3 Dolmino Mix}، رفتار لایه‌های پیش‌خور در واکنش به توزیع داده‌ها بررسی گردید:
+\begin{itemize}
+    \item افزایش نسبت داده‌های ریاضی و کدنویسی در ورودی، قابلیت استدلال در لایه پیش‌خور را به شدت تقویت می‌کند، اما به قیمت افت ذخیره‌سازی دانش عمومی و آزمون‌های چندگزینه‌ای تمام می‌شود.
+    \item تزریق توکن‌های نشانه‌گذاری خاص چت (نظیر \en{<|im\_start|>}) در این مرحله، به شدت باعث ناهماهنگی در نگاشت‌های لایه پیش‌خور شده و عملکرد استدلالی مدل پایه را مختل می‌سازد؛ لذا لایه‌های پیش‌خور باید در ساختاری خنثی نسبت به نشانه‌گذاری آموزش داده شوند.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    box/.style={rectangle, draw=blue!70!black, fill=blue!10, thick, minimum width=2.8cm, minimum height=0.75cm, align=center, rounded corners=3pt},
+    arrow/.style={-{Latex[length=2.5mm]}, thick, draw=blue!60!black}
+]
+    \node (in) at (0,0) [box, fill=gray!15] {ورودی از نرمال‌سازی $\text{RMSNorm}(x)$};
+    \node (up) at (-2.2,1.8) [box] {نگاشت بالارونده ($W_u$)};
+    \node (gate) at (2.2,1.8) [box] {نگاشت گیت ($W_g$)};
+    \node (mult) at (0,3.2) [circle, draw=orange!80!black, fill=orange!20, thick] {$\odot$};
+    \node (down) at (0,4.5) [box] {نگاشت پایین‌رونده ($W_d$)};
+    \node (out) at (0,5.8) [box, fill=green!15] {اتصال باقی‌مانده};
+
+    \draw [arrow] (in) -| (up);
+    \draw [arrow] (in) -| (gate);
+    \draw [arrow] (up) |- (mult);
+    \draw [arrow] (gate) |- node[right, font=\small] {\en{Swish}} (mult);
+    \draw [arrow] (mult) -- (down);
+    \draw [arrow] (down) -- (out);
+\end{tikzpicture}
+\caption{ساختار لایه پیش‌خور متراکم \en{SwiGLU} در مدل‌های \model{OLMo 3}.}
+\label{fig:olmo3_ffn}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه جامع مشخصات فنی لایه‌های پیش‌خور (\en{FFN / MoE}) در مدل‌های زبانی مورد بررسی}
+\label{tab:ffn_moe_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{مدل} & \textbf{نوع لایه} & \textbf{پارامتر کل / فعال} & \textbf{متخصصان (کل / فعال)} & \textbf{متخصص اشتراکی} & \textbf{تابع فعال‌ساز} & \textbf{سازوکار توازن بار / گیتینگ} \\
+\midrule
+\model{DeepSeek-V4} & \en{MoE} خرددانه & 1.6T / 49B & 384 / 6 & دارد (1 عدد) & \en{Clamped SwiGLU} & \en{Sqrt(Softplus)} بدون زیان کمکی \\
+\model{GLM-5} & \en{MoE} خرددانه & 744B / 40B & 256 / 8 & دارد (1 عدد) & \en{SwiGLU} & موازی‌سازی با \en{FlashComm} و \en{W4A8} \\
+\model{Kimi K3} & \en{Stable LatentMoE} & 2.8T / 104B & 896 / 16 & دارد (2 تمام‌عرض) & \en{SiTU-GLU} & \en{Quantile Balancing (QB)} و \en{MoonEP} \\
+\model{Magistral} & متراکم (\en{Dense}) & مقیاس 24B & - & - & \en{SwiGLU} & تنظیم راستای طول در زیرفضای \en{PCA} \\
+\model{MiniMax-M2} & \en{MoE} خرددانه & 229.9B / 9.8B & 256 / 8 & ندارد & \en{SwiGLU} & گیتینگ سیگموئیدی مستقل + بایاس \\
+\model{MobileLLM-Pro} & متراکم (\en{Dense}) & 1.08B / 1.08B & - & - & \en{SwiGLU ($4.8\times$)} & کوانتایزاسیون \en{INT4} با بازه یادگیرنده \\
+\model{Nemotron 3} & \en{LatentMoE} هیبرید & متغیر / فعال فشرده & 512 / 22 (نمونه) & دارد & \en{SwiGLU} & فشرده‌سازی در بعد نهفته + \en{NVFP4} \\
+\model{Qwen 3} & \en{MoE} بدون اشتراک & 235B / 22B & 128 / 8 & \textbf{ندارد (حذف کامل)} & \en{SwiGLU} & \en{Global-Batch Load Balancing Loss} \\
+\model{OLMo 3} & متراکم (\en{Dense}) & 32B / 32B & - & - & \en{SwiGLU} & پیش‌نرمال‌سازی و مهار تداخل حوزه‌ای \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
