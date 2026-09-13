@@ -1,1 +1,97 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{مقدمه و پارادایم توجه چندبعدی در مقیاس ۲.۸ تریلیون پارامتر}
+مدل \model{Kimi K3} یک معماری چندوجهی با ۲.۸ تریلیون پارامتر کل، ۱۰۴ میلیارد پارامتر فعال و پنجره زمینه بومی یک میلیون توکن است \cite{kimi2026k3}. طراحی سازوکار توجه در این مدل بر پایه اصل مقیاس‌بندی هم‌زمان در سه محور تعریف شده است: طول توالی (\en{Sequence Length})، عمق شبکه (\en{Network Depth}) و پهنای مدل (\en{Model Width}). هسته محاسباتی لایه توجه از یک هیبرید لایه‌ای نوین تشکیل یافته است که به ازای هر سه لایه «توجه دلتای کیمی» (\en{Kimi Delta Attention - KDA})، یک لایه «توجه نهان چندسر گیت‌دار» (\en{Gated MLA}) قرار دارد (نسبت ۳ به ۱ در ۹۳ لایه شبکه، مشتمل بر ۶۹ لایه \en{KDA} و ۲۴ لایه \en{MLA}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=3.8cm, minimum height=0.9cm, align=center},
+    kda_box/.style={rectangle, draw=teal!80!black, fill=teal!5, rounded corners=4pt, thick, minimum width=4.5cm, minimum height=1.1cm, align=center},
+    mla_box/.style={rectangle, draw=blue!60!purple!90!black, fill=blue!60!purple!10, rounded corners=4pt, thick, minimum width=4.5cm, minimum height=1.1cm, align=center},
+    res_box/.style={rectangle, draw=magenta!80!black, fill=magenta!5, rounded corners=4pt, thick, dashed, minimum width=3.8cm, minimum height=1cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Sequence flow
+    \node[box] (input) at (0, 0) {\textbf{جریان توکن ورودی} \\ $\mathbf{x}_t \in \mathbb{R}^{d}$};
+    
+    \node[kda_box] (kda) at (-3.5, -2) {\textbf{توجه دلتای کیمی (\en{KDA})} $\times 3$ \\ زوال کران‌دار: $g_t^h \in (-5, 0)$ \\ گیت فراموشی کانالی $\alpha_t$ \\ عملگر تنظیمی دلتا};
+    
+    \node[mla_box] (mla) at (3.5, -2) {\textbf{توجه نهان گیت‌دار (\en{Gated MLA})} $\times 1$ \\ بدون کدگذاری مکان (\en{NoPE}) \\ گیت خروجی تمام‌رتبه \\ انباشت محاسبات در \en{FP32}};
+    
+    \node[res_box] (attnres) at (0, -4.2) {\textbf{رزیدوال‌های توجه در عمق (\en{Block AttnRes})} \\ توجه به بازنمایی ۸ بلوک پیشین \\ جایگزینی جمع خطی با سافت‌مکس بین‌لایه‌ای};
+    
+    \node[box, draw=green!60!black, fill=green!5] (output) at (0, -6.2) {\textbf{خروجی بلوک ترنسفورمر} \\ سازگاری با موازی‌سازی بافت \en{KCP}};
+
+    % Arrows
+    \draw[arrow] (input) -| (kda.north);
+    \draw[arrow] (input) -| (mla.north);
+    \draw[arrow] (kda.south) |- (attnres.west);
+    \draw[arrow] (mla.south) |- (attnres.east);
+    \draw[arrow] (attnres.south) -- (output.north);
+\end{tikzpicture}
+\caption{معماری لایه توجه ترکیبی در \model{Kimi K3}: درهم‌تنیدگی \en{KDA} و \en{Gated MLA} در امتداد توالی و \en{AttnRes} در امتداد عمق.}
+\label{fig:kimi_k3_attention_arch}
+\end{figure}
+
+\paragraph*{فرمولاسیون ریاضی توجه دلتای کیمی (\en{Kimi Delta Attention - KDA})}
+معماری \en{KDA} مدل‌سازی بازگشتی وضعیت-فضا را با اضافه کردن یک گیت فراموشی کانالی (\en{Channel-wise Forget Gate}) به قاعده کلاسیک دلتا ارتقا می‌دهد \cite{kimi2026k3}. به ازای هر هد، با بردار پرسمان $\mathbf{q}_t \in \mathbb{R}^{d_k}$، کلید $\mathbf{k}_t \in \mathbb{R}^{d_k}$، ارزش $\mathbf{v}_t \in \mathbb{R}^{d_v}$ و ماتریس حالت بازگشتی $\mathbf{S}_t \in \mathbb{R}^{d_k \times d_v}$، رابطه بازگشتی حاکم به صورت زیر تعریف می‌شود:
+\begin{align}
+    \mathbf{S}_t &= \left(\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^T \right) \operatorname{Diag}(\boldsymbol{\alpha}_t) \mathbf{S}_{t-1} + \beta_t \mathbf{k}_t \mathbf{v}_t^T \\
+    \tilde{\mathbf{o}}_t &= \mathbf{S}_t^T \mathbf{q}_t
+\end{align}
+در این فرمولاسیون:
+\begin{itemize}
+    \item ماتریس $\left(\mathbf{I} - \beta_t \mathbf{k}_t \mathbf{k}_t^T \right)$ عملگر تصویر ارتوگونال است که حافظه قدیمی متناقض با کلید جاری را پاکسازی می‌کند.
+    \item ضریب $\beta_t \in (0, 1)$ نرخ یادگیری یا شدت نوشتن داده‌های جدید را تعیین می‌کند.
+    \item $\boldsymbol{\alpha}_t \in (0, 1)^{d_k}$ بردار زوال کانالی است که پویایی‌های حافظه در طول زمان را تنظیم می‌نماید.
+\end{itemize}
+
+پارامترهای هر هد بر پایه نگاشت‌های کانولوشن کوتاه و لایه‌نرمال‌سازی $\mathcal{L}_2$ ساخته می‌شوند:
+\begin{align}
+    \mathbf{q}_t^h, \mathbf{k}_t^h &= \operatorname{L2Norm}\left( \operatorname{Swish}\left( \operatorname{ShortConv}\left( \mathbf{W}_{q/k}^h \mathbf{x}_t \right) \right) \right) \\
+    \mathbf{v}_t^h &= \operatorname{Swish}\left( \operatorname{ShortConv}\left( \mathbf{W}_v^h \mathbf{x}_t \right) \right) \\
+    \beta_t^h &= \operatorname{Sigmoid}\left( \mathbf{W}_\beta^h \mathbf{x}_t \right)
+\end{align}
+
+\paragraph*{مهار سرریز عددی از طریق زوال کران‌دار پایین (\en{Lower-Bounded Decay})}
+در فرمولاسیون قطعه‌ای (\en{Chunkwise Parallel Form}) برای پردازش موازی طول کانتکست با اندازه قطعه $C$، بردارهای کلید در معکوس زوال تجمعی ضرب می‌شوند:
+\begin{equation}
+    \boldsymbol{\Gamma}_{1 \to C}[t] = \prod_{r=1}^C \boldsymbol{\alpha}_r[t]
+\end{equation}
+از آنجا که عناصر $\boldsymbol{\alpha}_r \in (0, 1)$ هستند، معکوس این ضرب یعنی $1/\boldsymbol{\Gamma}$ می‌تواند تا مقادیر بی‌نهایت رشد کرده و در دقت محاسباتی ممیز شناور محدود (\en{BF16}) سرریز عددی رخ دهد. \model{Kimi K3} با بازطراحی تابع نگاشت از لوجیت‌های زوال $z_t^h$ به زوال بر حسب گام، این مشکل را برطرف نموده است:
+\begin{equation}
+    g_t^h = g_{\text{min}} \cdot \operatorname{Sigmoid}\left( \exp(A^h) \cdot z_t^h \right) \in (g_{\text{min}}, 0)^{d_k}, \quad \boldsymbol{\alpha}_t^h = \exp(g_t^h)
+\end{equation}
+با تنظیم ثابت $g_{\text{min}} = -5$، تضمین می‌شود که ضریب نگهداری در هر گام $\alpha_{t,j}^h > \exp(-5) \approx 6.7 \times 10^{-3}$ باشد. در نتیجه در یک کاشی ۱۶ توکنی، کمترین مقدار زوال تجمعی برابر با $\exp(-80)$ خواهد بود. وارون این مقدار ($\exp(80)$) به طور دقیق درون کران پویایی فرمت \en{BF16} قرار می‌گیرد. این تثبیت طیفی اجازه می‌دهد تمامی کاشی‌های محاسباتی قطری و غیرقطری مستقیماً به صورت ضرب‌های ماتریسی چگال بر روی هسته‌های تنسور (\en{Tensor Cores}) اجرا شوند و مسیرهای محاسباتی جفت‌موقعیتی کند حذف گردند.
+
+\paragraph*{گیت خروجی تمام‌رتبه در \en{KDA}}
+برای کنترل دقیق جریان اطلاعات خارج‌شده از ماتریس حالت، خروجی پس از گذر از نرمال‌سازی با یک گیت غیرخطی با رتبه کامل ترکیب می‌شود:
+\begin{equation}
+    \mathbf{y}_t = \mathbf{W}_o \left[ \operatorname{Sigmoid}(\mathbf{W}_g \mathbf{x}_t) \odot \operatorname{RMSNorm}(\tilde{\mathbf{o}}_t) \right]
+\end{equation}
+
+\paragraph*{توجه نهان چندسر گیت‌دار (\en{Gated MLA}) با رویکرد \en{NoPE}}
+لایه‌های توجه سراسری دوره‌ای در Kimi K3 از فرم ارتقایافته \en{MLA} بهره می‌برند که دارای دو ویژگی اساسی است:
+\begin{itemize}
+    \item \textbf{حذف کامل کدگذاری موقعیت (\en{No Position Encoding - NoPE}):} هیچ‌گونه بردار موقعیتی (نظیر \en{RoPE}) به پرسمان‌ها یا کلیدهای لایه‌های \en{MLA} تزریق نمی‌شود. آگاهی مکانی و پیوستگی توالی به طور کامل توسط لایه‌های بازگشتی و کانولوشن‌های \en{KDA} به توکن‌ها داده می‌شود. لایه \en{MLA} منحصراً روی توجه معنایی-محتوایی فارغ از فاصله مکانی تمرکز می‌کند که نیاز به اعمال روش‌های شکننده تنظیم پایه‌های فرکانسی را در تعمیم به کانتکست‌های طولانی منتفی می‌سازد.
+    \item \textbf{انباشت محاسبات در فرمت \en{FP32}:} جهت مهار خطای گرد کردن جهت‌دار (\en{Biased Rounding Error}) در هسته‌های محاسباتی، مقادیر انباشت در طول آموزش در دقت \en{FP32} حفظ می‌شوند.
+\end{itemize}
+
+\paragraph*{رزیدوال‌های توجه در عمق شبکه (\en{Block Attention Residuals - AttnRes})}
+\model{Kimi K3} پیوند پسماند کلاسیک ($h_{l+1} = h_l + f(h_l)$) را در بعد عمق به یک فرآیند توجه یادگیری‌پذیر تبدیل می‌کند. در \en{Block AttnRes}، لایه‌های مدل به $N=8$ بلوک ۱۲ لایه‌ای افراز شده و هر لایه می‌تواند از طریق یک شبه‌پرسش آموزش‌پذیر $\mathbf{w}_l \in \mathbb{R}^d$، به خروجی بلوک‌های گذشته توجه کند:
+\begin{equation}
+    \alpha_{i \to l} = \frac{\exp\left( \mathbf{w}_l^T \operatorname{RMSNorm}(\mathbf{b}_i) \right)}{\sum_{j=0}^{n-1} \exp\left( \mathbf{w}_l^T \operatorname{RMSNorm}(\mathbf{b}_j) \right)}, \quad \mathbf{h}_l = \sum_{i=0}^{n-1} \alpha_{i \to l} \cdot \mathbf{b}_i
+\end{equation}
+این ساختار، هزینه حافظه اتصالات در طول انتشار را از $\mathcal{O}(L \cdot d)$ به $\mathcal{O}(N \cdot d)$ کاهش داده و از طریق ادغام سافت‌مکس آنلاین در زمان استنباط، تاخیر تبادل حافظه را ناچیز می‌سازد.
+
+\paragraph*{سیستم هم‌طراحی سخت‌افزار برای \en{KDA}}
+\begin{itemize}
+    \item \textbf{موازی‌سازی کانتکست در \en{KDA} (\en{KCP}):} برای پردازش توزیع‌شده بافت‌های فوق‌طولانی، هر رنک محاسباتی اثر بازه محلی توکن‌های خود را به صورت ماتریس انتقال تجمعی $\mathbf{M}_{t \leftarrow 1}$ و بردار تولید محلی $\tilde{\mathbf{S}}_t$ تفکیک می‌کند:
+    \begin{equation}
+        \mathbf{S}_t^{[i+1]} = \tilde{\mathbf{S}}_t^{[i+1]} + \mathbf{M}_{t \leftarrow 1}^{[i+1]} \mathbf{S}_{T_i}^{[i]}
+    \end{equation}
+    با توجه به شرکت‌پذیر بودن این نگاشت، همگام‌سازی وضعیت در طول ادوات پردازشی تنها با یک عملیات \en{All-Gather} با اندازه ثابت انجام می‌شود.
+    \item \textbf{استنباط حدسی بدون بازگشت وضعیت (\en{Stateless Speculative Decoding}):} در استنباط حدسی مبتنی بر \en{MTP}، وضعیت بازگشتی \en{KDA} بازگردانده نمی‌شود؛ بلکه ورودی‌های تصویرشده نگهداری شده و در صورت نیاز بر روی تراشه مجدداً با سرعت فوق‌العاده بالا بازسازی می‌شوند.
+\end{itemize}

@@ -1,1 +1,80 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{مقدمه و پارادایم توجه در مدل‌های عامل‌محور}
+مدل \model{GLM-5} با ۷۴۴ میلیارد پارامتر کل و ۴۰ میلیارد پارامتر فعال (در قالب ۲۵۶ متخصص و ۸۰ لایه)، با تمرکز بر گذار از کدنویسی تعاملی ساده (\en{Vibe Coding}) به مهندسی کامل و خودمختار نرم‌افزار (\en{Agentic Engineering}) توسعه یافته است \cite{zeng2026glm5}. یکی از نیازمندی‌های حیاتی در عامل‌های خودگردان، پایداری استدلال در بافت‌های فراتر از ۱۲۸ هزار و ۲۰۰ هزار توکن همراه با حفظ کارایی حافظه است. برای حل این چالش، \model{GLM-5} رویکرد توجه تنک پویا بر مبنای محتوا (\en{DeepSeek Sparse Attention - DSA}) را اتخاذ نموده و اصلاحات ساختاری شگرفی روی مکانیسم توجه نهان چندسر (\en{MLA}) و تعامل آن با بهینه‌سازهای ماتریسی به اجرا گذاشته است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    block/.style={rectangle, draw=purple!70!black, fill=purple!5, rounded corners=4pt, thick, minimum width=4cm, minimum height=0.9cm, align=center},
+    subblock/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=3.4cm, minimum height=0.85cm, align=center},
+    npu/.style={rectangle, draw=red!70!black, fill=red!5, rounded corners=4pt, thick, dashed, minimum width=3.8cm, minimum height=0.85cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Nodes
+    \node[block] (input) at (0, 0) {\textbf{حالت پنهان ورودی} \\ $\mathbf{h}_t \in \mathbb{R}^{d}$};
+    
+    \node[subblock] (mla) at (-3.5, -1.8) {\textbf{تطبیق ابعاد \en{MLA-256}} \\ بعد هد: $192 \to 256$ \\ کاهش تعداد هدها به میزان $\frac{1}{3}$};
+    \node[subblock] (muon) at (3.5, -1.8) {\textbf{بهینه‌ساز \en{Muon Split}} \\ تجزیه ارتوگونال هدهای پروجکشن \\ تثبیت دامنه لوجیت توجه};
+    
+    \node[block, draw=teal!80!black, fill=teal!5] (dsa) at (0, -3.6) {\textbf{سازوکار توجه تنک \en{DSA}} \\ نمایه‌ساز پویا (\en{Lightning Indexer}) \\ انتخاب قطعی $k=2048$ کلید برتر (\en{torch.topk})};
+    
+    \node[npu] (npu_kernel) at (0, -5.3) {\textbf{کرنل‌های فیوز شده سخت‌افزاری} (\en{Ascend NPUs}) \\ \en{MLAPO} (ادغام ۱۳ عملگر) \\ \en{Sparse Flash Attention}};
+    
+    \node[block] (output) at (0, -7) {\textbf{خروجی نهایی توجه عامل‌محور} \\ پایداری بازیابی در طول $202{,}752$ توکن};
+
+    % Connections
+    \draw[arrow] (input) -| (mla.north);
+    \draw[arrow] (input) -| (muon.north);
+    \draw[arrow] (mla.south) |- (dsa.west);
+    \draw[arrow] (muon.south) |- (dsa.east);
+    \draw[arrow] (dsa.south) -- (npu_kernel.north);
+    \draw[arrow] (npu_kernel.south) -- (output.north);
+\end{tikzpicture}
+\caption{نوآوری‌های محاسباتی و ادغام سخت‌افزاری سازوکار توجه در مدل \model{GLM-5}.}
+\label{fig:glm5_attention_arch}
+\end{figure}
+
+\paragraph*{توجه تنک \en{DSA} و برنامه درسی گذار از توجه چگال}
+مدل \model{GLM-5} از معماری \en{DSA} بهره می‌گیرد تا توجه درجه دو $\mathcal{O}(L^2)$ را با یک سازوکار انتخاب پویا جایگزین کند. بر خلاف پنجره‌های لغزان ثابت، نمایه‌ساز رعدآسا (\en{Lightning Indexer}) مستقیماً با بررسی محتوا، ارتباطات کلیدی میان توکن‌های دوردست را کشف می‌کند \cite{zeng2026glm5}:
+\begin{itemize}
+    \item \textbf{راهبرد پیش‌آموزش ادامه‌دار دو مرحله‌ای (\en{Continued Pre-Training}):} برای پیشگیری از هزینه‌های سرسام‌آور آموزش توجه تنک از ابتدا، مدل طی دو مرحله از حالت چگال به تنک منتقل شد:
+    \begin{enumerate}
+        \item \textbf{فاز گرم‌سازی چگال (\en{Dense Warm-Up}):} به مدت ۱۰۰۰ گام، با آموزش روی ۱۴ توالی از طول ۲۰۲,۷۵۲ توکن و حداکثر نرخ یادگیری $5 \times 10^{-3}$، تمام وزن‌های مدل پایه منجمد شده و صرفاً نمایه‌ساز آموزش دید.
+        \item \textbf{فاز تطبیق تنک (\en{Sparse Adaptation}):} هم‌آموزی مدل پایه و نمایه‌ساز بر روی ۲۰ میلیارد توکن از داده‌های بافت‌طولانی با نرخ یادگیری ثابت $1 \times 10^{-5}$.
+    \end{enumerate}
+    این راهبرد مصرف محاسبات توجه را در توالی‌های طولانی حدود ۱.۵ تا ۲ برابر کاهش داده و نشان داد که بیش از ۹۰٪ ارتباطات توجه در بافت‌های طولانی دارای حشو اطلاعاتی است.
+\end{itemize}
+
+\paragraph*{بهینه‌سازی ماتریس‌های تصویرسازی توجه: نوآوری \en{Muon Split}}
+در فازهای نخستین آموزش مدل با بهینه‌ساز متعامد \en{Muon}، مشخص گردید که مدل‌های دارای بردار نهان کلید-ارزش ۵۷۶ بعدی (\en{MLA}) قادر به دستیابی به کیفیت مدل‌های استاندارد \en{GQA} با ۸ گروه پرسمان نیستند. تحلیل ریاضی نشان داد که ارتوگونال‌سازی هم‌زمان ماتریس بزرگ تصویر چندسر باعث می‌شود هدهایی که دارای مقیاس گرادیان بزرگ‌تری هستند، جهت بروزرسانی مشترک را تصاحب کنند و هدهای با مقیاس کوچکتر دچار کمبود تراز شوند.
+
+تیم \model{GLM-5} روش \en{Muon Split} را ابداع نمود:
+به جای اعمال تجزیه مقادیر منفرد (\en{SVD}) و ارتوگونال‌سازی نیوتن-شولتز (\en{Newton-Schulz}) بر کل ماتریس‌های تصویر بالا $\mathbf{W}^{UQ}, \mathbf{W}^{UK}, \mathbf{W}^{UV}$، این ماتریس‌ها بر حسب ابعاد هر هد به ماتریس‌های کوچکتری شکسته می‌شوند:
+\begin{equation}
+    \mathbf{W}^{UQ} = \left[ \mathbf{W}_1^{UQ} \,;\, \mathbf{W}_2^{UQ} \,;\, \dots \,;\, \mathbf{W}_{n_h}^{UQ} \right]
+\end{equation}
+سپس عملگر ارتوگونال‌سازی به صورت موازی و مجزا بر روی هر زیرماتریس $\mathbf{W}_i$ اعمال می‌شود:
+\begin{equation}
+    \mathbf{M}_k = a\mathbf{M}_{k-1} + b(\mathbf{M}_{k-1}\mathbf{M}_{k-1}^T)\mathbf{M}_{k-1} + c(\mathbf{M}_{k-1}\mathbf{M}_{k-1}^T)^2\mathbf{M}_{k-1}
+\end{equation}
+این رویکرد به هدهای گوناگون اجازه می‌دهد با مقیاس‌های پویا و مستقل بروزرسانی شوند. جدول ارزیابی‌های \model{GLM-5} اثبات کرد که با اعمال \en{Muon Split}، عملکرد مدل \en{MLA} در بنچمارک‌های زبانی کاملاً با \en{GQA-8} هم‌تراز شده و لوجیت‌های توجه بدون نیاز به کلیپینگ تثبیت می‌شوند.
+
+\paragraph*{کاهش بار محاسباتی رمزگشایی (\en{MLA-256})}
+در معماری \en{MLA} استاندارد، در هر گام رمزگشایی ضرب داخلی در بعد نهان ۵۷۶ اجرا می‌شود که روی شتاب‌دهنده‌های خارج از اکوسیستم \en{H800} هزینه بالایی دارد. در \model{GLM-5} بعد هر هد از ۱۹۲ به ۲۵۶ افزایش یافته و تعداد هدهای پرسمان به میزان یک‌سوم کاهش یافت (از ۹۶ هد به ۶۴ هد). این تغییر هندسی، حجم محاسبات آموزش و پارامترها را ثابت نگه می‌دارد اما محاسبات ضرب داخلی در فاز \en{Decoding} را تا حد چشمگیری تنزل می‌دهد.
+
+\paragraph*{ارزیابی مقایسه‌ای سایر روش‌های توجه کارآمد (\en{Ablation of Attention Variants})}
+تیم توسعه \model{GLM-5} طیف وسیعی از ساختارهای توجه کارآمد را بر روی مدل پایه \en{GLM-9B} با بافت ۱۲۸K مورد آزمون قرار داد:
+\begin{itemize}
+    \item \textbf{الگوی مبتنی بر جستجوی \en{SWA}:} با بهره‌گیری از الگوریتم جستجوی پرتو (\en{Beam Search}) با اندازه پرتو ۸ در طول کانتکست ۱۶K، آرایش بهینه لایه‌های پنجره لغزان ($S$) و توجه کامل ($F$) کشف گردید:
+    \begin{equation}
+        \text{Pattern: } \texttt{SFSSFFSSSFFFFSSFSFFFFFFSFSFSSFSSFSFSSFSSS}
+    \end{equation}
+    این ساختار بهینه‌شده به مراتب بهتر از الگوی تناوبی یکنواخت ($1:1$) عمل نمود.
+    \item \textbf{مدل خطی \en{SimpleGDN}:} با حذف لایه‌های کانولوشن و گیتینگ صریح از \en{Gated DeltaNet} و نگاشت مستقیم پروجکشن‌های پیش‌آموزش‌دیده به رابطه بازگشتی خطی طراحی شد.
+    \item \textbf{نتیجه‌گیری تئوریک:} تمامی روش‌های خطی و پنجره لغزان در تسک‌های بازیابی با دقت بالا دچار افت نمره شدند (تا ۵.۶۹ نمره در \en{RULER@128K} و ۷.۳۳ نمره در \en{RepoQA@128K}). در نقطه مقابل، ساختار \en{DSA} به عنوان یک الگوریتم بدون افت ذاتی (\en{Lossless by construction}) عمل کرده و وابستگی‌های سراسری را کاملاً حفظ می‌نماید.
+\end{itemize}
+
+\paragraph*{پایداری استدلال در یادگیری تقویتی (\en{RL Stability with Deterministic Top-k})}
+در طول فازهای یادگیری تقویتی عامل‌ها (\en{Agentic RL})، محققان دریافتند که پیاده‌سازی‌های تنک معمول که از عملگرهای غیرقطعی (\en{Non-deterministic Top-k CUDA kernels}) بر مبنای اعداد تصادفی استفاده می‌کنند، باعث عدم انطباق توزیع میان تولید و آموزش شده و به فروپاشی سریع آنتروپی مدل منجر می‌گردند. برای حل این مشکل، در هسته محاسباتی نمایه‌ساز \en{DSA} منحصراً از عملگر قطعی \en{torch.topk} استفاده شد و پارامترهای نمایه‌ساز در فاز \en{RL} منجمد شدند. همچنین در بستر پردازنده‌های \en{Ascend NPU}، ابرعملگر \en{MLAPO} با تجمیع ۱۳ اپراتور پیش‌پردازش به صورت مستقیم در سطح سخت‌افزار اجرا شد.

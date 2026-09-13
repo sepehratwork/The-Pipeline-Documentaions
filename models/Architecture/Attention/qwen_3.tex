@@ -1,1 +1,62 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و معماری هدهای توجه در مدل‌های متراکم و \en{MoE}}
+خانواده مدل‌های \model{Qwen3} مشتمل بر مدل‌های چگال (از ۰.۶B تا ۳۲B) و مدل‌های متکی بر مخلوط متخصص‌ها (نظیر \en{Qwen3-30B-A3B} و مدل پرچمدار \en{Qwen3-235B-A22B}) است \cite{qwen2025qwen3}. در تمامی مدل‌های این سری، معماری توجه چندگروهی (\en{GQA}) با هدف بهینه‌سازی استنباط تثبیت شده است: در مدل‌های چگال تعداد هدهای کلید-ارزش برابر با ۸ و تعداد هدهای پرسمان بین ۱۶ تا ۶۴ متغیر است؛ در مدل‌های \en{MoE} نسبت هدهای پرسمان به کلید-ارزش برابر با $32/4$ یا $64/4$ (نسبت اشتراک ۱۶ به ۱) تنظیم شده است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    block/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=4cm, minimum height=0.9cm, align=center},
+    step_box/.style={rectangle, draw=purple!80!black, fill=purple!5, rounded corners=4pt, thick, minimum width=3.6cm, minimum height=0.85cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Sequence
+    \node[block] (input) at (0, 0) {\textbf{تصویر پرسمان و کلید فاقد بایاس} \\ $\mathbf{W}_q, \mathbf{W}_k, \mathbf{W}_v$ ($b=0$)};
+    
+    \node[step_box] (qknorm) at (0, -1.8) {\textbf{نرمال‌سازی پیش از ضرب داخلی} (\en{QK-Norm}) \\ $\tilde{\mathbf{q}} = \text{RMSNorm}(\mathbf{q}), \; \tilde{\mathbf{k}} = \text{RMSNorm}(\mathbf{k})$ \\ کران‌دار کردن اکید دامنه لوجیت توجه};
+    
+    \node[step_box, draw=teal!80!black, fill=teal!5] (rope) at (0, -3.6) {\textbf{کدگذاری موقعیت ارتقایافته} \\ پایه فرکانسی \en{ABF}: $10^4 \to 10^6$ \\ بسط پنجره بافت با \en{YaRN} ($s=4$)};
+    
+    \node[step_box, draw=orange!80!black, fill=orange!10] (dca) at (0, -5.3) {\textbf{توجه دو تکه‌ای} (\en{Dual Chunk Attention - DCA}) \\ افراز به بافت درون‌تکه‌ای و برون‌تکه‌ای \\ گسترش میدان دید تا ۱۲۸ هزار توکن};
+    
+    \node[block] (output) at (0, -7) {\textbf{خروجی بافت استنباط} \\ پایش تداخل حالت تفکر با توجه بازیابی};
+
+    % Connections
+    \draw[arrow] (input) -- (qknorm);
+    \draw[arrow] (qknorm) -- (rope);
+    \draw[arrow] (rope) -- (dca);
+    \draw[arrow] (dca) -- (output);
+\end{tikzpicture}
+\caption{پایدارسازی هدهای توجه از طریق \en{QK-Norm} و بسط کانتکست در مدل‌های \model{Qwen3}.}
+\label{fig:qwen3_attention_arch}
+\end{figure}
+
+\paragraph*{پایدارسازی هدهای توجه از طریق \en{QK-Norm} و حذف بایاس}
+برخلاف سری \en{Qwen2} که در ماتریس‌های تصویرسازی $\mathbf{Q}, \mathbf{K}, \mathbf{V}$ از بردار بایاس استفاده می‌کرد، در \model{Qwen3} تمامی بایاس‌ها به طور کامل حذف شدند. علاوه بر آن، تکنیک نرمال‌سازی پرسمان و کلید (\en{QK-Norm}) پیش از محاسبه ضرب داخلی اعمال شده است \cite{qwen2025qwen3}:
+\begin{align}
+    \tilde{\mathbf{q}}_{t,h} &= \text{RMSNorm}(\mathbf{q}_{t,h}) = \frac{\mathbf{q}_{t,h}}{\sqrt{\frac{1}{d_k} \sum_{i=1}^{d_k} q_{t,h,i}^2 + \epsilon}} \odot \boldsymbol{\gamma}_q \\
+    \tilde{\mathbf{k}}_{s,h} &= \text{RMSNorm}(\mathbf{k}_{s,h}) = \frac{\mathbf{k}_{s,h}}{\sqrt{\frac{1}{d_k} \sum_{i=1}^{d_k} k_{s,h,i}^2 + \epsilon}} \odot \boldsymbol{\gamma}_k
+\end{align}
+
+\textbf{تحلیل ریاضی پایداری هنجار و جلوگیری از انفجار گرادیان:}
+در خود‌توجهی سنتی، ضرب داخلی $\mathbf{q}^T \mathbf{k}$ دارای واریانسی متناسب با $d_k$ است که در صورت بروز مقادیر فرین در پارامترها، مقدار لوجیت به شدت رشد کرده و مشتق تابع سافت‌مکس دچار اشباع یا صفرشدگی گرادیان (\en{Gradient Vanishing}) می‌شود. اعمال \en{RMSNorm} طول بردارها را همواره به مقیاس $\sqrt{d_k}$ کران‌دار می‌کند:
+\begin{equation}
+    \|\tilde{\mathbf{q}}\|_2 \approx \sqrt{d_k}, \quad \|\tilde{\mathbf{k}}\|_2 \approx \sqrt{d_k} \implies \left| \frac{\tilde{\mathbf{q}}^T \tilde{\mathbf{k}}}{\sqrt{d_k}} \right| \le \frac{\|\tilde{\mathbf{q}}\|_2 \|\tilde{\mathbf{k}}\|_2}{\sqrt{d_k}} \approx \sqrt{d_k}
+\end{equation}
+این کران‌داری تانسوری تضمین می‌کند که حتی در مقیاس‌های عظیم ۲۳۵ میلیارد پارامتری و پس از هزاران گام یادگیری تقویتی، توزیع توجه دچار واگرایی یا فروپاشی نشود.
+
+\paragraph*{اکستنشن طول زمینه با \en{YaRN} و توجه دو تکه‌ای (\en{Dual Chunk Attention - DCA})}
+فرآیند ارتقای طول بافت مدل‌های \model{Qwen3} در سه مرحله صورت پذیرفت:
+\begin{itemize}
+    \item \textbf{تنظیم فرکانس پایه \en{RoPE}:} در فاز پیش‌آموزش اولیه با طول ۴,۰۹۶، فرکانس پایه برابر با ۱۰,۰۰۰ بود که در فاز پیش‌آموزش بافت طولانی (تا ۳۲,۷۶۸ توکن) با بهره‌گیری از تکنیک \en{ABF} به $1{,}000{,}000$ ارتقا یافت.
+    \item \textbf{بسط استنباطی با روش \en{YaRN}:} برای گسترش دامنه استنباط از ۳۲K به ۱۲۸K، از روش \en{YaRN} \cite{peng2023yarn} با ضریب مقیاس $s=4$ استفاده شد. فرمول ضریب تضعیف فرکانسی در \en{YaRN} به صورت زیر تعریف می‌شود:
+    \begin{equation}
+        \theta'_i = \theta_i \cdot \left( (1 - \gamma_i) + \frac{\gamma_i}{s} \right)
+    \end{equation}
+    که در آن $\gamma_i$ یک تابع رمپ پیوسته است که طول موج‌های بسیار کوتاه را بدون تغییر رها کرده و طول موج‌های بلند را درون‌یابی می‌کند تا انحراف آنتروپی اطلاعات به حداقل برسد.
+    \item \textbf{سازوکار \en{DCA}:} به منظور بهینه‌سازی محاسبات در طول‌های فراتر از ۳۲K، از توجه دو تکه‌ای (\en{Dual Chunk Attention}) استفاده شده است که توالی را به بخش‌های پیوسته درون‌تکه‌ای و محاسبات کم‌رتبه برون‌تکه‌ای تفکیک می‌نماید.
+\end{itemize}
+
+\paragraph*{اثر متقابل بودجه تفکر بر سازوکار توجه بازیابی}
+یک مشاهده کلیدی در گزارش ارزیابی \model{Qwen3} در بنچمارک \en{RULER} (جدول ۲۳ گزارش) ثبت شده است: در آزمون‌های بازیابی خالص اطلاعات در متن‌های بسیار طولانی، مدل در حالت تفکر (\en{Thinking Mode}) عملکرد ضعیف‌تری نسبت به حالت غیرتفکر ثبت نمود. تحلیل آماری توزیع توجه نشان می‌دهد که تولید طولانی نشانه‌های استدلال درونی در کارهای صرفاً مبتنی بر بازیابی، ماتریس توجه را دچار اغتشاش نموده و تمرکز پرسمان را از کلیدهای مرتبط تاریخی دور می‌سازد. به همین جهت، مکانیزم سقف بودجه تفکر (\en{Thinking Budget Control}) در \model{Qwen3} تعبیه شد تا در تسک‌های نیازمند بازیابی، طول کانتکست تفکر کنترل گردد.

@@ -1,0 +1,375 @@
+\item \model{مرور ادبیات جامع و سیر تحول سازوکارهای توجه (\en{Literature Review of Attention Mechanisms})}
+
+\paragraph*{مقدمه و پارادایم جریان اطلاعات در شبکه‌های توالی‌محور}
+مدل‌سازی آماری توالی‌های متنی بر پایه برآورد توزیع احتمال شرطی توأم به فرم خودرگرسیو (\en{Autoregressive}) استوار است:
+\begin{equation}
+    P_\theta(x) = \prod_{t=1}^{T} P_\theta(x_t \mid x_{<t})
+\end{equation}
+در معماری‌های سنتی نظیر شبکه‌های عصبی بازگشتی (\en{RNN}) و حافظه کوتاه‌مدت-بلندمدت (\en{LSTM}) \cite{hochreiter1997lstm}، تاریخچه توالی در بردار پنهان $h_t = f(h_{t-1}, x_t)$ فشرده می‌شود \cite{hays2026attention, hosseinzadeh2025attention}. این فرمولاسیون با دو چالش بنیادین مواجه است:
+\begin{itemize}
+    \item \textbf{محوشدگی گرادیان (\en{Vanishing Gradient}):} در پس‌انتشار در طول زمان (\en{BPTT})، مشتق تابع هزینه $\mathcal{L}$ نسبت به حالت ابتدایی از رابطه زنجیره‌ای زیر تبعیت می‌کند:
+    \begin{equation}
+        \frac{\partial \mathcal{L}}{\partial h_1} = \frac{\partial \mathcal{L}}{\partial h_T} \prod_{j=2}^{T} \frac{\partial h_j}{\partial h_{j-1}}
+    \end{equation}
+    اگر مقادیر ویژه ماتریس یعقوبی انتقال حالت اکیداً کمتر از یک باشند، گرادیان با آهنگ نمایی نسبت به فاصله توکن‌ها مستهلک می‌شود.
+    \item \textbf{گلوگاه اطلاعاتی (\en{Information Bottleneck}):} تحدید ظرفیت کانال اطلاعاتی به بعد بردار حالت پنهان ثابت $d_{\text{model}}$، مانع از یادگیری وابستگی‌های نحوی و معنایی دوربرد می‌گردد.
+\end{itemize}
+
+\paragraph*{پیدایش سازوکار توجه اولیه: افزایشی و ضربی}
+برای رفع این چالش، باهدانا و همکاران \cite{bahdanau2014neural} سازوکار توجه نرم (\en{Soft Attention}) افزایشی را در ترجمه ماشینی پیشنهاد دادند که طی آن بردار بافت $c_i = \sum_{j=1}^{n} \alpha_{ij} h_j$ با امتیازدهی غیرخطی محاسبه می‌شود:
+\begin{equation}
+    e_{ij} = v_a^\top \tanh(W_a s_{i-1} + U_a h_j), \quad \alpha_{ij} = \frac{\exp(e_{ij})}{\sum_{k=1}^{n} \exp(e_{ik})}
+\end{equation}
+سپس لوئونگ و همکاران \cite{luong2015effective} توجه ضربی (\en{Multiplicative Attention}) را به صورت فرم دوخطی $e_{ij} = s_i^\top W_a h_j$ معرفی کردند که پیچیدگی محاسباتی را به مراتب کاهش داد و اجرای آن را روی پردازنده‌های موازی بهینه‌تر ساخت \cite{hays2026attention}.
+
+\paragraph*{انقلاب ترنسفورمر و توجه ضرب نقطه‌ای مقیاس‌پذیر (\en{Scaled Dot-Product Attention})}
+واسوانی و همکاران \cite{vaswani2017attention} با حذف کامل اتصالات بازگشتی، معماری ترنسفورمر را منحصراً بر پایه خود-توجهی (\en{Self-Attention}) بنا نهادند \cite{hosseinzadeh2025attention, serret2026understanding}. با فرض ماتریس تعبیه ورودی $X \in \mathbb{R}^{n \times d_{\text{model}}}$، فضاهای پنهان پرس‌وجو ($Q$)، کلید ($K$) و ارزش ($V$) از نگاشت‌های خطی زیر حاصل می‌شوند:
+\begin{equation}
+    Q = X W_Q \in \mathbb{R}^{n \times d_k}, \quad K = X W_K \in \mathbb{R}^{n \times d_k}, \quad V = X W_V \in \mathbb{R}^{n \times d_v}
+\end{equation}
+خروجی توجه ضرب نقطه‌ای مقیاس‌پذیر به صورت زیر تعریف می‌شود:
+\begin{equation}
+    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^\top}{\sqrt{d_k}} + M\right) V
+\end{equation}
+که در آن $M$ ماتریس ماسک است.
+
+\paragraph*{اثبات ریاضی تثبیت واریانس با فاکتور $\frac{1}{\sqrt{d_k}}$}
+علت ریاضی تقسیم امتیازات بر $\sqrt{d_k}$ توسط هیز \cite{hays2026attention} به شکل آماری اثبات شده است.
+فرض کنید مؤلفه‌های بردارهای $q, k \in \mathbb{R}^{d_k}$ متغیرهای تصادفی مستقل با توزیع یکسان (\en{i.i.d.}) با میانگین صفر و واریانس یک باشند:
+\begin{equation}
+    \mathbb{E}[q_i] = \mathbb{E}[k_i] = 0, \quad \text{Var}(q_i) = \text{Var}(k_i) = 1, \quad \forall i \in \{1, \dots, d_k\}
+\end{equation}
+ضرب داخلی به صورت $q^\top k = \sum_{i=1}^{d_k} q_i k_i$ است. میانگین آن برابر است با:
+\begin{equation}
+    \mathbb{E}[q^\top k] = \sum_{i=1}^{d_k} \mathbb{E}[q_i] \mathbb{E}[k_i] = 0
+\end{equation}
+واریانس حاصل‌ضرب دو بردار عبارت است از:
+\begin{equation}
+    \begin{aligned}
+        \text{Var}(q^\top k) &= \mathbb{E}[(q^\top k)^2] - (\mathbb{E}[q^\top k])^2 \\
+        &= \sum_{i=1}^{d_k} \sum_{j=1}^{d_k} \mathbb{E}[q_i q_j k_i k_j] \\
+        &= \sum_{i=1}^{d_k} \mathbb{E}[q_i^2] \mathbb{E}[k_i^2] + \sum_{i \neq j} \mathbb{E}[q_i] \mathbb{E}[q_j] \mathbb{E}[k_i] \mathbb{E}[k_j] \\
+        &= \sum_{i=1}^{d_k} (1)(1) + 0 = d_k
+    \end{aligned}
+\end{equation}
+در غیاب فاکتور مقیاس، با افزایش بعد کلید $d_k$، واریانس امتیازات خام خطی رشد کرده و ورودی‌های تابع بیشینه‌ساز هموار (\en{Softmax}) مقادیر بسیار بزرگی به خود می‌گیرند. از آنجا که مشتق سافت‌مکس به فرم $\frac{\partial \alpha_i}{\partial z_j} = \alpha_i(\delta_{ij} - \alpha_j)$ است، در مقادیر فرین، توزیع به سمت تکینگی میل کرده و شیب گرادیان محو می‌شود. تقسیم بر $\sqrt{d_k}$ واریانس را مجدداً به واحد می‌رساند:
+\begin{equation}
+    \text{Var}\left(\frac{q^\top k}{\sqrt{d_k}}\right) = \frac{1}{d_k} \text{Var}(q^\top k) = 1
+\end{equation}
+
+\paragraph*{اثبات هم‌وردایی جایگشتی (\en{Permutation Equivariance})}
+یک ویژگی اساسی خود-توجهی استاندارد، عدم وابستگی ذاتی آن به ترتیب توالی است \cite{hays2026attention}. فرض کنید $P \in \{0, 1\}^{n \times n}$ یک ماتریس جایگشت باشد ($P^\top P = P P^\top = I$). اگر ورودی به $X' = PX$ تغییر یابد:
+\begin{equation}
+    Q' = PX W_Q = P Q, \quad K' = P K, \quad V' = P V
+\end{equation}
+ماتریس شباهت دگرگون می‌شود به:
+\begin{equation}
+    S' = \frac{Q' (K')^\top}{\sqrt{d_k}} = \frac{P Q K^\top P^\top}{\sqrt{d_k}} = P S P^\top
+\end{equation}
+از آنجا که سافت‌مکس سطری است و عملگر جایگشت سطرها و ستون‌ها را جابه‌جا می‌کند:
+\begin{equation}
+    A' = \text{softmax}(P S P^\top) = P \cdot \text{softmax}(S) \cdot P^\top = P A P^\top
+\end{equation}
+در نتیجه خروجی نهایی برابر است با:
+\begin{equation}
+    Y' = A' V' = (P A P^\top)(P V) = P A (P^\top P) V = P (A V) = P Y
+\end{equation}
+این قضیه اثبات می‌کند که خود-توجهی یک تابع مجموعه‌ای (\en{Set Function}) است و تزریق اطلاعات مکانی از طریق کدگذاری‌های موقعیت نظیر سینوسی، یادگیری‌پذیر، یا دوار (\en{RoPE}) \cite{su2024roformer} برای مدل‌سازی زبان الزامی است.
+
+\paragraph*{توجه چند-سره (\en{Multi-Head Attention}) و تفکیک زیرفضاها}
+برای فراهم‌سازی امکان جستجوی هم‌زمان الگوهای چندگانه نحوی و معنایی، ساختار توجه چند-سره معرفی شد:
+\begin{equation}
+    \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h) W_O
+\end{equation}
+\begin{equation}
+    \text{head}_i = \text{softmax}\left(\frac{Q W_Q^i (K W_K^i)^\top}{\sqrt{d_k}}\right) V W_V^i
+\end{equation}
+با انتخاب $d_k = d_v = d_{\text{model}} / h$، پیچیدگی زمانی $\mathcal{O}(n^2 d_{\text{model}} + n d_{\text{model}}^2)$ و مصرف حافظه فعال‌سازی‌ها در حد توجه تک‌سره باقی می‌ماند \cite{hays2026attention, serret2026understanding}.
+
+\paragraph*{دیاگرام ساختاری مقایسه انواع سازوکارهای توجه مدرن}
+در شکل زیر، ساختار جریان داده در سه الگوی توجه پایه، توجه درگاه‌دار (\en{Gated Attention}) و توجه پنهان چند-سره (\en{MLA}) به تصویر کشیده شده است:
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.5cm and 1.2cm,
+    block/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, line width=0.8pt, align=center, minimum height=0.9cm, minimum width=2.2cm, font=\footnotesize},
+    gateblock/.style={rectangle, draw=red!70!black, fill=red!5, rounded corners=4pt, line width=0.8pt, align=center, minimum height=0.9cm, minimum width=2.2cm, font=\footnotesize},
+    latblock/.style={rectangle, draw=green!60!black, fill=green!5, rounded corners=4pt, line width=0.8pt, align=center, minimum height=0.9cm, minimum width=2.2cm, font=\footnotesize},
+    op/.style={circle, draw=orange!80!black, fill=orange!15, line width=0.8pt, inner sep=2pt, font=\small},
+    arrow/.style={->, >={Latex[length=2.5mm, width=1.5mm]}, line width=0.8pt, draw=gray!80!black}
+]
+
+    % --- Subfigure A: Standard MHA ---
+    \node[font=\bfseries\small, text=blue!80!black] (titleA) at (0, 4.5) {الف) توجه چند-سره استاندارد (\en{MHA})};
+    \node[block] (inA) at (0, 3.5) {ورودی $X$};
+    \node[block] (qA) at (-1.8, 2.2) {$Q = X W_Q$};
+    \node[block] (kA) at (0, 2.2) {$K = X W_K$};
+    \node[block] (vA) at (1.8, 2.2) {$V = X W_V$};
+    \node[op] (dotA) at (-0.9, 1.0) {$\times$};
+    \node[block] (smA) at (-0.9, 0.0) {$\text{Softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)$};
+    \node[op] (mulA) at (0.5, -1.1) {$\times$};
+    \node[block] (outA) at (0.5, -2.2) {$O = \text{Concat}(\cdot) W_O$};
+
+    \draw[arrow] (inA) -- (qA);
+    \draw[arrow] (inA) -- (kA);
+    \draw[arrow] (inA) -- (vA);
+    \draw[arrow] (qA) -- (dotA);
+    \draw[arrow] (kA) -- (dotA);
+    \draw[arrow] (dotA) -- (smA);
+    \draw[arrow] (smA) -- (mulA);
+    \draw[arrow] (vA) |- (mulA);
+    \draw[arrow] (mulA) -- (outA);
+
+    % --- Subfigure B: Gated Attention ---
+    \node[font=\bfseries\small, text=red!80!black] (titleB) at (6.0, 4.5) {ب) توجه درگاه‌دار (\en{Gated Attention})};
+    \node[block] (inB) at (6.0, 3.5) {ورودی $X$};
+    \node[block] (sdpaB) at (5.0, 2.0) {$\text{SDPA}(Q, K, V)$};
+    \node[gateblock] (gateB) at (7.5, 2.0) {درگاه سیگموئیدی \\ $\sigma(X W_\theta)$};
+    \node[op] (hadB) at (6.0, 0.5) {$\odot$};
+    \node[block] (outB) at (6.0, -0.8) {$O = \text{Concat}(\cdot) W_O$};
+    \node[draw=red!40!black, dashed, rounded corners, fit=(sdpaB) (gateB) (hadB), inner sep=5pt, label=below:{\scriptsize مهار ته‌نشین توجه و خطی‌سازی رتبه پایین}] (boxB) {};
+
+    \draw[arrow] (inB) -- (sdpaB);
+    \draw[arrow] (inB) -- (gateB);
+    \draw[arrow] (sdpaB) -- (hadB);
+    \draw[arrow] (gateB) -- (hadB);
+    \draw[arrow] (hadB) -- (outB);
+
+    % --- Subfigure C: Multi-Head Latent Attention (MLA) ---
+    \node[font=\bfseries\small, text=green!70!black] (titleC) at (12.5, 4.5) {ج) توجه پنهان چند-سره (\en{MLA})};
+    \node[block] (inC) at (12.5, 3.5) {ورودی $X$};
+    \node[latblock] (cqC) at (10.8, 2.2) {پرس‌وجوی پنهان \\ $c_Q = X W^{LQ}$};
+    \node[latblock] (ckvC) at (14.2, 2.2) {\textbf{حافظه موقت فشرده} \\ $c_{KV} = X W^L$};
+    \node[block] (qprojC) at (10.8, 0.8) {$Q = c_Q W^{LQQ}$};
+    \node[block] (kprojC) at (13.0, 0.8) {$K = c_{KV} W^{LK}$};
+    \node[block] (vprojC) at (15.2, 0.8) {$V = c_{KV} W^{LV}$};
+    \node[op] (attnC) at (12.5, -0.6) {$\text{Attn}$};
+    \node[block] (outC) at (12.5, -1.8) {خروجی ادغام‌شده $W^{LO}$};
+
+    \draw[arrow] (inC) -- (cqC);
+    \draw[arrow] (inC) -- (ckvC);
+    \draw[arrow] (cqC) -- (qprojC);
+    \draw[arrow] (ckvC) -- (kprojC);
+    \draw[arrow] (ckvC) -- (vprojC);
+    \draw[arrow] (qprojC) -- (attnC);
+    \draw[arrow] (kprojC) -- (attnC);
+    \draw[arrow] (vprojC) -- (attnC);
+    \draw[arrow] (attnC) -- (outC);
+
+\end{tikzpicture}%
+}
+\caption{مقایسه ساختار داخلی خود-توجهی استاندارد، توجه درگاه‌دار (\en{Qwen3-Next / Qiu et al.}) و توجه پنهان چند-سره (\en{DeepSeek / Serret}).}
+\label{fig:attention_architectures_comparison}
+\end{figure}
+
+\paragraph*{نظریه پیچیدگی مداری، محاسبات موازی و لایه‌گذاری (\en{Padding})}
+پژوهش‌های کولایتیس و سنگوپتا \cite{kolaitis2026expressive} و مریل و ساباروال \cite{merrill2025exact} نشان داده‌اند که خود-توجهی ثابت‌عمق متناظر با مدارهای آستانه‌ای با عمق ثابت و ورودی نامحدود (\en{Constant-Depth Threshold Circuits}) است.
+\begin{itemize}
+    \item ترنسفورمر با توجه سخت یکتا (\en{UHAT}) با هر میزان دقت عددی، در کلاس مدارهای بولی یکنواخت $AC^0$ محدود است.
+    \item ترنسفورمرهای استاندارد با توجه هموار (\en{SMAT}) یا توجه سخت میانگین‌گیر (\en{AHAT}) در رژیم دقت ثابت $\mathcal{O}(1)$ بیت، در رده $AC^0$ قرار می‌گیرند. در صورتی که دقت محاسبات به حد لگاریتمی $\Theta(\log n)$ برسد، قدرت بیان آن‌ها دقیقاً منطبق بر کلاس $\text{FO-uniform } TC^0$ می‌شود.
+    \item \textbf{قضیه قدرت دقیق ترنسفورمرهای لایه‌گذاری‌شده \cite{merrill2025exact}:} استفاده از $n^k$ توکن لایه‌گذاری در زمان استنتاج، ظرفیت عرضی مدار را ارتقا داده و ترنسفورمرهای $\text{AHAT}$ ثابت‌عمق را قادر می‌سازد هر رابطه منطق مرتبه‌اول با سور اکثریت زوجی ($FO+M^2$) را ارضا کنند، که نشان‌دهنده معادل بودن دقیق آن‌ها با $\text{FO-uniform } TC^0$ است.
+    \item \textbf{حلقه تکرار لایه‌ها (\en{Looping}):} اجرای مجدد $O(\log^d n)$ باره بلوک‌های لایه‌گذاری‌شده، دسترسی به کلاس مدارهای عمیق‌تر $\text{FO-uniform } TC^d$ را ممکن ساخته و در حد چندلگاریتمی، کلاس $NC$ (کل مسائل با کارایی موازی‌پذیری بالا) را پوشش می‌دهد.
+\end{itemize}
+
+در جدول \ref{tab:circuit_complexity_summary}، نگاشت کامل پیکربندی‌های ترنسفورمر به رده‌های پیچیدگی مداری خلاصه شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{کالیبراسیون قدرت بیان ترنسفورمرها در سلسله‌مراتب رده‌های پیچیدگی محاسباتی و مداری}
+\label{tab:circuit_complexity_summary}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{مدل معماری ترنسفورمر} & \textbf{دقت محاسباتی (\en{Precision})} & \textbf{استراتژی استنتاج} & \textbf{رده پیچیدگی معادل} & \textbf{مرجع نظری} \\
+\midrule
+\en{UHAT Encoder} & گویا / نامحدود & ایستا (بدون \en{CoT}) & $\text{AC}^0$ & \cite{kolaitis2026expressive, merrill2025exact} \\
+\en{SMAT / AHAT} & $\mathcal{O}(1)$ بیت & ایستا & $\text{AC}^0$ & \cite{kolaitis2026expressive} \\
+\en{SMAT / AHAT} & $\Theta(\log n)$ بیت & ایستا & $\text{TC}^0$ & \cite{kolaitis2026expressive} \\
+\en{SMAT Decoder} & $\Theta(\log n)$ بیت & $\mathcal{O}(\log n)$ گام \en{CoT} & $\text{TC}^0$ & \cite{kolaitis2026expressive} \\
+\en{AHAT Decoder} & $\Theta(\log n)$ بیت & چندجمله‌ای $\text{poly}(n)$ گام \en{CoT} & $\text{PTIME}$ & \cite{kolaitis2026expressive} \\
+\en{SMAT / AHAT} & نامحدود / $\Theta(\log n)$ & نامحدود \en{CoT} & کامل بر طبق تورینگ (\en{Turing-Complete}) & \cite{kolaitis2026expressive} \\
+\en{AHAT + Poly Padding} & $\Theta(\log n)$ بیت & بدون حلقه ($d=0$) & $\text{FO-uniform TC}^0$ (دقیق) & \cite{merrill2025exact} \\
+\en{AHAT + Poly Padding} & $\Theta(\log n)$ بیت & $\mathcal{O}(\log^d n)$ حلقه (\en{Looping}) & $\text{FO-uniform TC}^d$ (دقیق) & \cite{merrill2025exact} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{منطق زمانی خطی (\en{LTL}) و تمایز توجه سراسری و محلی}
+لی و کاترل \cite{li2026characterizing} با نگاشت رفتار ترنسفورمرهای با دقت ثابت به قطعات منطق زمانی خطی (\en{LTL}) اثبات کردند:
+\begin{itemize}
+    \item \textbf{توجه سراسری محض (\en{Global Attention}):} دقیقاً معادل با قطعه $LTL[P]$ (عملگر گذشته نامحدود) است.
+    \item \textbf{توجه محلی محض (\en{$k$-Local Attention}):} با پنجره طول $k$، دقیقاً معادل با قطعه $LTL[Y^{\le k}]$ (عملگرهای گام قبلی محدود) است که طبق نظریه نیم‌گروه‌های جبری، کلاس زبان‌های معین (\en{Definite Languages}) را توصیف می‌کند.
+    \item \textbf{عدم قیاس‌پذیری و خاصیت مکمل:} $LTL[P]$ و $LTL[Y]$ ناسازگارند و هیچ‌یک دیگری را نمی‌پوشاند؛ زبان آغاز با توکن مشخص ($a\Sigma^*$) تنها در $LTL[P]$ و زبان خاتمه با توکن مشخص ($\Sigma^* a$) تنها در $LTL[Y]$ قابل تعریف است. از این رو، مدل‌های ترکیبی محلی-سراسری (\en{Hybrid Attention}) که به قطعه $LTL[P, Y^{\le k}]$ دسترسی دارند، رده گسترده‌تری از زبان‌های آزمون‌پذیر محلی (\en{Locally Testable Languages}) را بازشناسی می‌کنند.
+\end{itemize}
+
+\paragraph*{نظریه تقریب و گلوگاه تعداد سرهای توجه (\en{Head Count Bottleneck})}
+یو و همکاران \cite{yu2026effect} به تحلیل رابطه میان تعداد سرهای توجه ($h$) و بعد ذاتی مسأله بازیابی ($D$) در خانواده توابع بازیابی تعمیم‌یافته پرداختند:
+\begin{equation}
+    H(X_T) = F_0(\bar{z}_1(X_T), \dots, \bar{z}_D(X_T)), \quad \bar{z}_i(X_T) = \min_{t \in S_i} f_i(x(t))
+\end{equation}
+آن‌ها نشان دادند:
+\begin{itemize}
+    \item اگر $h \ge D$ باشد، هر سر توجه به یک بعد ذاتی تخصیص یافته و مدل با تعداد پارامتر مستقل از طول توالی $T$ تابع را تقریب می‌زند: $M \le C_{d,D,T} \epsilon^{-\gamma}$.
+    \item اگر تعداد سرها ناکافی باشد ($h < D$)، توجه ناگزیر چند ویژگی را در یک بردار فشرده کرده و بار تفکیک به لایه‌های FFN منتقل می‌شود. در این حالت، تعداد پارامترهای لازم با طول توالی رابطه نمایی پیدا می‌کند:
+    \begin{equation}
+        M = \Omega\left(\frac{1}{\epsilon^k}\right), \quad k = \frac{\frac{1}{4}T - h - D + 1}{(n+1)h + 1} - 1 = \Omega(T)
+    \end{equation}
+    این نخستین اثبات صوری بر ضرورت افزایش تعداد سرها متناسب با بعد تسک است.
+\end{itemize}
+
+\paragraph*{پدیدارشناسی ته‌نشین توجه (\en{Attention Sinks}) و اثبات ضرورت آن}
+پدیده ته‌نشین توجه—یعنی تخصیص درصد بالایی از وزن توجه به توکن ابتدایی مستقل از بار معنایی—به عنوان یک ضرورت ساختاری در حضور قید سیمپلکس سافت‌مکس اثبات شده است \cite{ranmilo2026attention}. 
+در یک مسأله شرطی-محرک، مدل باید در غیاب توکن محرک، خروجی صفر (حالت \en{No-Op}) تولید کند:
+\begin{equation}
+    \hat{y}^{(i)} = \alpha_{i,1} V x^{(1)} + \sum_{k=2}^{i} \alpha_{i,k} V x^{(k)} \approx 0
+\end{equation}
+رن-میلو \cite{ranmilo2026attention} اثبات کرد که چون $\sum_{k=1}^i \alpha_{i,k} = 1$ است، اگر مدل توجه را روی توکن آغازین متمرکز نسازد ($\alpha_{i,1} \le 1 - \epsilon_0$)، ناچار است نگاشت ارزش $V$ را برای تمامی ورودی‌های محتوایی صفر کند که این امر توانایی بازشناسی توکن محرک را از بین می‌برد. بنابراین، ته‌نشینی توجه یک مکانیزم اجباری برای خنثی‌سازی اثر توکن‌ها در حالت پیش‌فرض است. در مقابل، توجه با یکسوکننده خطی (\en{ReLU Attention}) به دلیل عدم نیاز به جمع احتمالات به یک، این تسک را با وزن توجه صفر روی توکن نخست حل می‌کند.
+
+\paragraph*{برانگیختگی‌های فوق‌العاده حجیم (\en{Massive Activations}) و رفتار درجه دوم \en{SwiGLU}}
+تحقیقات سان و همکاران \cite{sun2026spike} نشان داد که برانگیختگی‌های حجیم در لایه‌های میانی ناشی از عملکرد بلوک‌های \en{SwiGLU} به عنوان تقویت‌کننده جهتی درجه دوم است. با توجه به اینکه برای توکن‌های خاص تابع فعال‌ساز در رژیم خطی کار می‌کند ($\text{SiLU}(x) \approx x$):
+\begin{equation}
+    [F_{\text{ffn}}(\tilde{h})]_k \approx \tilde{h}^\top U_k \tilde{h} = \tilde{h}^\top S_k \tilde{h}, \quad S_k = \frac{1}{2}(U_k + U_k^\top)
+\end{equation}
+ماتریس‌های $S_k$ دارای یک مقدار ویژه غالب رتبه یک ($\lambda_* \gg \lambda_2$) در راستای بردار ویژه واحد $s_*$ هستند:
+\begin{equation}
+    [F_{\text{ffn}}(\tilde{h})]_k \approx \lambda_* (s_*^\top \tilde{h})^2 = \lambda_* d_{\text{model}} \cos^2(s_*, \tilde{h})
+\end{equation}
+اگرچه این جهش‌ها با بهنجارسازی پس از بلوک یا \en{DynamicTanh} قابل مهارند، ته‌نشین توجه به حیات خود ادامه می‌دهد که نشان‌دهنده تفکیک‌پذیری علّی این دو پدیده است.
+
+\paragraph*{توجه ته‌نشین به مثابه \en{MoE} درون‌زاد و فروپاشی سرها (\en{Head Collapse})}
+فو و همکاران \cite{fu2026attention} پدیده زهکشی ارزش توکن نخست ($\|v_0^{l,h}\|_2 \approx 0$) را بررسی نموده و خروجی سر را بازنویسی کردند:
+\begin{equation}
+    O_t^{l,h} = (1 - A_{t,\text{sink}}^{l,h}) \sum_{j=1}^{t} \tilde{A}_{t,j}^{l,h} v_j^{l,h}
+\end{equation}
+ضریب $G_t^{l,h} = 1 - A_{t,\text{sink}}^{l,h}$ به منزله یک گیت سیگموئیدی ضمنی بر روی متخصصان عمل می‌کند. این امر به معضل فروپاشی سرها (\en{Head Collapse}) می‌انجامد که طی آن تنها زیرمجموعه ثابتی از سرها بار محاسباتی را تقبل می‌کنند. اعمال تابع هزینه توازن بار کمکی (\en{Load Balancing Loss}):
+\begin{equation}
+    \mathcal{L}_{\text{aux}} = \lambda \sum_{l=1}^{N_L} N_h \left[ \text{CV}\left(\{\text{Imp}^{l,h}\}_{h=1}^{N_h}\right) \right]^2
+\end{equation}
+از طریق مقادیر \en{LSE} در \en{FlashAttention} این نقیصه را با کمترین سربار مرتفع می‌سازد.
+
+\paragraph*{توجه درگاه‌دار (\en{Gated Attention}): رفع ته‌نشین و افزایش بیانگری}
+چیو و همکاران \cite{qiu2025gated} با اعمال یک درگاه سیگموئیدی سر-محور پس از خروجی ضرب نقطه‌ای ($G_1$):
+\begin{equation}
+    O_t^{l,h} = \text{SDPA}(Q, K, V) \odot \sigma(X W_\theta)
+\end{equation}
+نشان دادند که دو عامل کلیدی به بهبود جهشی مدل می‌انجامد:
+\begin{enumerate}
+    \item \textbf{تزریق غیرخطی‌سازی:} شکستن پیوستگی خطی میان ماتریس‌های با رتبه پایین $W_V$ و $W_O$.
+    \item \textbf{تنکی وابسته به پرس‌وجو:} حذف کامل ته‌نشین توجه و ارتقای چشمگیر در آزمون‌های طول بافت نظیر \en{RULER}.
+\end{enumerate}
+
+\paragraph*{دسته‌بندی و مقایسه جامع پارادایم‌های توجه کارآمد (\en{Efficient Attention})}
+در جدول \ref{tab:efficient_attention_taxonomy}، ویژگی‌های ساختاری و سخت‌افزاری رویکردهای نوین توجه آورده شده است:
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه تطبیقی خانواده‌های گوناگون سازوکارهای توجه کارآمد در مدل‌های زبانی}
+\label{tab:efficient_attention_taxonomy}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{خانواده توجه} & \textbf{پیچیدگی محاسباتی} & \textbf{حافظه موقت (\en{KV Cache})} & \textbf{مکانیزم محوری} & \textbf{سازگاری سخت‌افزاری} & \textbf{مدل‌های شاخص} \\
+\midrule
+\textbf{توجه متراکم استاندارد} & $\mathcal{O}(n^2 d)$ & $\mathcal{O}(n d)$ & سافت‌مکس کامل & بسیار بالا (\en{FlashAttn}) & \en{LLaMA, GPT-4} \\
+\textbf{توجه خطی هسته‌ای} & $\mathcal{O}(n d^2)$ & $\mathcal{O}(d^2)$ & تقریب ویژگی تصادفی & متوسط & \en{Performer, cosFormer} \\
+\textbf{توجه خطی با زوال ایستا} & $\mathcal{O}(n d^2)$ & $\mathcal{O}(d^2)$ & میرایی نمایی $\gamma^{t-i}$ & بالا (\en{Chunkwise}) & \en{RetNet, Eagle} \\
+\textbf{توجه خطی با زوال پویا} & $\mathcal{O}(n d^2)$ & $\mathcal{O}(d^2)$ & گیت متغیر با ورودی $G_t$ & بالا (\en{SSD / Triton}) & \en{Mamba-2, GLA} \\
+\textbf{یادگیرنده درون‌متنی (TTT)} & $\mathcal{O}(n d^2)$ & $\mathcal{O}(d^2)$ & به‌روزرسانی برخط وزن سریع & متوسط (\en{Batch Update}) & \en{DeltaNet, TTT, Titans} \\
+\textbf{توجه تنک بلوکی / مسیریابی} & $\mathcal{O}(n \cdot k \cdot b)$ & $\mathcal{O}(n d)$ & انتخاب $k$ بلوک برتر & بسیار بالا & \en{NSA, MInference, MoBA} \\
+\textbf{توجه پنهان چند-سره (MLA)} & $\mathcal{O}(n^2 d)$ & $\mathcal{O}(n d_L)$ ($d_L \ll d$) & تجزیه رتبه-پایین مشترک & بسیار بالا & \en{DeepSeek-V2/V3/V4} \\
+\textbf{توجه مقیاس‌ناپذیر} & $\mathcal{O}(n^2 d)$ & $\mathcal{O}(n d)$ & تبدیل لاگ-نرمال لاجیت‌ها & بسیار بالا (\en{FlexAttention}) & \en{Scale-Inv p-RoPE} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{توجه مقیاس‌ناپذیر (\en{Scale-Invariant Attention}) و مهار آنتروپی}
+آنسون و همکاران \cite{anson2025scale} با هدف مهار پهن‌شدگی توزیع توجه در توالی‌های طولانی، تبدیل لاجیت‌های گاوسی را با میانگین $m_t$ و واریانس $a_t^2$ استخراج کردند:
+\begin{equation}
+    L_t = a_t \bar{L}_t + m_t, \quad a_t = \sqrt{2\left[\log\left(\frac{t}{\tau}+1\right)\right] + 1}, \quad m_t = -a_t^2 + 1
+\end{equation}
+این ساختار تضمین می‌کند که مجموع توجه و آنتروپی در بازه‌های مقیاسی نمایی به صورت مجانبی ثابت بماند و توجه به بافت محلی در طول‌های بیش از ۶۴ هزار توکن تضعیف نگردد.
+
+\paragraph*{تنظیم طیفی ماتریس یعقوبی توجه (\en{Spectral Conditioning})}
+ساراچندران و لوسی \cite{saratchandran2026spectral} نشان دادند که عدد حالت ژاکوبی لایه توجه $\kappa(J)$ متأثر از عدد حالت ماتریس‌های تصویر $W_Q, W_K, W_V$ است. بر اساس نابرابری وایل (\en{Weyl's Inequality})، افزودن یک ماتریس همانی مقیاس‌شده ایستا $C = \lambda I_k$ با $\lambda \ge 2$ (بهینه‌سازی‌شده در $\lambda = 10$)، بدون هیچ سربار حافظه در گام پس‌انتشار، مقدار تکین کمینه را ارتقا داده و عدد حالت را کاهش می‌دهد:
+\begin{equation}
+    \kappa(W + \lambda I_k) \le \frac{\sigma_{\max}(W) + \lambda}{\lambda - \sigma_{\min}(W)} < \kappa(W)
+\end{equation}
+این روش پایداری آموزش را در ترنسفورمرهای بینایی و متنی به شکل چشمگیری بهبود می‌بخشد.
+
+\paragraph*{تفسیرپذیری مکانیکی کنش‌پذیر: مکان‌یابی، هدایت و بهبود}
+ژانگ و همکاران \cite{zhang2026locate} و کادم و ژنگ \cite{kadem2026interpreting} پارادایم سه مرحله‌ای تفسیرپذیری را مدون ساختند:
+\begin{enumerate}
+    \item \textbf{مکان‌یابی (\en{Locating}):} شناسایی عناصر مؤثر با تحلیل بزرگی (\en{Magnitude})، ردیابی علّی (\en{Causal Tracing})، انتساب شیب‌محور (\en{Integrated Gradients})، کاوش خطی (\en{Probing})، لنز واژگان (\en{Logit Lens}) و کشف مدار (\en{Circuit Discovery}).
+    \item \textbf{هدایت (\en{Steering}):} دستکاری کنترل‌شده خروجی‌ها از طریق دستکاری دامنه (\en{Amplitude Manipulation})، بهینه‌سازی موضعی پارامترها (\en{Targeted Optimization}) و حساب برداری فعال‌سازی‌ها (\en{Vector Arithmetic / Activation Addition}).
+    \item \textbf{بهبود (\en{Improving}):} ارتقای ایمنی و کاهش سوگیری، تزریق قابلیت‌های استدلال و هرس بهینه سرها.
+\end{enumerate}
+
+\paragraph*{دیاگرام خط لوله تفسیرپذیری مکانیکی کنش‌پذیر}
+شکل زیر جریان کار سیستماتیک مداخله ساختاری در مدل‌های زبانی را نشان می‌دهد:
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.0cm,
+    phase/.style={rectangle, draw=blue!80!black, fill=blue!8, rounded corners=6pt, line width=1pt, align=center, minimum height=1.0cm, minimum width=3.8cm, font=\small\bfseries},
+    stepblock/.style={rectangle, draw=gray!70!black, fill=white, rounded corners=3pt, line width=0.6pt, align=center, minimum height=0.8cm, minimum width=3.6cm, font=\scriptsize},
+    transarrow/.style={->, >={Latex[length=3mm, width=2mm]}, line width=1.2pt, draw=blue!70!black}
+]
+
+    % Phase 1
+    \node[phase] (p1) at (0, 3.5) {۱. مکان‌یابی (\en{Locating})};
+    \node[stepblock] (s11) at (0, 2.3) {تحلیل بزرگی وزن و فعال‌سازی};
+    \node[stepblock] (s12) at (0, 1.3) {ردیابی علّی و وصله‌زنی (\en{Patching})};
+    \node[stepblock] (s13) at (0, 0.3) {انتساب مبتنی بر گرادیان (\en{IG})};
+    \node[stepblock] (s14) at (0, -0.7) {کشف مدار (\en{ACDC / EAP})};
+    \node[draw=blue!40, dashed, rounded corners, fit=(p1) (s11) (s14), inner sep=6pt] (box1) {};
+
+    % Phase 2
+    \node[phase] (p2) at (5.5, 3.5) {۲. هدایت و مداخله (\en{Steering})};
+    \node[stepblock] (s21) at (5.5, 2.3) {دستکاری دامنه (\en{Scaling/Ablation})};
+    \node[stepblock] (s22) at (5.5, 1.3) {بهینه‌سازی هدفمند (\en{ROME/MEMIT})};
+    \node[stepblock] (s23) at (5.5, 0.3) {حساب برداری (\en{Activation Addition})};
+    \node[stepblock] (s24) at (5.5, -0.7) {درگاه‌بندی علّی سرها (\en{CHG})};
+    \node[draw=blue!40, dashed, rounded corners, fit=(p2) (s21) (s24), inner sep=6pt] (box2) {};
+
+    % Phase 3
+    \node[phase] (p3) at (11.0, 3.5) {۳. ارتقای مدل (\en{Improving})};
+    \node[stepblock] (s31) at (11.0, 2.3) {ایمنی و مهار توکسیسیتی (\en{Safety})};
+    \node[stepblock] (s32) at (11.0, 1.3) {رفع سوگیری‌های جمعیت‌شناختی};
+    \node[stepblock] (s33) at (11.0, 0.3) {تقویت استدلال چندمرحله‌ای (\en{CoT})};
+    \node[stepblock] (s34) at (11.0, -0.7) {هرس لایه‌ها و فشرده‌سازی \en{KV-Cache}};
+    \node[draw=blue!40, dashed, rounded corners, fit=(p3) (s31) (s34), inner sep=6pt] (box3) {};
+
+    \draw[transarrow] (box1) -- (box2);
+    \draw[transarrow] (box2) -- (box3);
+
+\end{tikzpicture}%
+}
+\caption{خط لوله جامع تفسیرپذیری مکانیکی کنش‌پذیر (\en{Locate, Steer, and Improve Pipeline}) \cite{zhang2026locate}.}
+\label{fig:actionable_mi_pipeline}
+\end{figure}
+
+\paragraph*{درگاه‌بندی علّی سرها (\en{Causal Head Gating - CHG})}
+نام و همکاران \cite{nam2025causal} با تعریف گیت‌های پیوسته $G_{\ell,h} \in [0, 1]$ بر روی خروجی سرها و بهینه‌سازی توأم تحت رگولاریزاسیون $L_1$ دوطرفه با علامت‌های مخالف ($\lambda > 0$ برای تشویق بیشینگی $G^+$ و $\lambda < 0$ برای تشویق تنکی $G^-$):
+\begin{equation}
+    \mathcal{L}(G; \mathcal{M}_\theta, \mathcal{D}, \lambda) = -\sum_{(x,y)} \log P(y \mid x; \mathcal{M}_\theta, G) - \lambda \sum_{l,h} \sigma^{-1}(G_{l,h})
+\end{equation}
+یک رده‌بندی علّی سه‌گانه برای سرهای توجه تعریف کردند:
+\begin{itemize}
+    \item \textbf{سرهای تسهیل‌کننده (\en{Facilitating}):} مقدار $G^-$ بالا دارند؛ برای تسک حیاتی هستند و ابلیشن آن‌ها کارایی را نابود می‌کند.
+    \item \textbf{سرهای مزاحم (\en{Interfering}):} مقدار $1 - G^+$ بالا دارند؛ حضورشان با تسک تداخل دارد و صفر کردن گیت آن‌ها عملکرد مدل را افزایش می‌دهد.
+    \item \textbf{سرهای بی‌اثر (\en{Irrelevant}):} تفاوت بالایی بین $G^+$ و $G^-$ دارند؛ نقشی در حل تسک ندارند.
+\end{itemize}
+همچنین نسخه تقابلی \en{Contrastive CHG} نشان داد که مدارهای استدلال درون‌متنی (\en{ICL}) و تبعیت از دستور (\en{Instruction Following}) در سطح سرها از یکدیگر تفکیک‌پذیرند.
+
+\paragraph*{تحلیل تضاد ریزتنظیم و یادگیری درون‌متنی در مدل‌های خطی}
+لی، سون و لی \cite{lee2026finetuning} با حل تحلیلی رگرسیون خطی روی توزیع ویشارت $\mathcal{W}(\Sigma, n)$ اثبات کردند که ریزتنظیم استاندارد تمام پارامترها ($Q$ و $V$) به منظور بهبود عملکرد صفر-شات، بخش مربوط به ماتریس کوواریانس معکوس در $Q$ را به صفر تقلیل داده و موجب فراموشی فاجعه‌بار یادگیری درون‌متنی می‌شود:
+\begin{equation}
+    \lim_{n \to \infty} \mathcal{E}(\hat{V}, \hat{Q}; n, \theta) = \sigma^2 + \theta^\top \Sigma \theta \gg \sigma^2
+\end{equation}
+در مقابل، با انجماد ماتریس‌های پرس‌وجو-کلید ($\hat{Q}_{11} = \Sigma^{-1}$) و انحصار به‌روزرسانی به بردار سطری ماتریس ارزش ($v_{21}$)، مدل قادر است بدون افت کیفیت در یادگیری چند-نمونه‌ای، عملکرد صفر-شات را نیز تا مرز بهینه بهبود بخشد.

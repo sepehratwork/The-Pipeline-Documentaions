@@ -1,1 +1,54 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{مقدمه و پویایی‌های حافظه توجه در یادگیری تقویتی استدلالی}
+مدل‌های استدلالی خانواده \model{Magistral} (شامل مدل‌های \en{Small-24B} و \en{Medium}) بر مبنای مدل‌های پایه سری \en{Mistral} و با تکیه بر الگوریتم بهینه‌سازی سیاست نسبی گروهی (\en{GRPO}) بدون هرگونه اتکا به داده‌های تقطیرشده مدل‌های خارجی آموزش دیده‌اند \cite{mistral2025magistral}. معماری پایه توجه در این مدل‌ها از ساختار توجه چندگروهی (\en{Grouped-Query Attention - GQA}) همراه با کدگذاری موقعیت روتاری (\en{RoPE}) بهره می‌برد. با این حال، چالش بنیادین در \model{Magistral}، مدیریت حافظه کلید-ارزش (\en{KV Cache}) در طول فرآیند یادگیری تقویتی برخط با زنجیره‌های تفکر تا سقف ۳۲ هزار توکن بوده است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    engine/.style={rectangle, draw=orange!80!black, fill=orange!5, rounded corners=4pt, thick, minimum width=4.5cm, minimum height=1cm, align=center},
+    cache/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=4cm, minimum height=0.9cm, align=center},
+    dynstep/.style={rectangle, draw=green!60!black, fill=green!5, rounded corners=4pt, thick, dashed, minimum width=4.5cm, minimum height=0.9cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Nodes
+    \node[engine] (generator) at (-3.5, 0) {\textbf{مولدهای استنباط برخط} (\en{Generators}) \\ تولید توکن‌های زنجیره تفکر \\ گسترش پویا تا سقف $32\text{K}$};
+    \node[engine] (trainer) at (3.5, 0) {\textbf{موتور آموزش گرادیان} (\en{Trainers}) \\ بهینه‌سازی سیاست با گرادیان \en{GRPO} \\ ارسال وزن‌های نو از طریق \en{NCCL}};
+    
+    \node[cache] (kv_cache) at (-3.5, -2.5) {\textbf{حافظه کش کلید-ارزش در حال پرواز} \\ نگهداری بدون ابطال (\en{In-Flight Updates}) \\ تحمل ناهمگونی با تصحیح خارج‌از‌خط‌مشی};
+    
+    \node[dynstep] (batch_scale) at (3.5, -2.5) {\textbf{تنظیم پویای ظرفیت دسته} \\ کاهش $8\text{K} \to 4\text{K} \to 2\text{K}$ متناسب با طول \\ جلوگیری از سرریز حافظه \en{OOM}};
+    
+    \node[engine, draw=purple!80!black, fill=purple!5] (collate) at (0, -4.5) {\textbf{الگوریتم چینش حریصانه مینی‌دسته‌ها} \\ دسته‌بندی نزولی طول توالی‌ها \\ کاهش ۱۹٪ حشو و پرکننده (\en{Padding})};
+
+    % Connections
+    \draw[arrow] (generator.south) -- (kv_cache.north);
+    \draw[arrow] (trainer.south) -- (batch_scale.north);
+    \draw[arrow] (trainer.west) -- node[above, font=\footnotesize] {\en{NCCL Broadcast}} (generator.east);
+    \draw[arrow] (kv_cache.south) |- (collate.west);
+    \draw[arrow] (batch_scale.south) |- (collate.east);
+\end{tikzpicture}
+\caption{مدیریت جریان و ماندگاری حافظه کش کلید-ارزش در خط لوله \en{RL} برخط مدل \model{Magistral}.}
+\label{fig:magistral_attention_arch}
+\end{figure}
+
+\paragraph*{به‌روزرسانی نامتقارن وزن‌ها بدون ابطال کش کلید-ارزش (\en{In-Flight Weight Updates})}
+در فرآیند تولید خروجی‌های طویل در یادگیری تقویتی برخط، زمان اتمام دنباله‌ها بین توکن‌های کوتاه و طولانی تا ۵ برابر تفاوت دارد. رویکرد کلاسیک همگام‌سازی مستلزم آن است که مولدها منتظر اتمام طولانی‌ترین دنباله بمانند، کش \en{KV} را تخلیه کرده و با وزن‌های جدید بارگذاری شوند. این فرآیند باعث بیکاری شدید پردازنده‌ها می‌شود.
+در \model{Magistral}، وزن‌های بهینه‌شده به صورت فوری از طریق ارتباطات درون‌تراشه‌ای \en{NCCL} در کمتر از ۵ ثانیه به مولدها ارسال می‌شوند:
+\begin{itemize}
+    \item دنباله‌های در حال تولید، بدون توقف و \textbf{بدون ابطال یا محاسبه مجدد کش کلید-ارزش} به تولید ادامه می‌دهند.
+    \item در نتیجه، در یک توالی واحد، بازنمایی توکن‌های اولیه با وزن‌های سیاست قبلی $\pi_{\theta_{\text{old}}}$ و توکن‌های پایانی با وزن‌های سیاست جدید $\pi_{\theta_{\text{new}}}$ در حافظه کش قرار می‌گیرند.
+    \item تحلیل‌های تجربی نشان داد که نسبت اهمیت خارج‌از‌خط‌مشی (\en{Off-Policy Importance Sampling Ratio}) تعبیه‌شده در تلفات \en{GRPO}:
+    \begin{equation}
+        r_{i,t} = \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}
+    \end{equation}
+    همراه با کلیپینگ نامتقارن، اعوجاج ناشی از ناهمگونی وضعیت‌های پنهان حافظه کش را جبران کرده و بدون افت کیفیت، نرخ توان‌عملیاتی آموزش را تا ۴ برابر بهبود می‌دهد.
+\end{itemize}
+
+\paragraph*{کنترل بار حافظه \en{KV} در طول استدلال‌های ۳۲ هزار توکنی}
+با افزایش تدریجی طول زنجیره تفکر بدون جریمه ($l_{\text{max}} - l_{\text{cache}}$) از ۱۶K به ۲۴K و در نهایت ۳۲K توکن، ردپای فیزیکی حافظه کش کلید-ارزش تهدیدی مستقیم برای سرریز حافظه (\en{Out of Memory}) ایجاد نمود. برای مهار این فشار حافظه:
+\begin{itemize}
+    \item تعداد درخواست‌های هم‌زمان در حال اجرا ($n_{\text{async}}$)، اندازه دسته جامع ($n_{\text{batch}}$) و اندازه مینی‌دسته ($n_{\text{minibatch}}$) به صورت گام‌به‌گام و همگام با رشد طول خروجی تنزل یافت ($8\text{K} \to 4\text{K} \to 2\text{K}$).
+    \item \textbf{الگوریتم چینش حریصانه مینی‌دسته‌ها:} برای جلوگیری از اتلاف حافظه در دسته‌بندی توکن‌های با طول ناهمگون در هسته محاسباتی توجه، توالی‌ها بر حسب طول به صورت نزولی مرتب شده و به صورت حریصانه در میکرودسته‌ها با تعداد توکن ثابت بسته‌بندی شدند که این راهبرد حجم توکن‌های پرکننده پدینگ (\en{Padding}) را تا ۱۹٪ کاهش داد.
+\end{itemize}

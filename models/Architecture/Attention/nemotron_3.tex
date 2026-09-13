@@ -1,1 +1,58 @@
-\item \textbf asd
+\item \model{Nemotron 3}
+
+\paragraph*{مقدمه و پارادایم معماری هیبریدی مامبا-ترنسفورمر}
+خانواده مدل‌های \model{NVIDIA Nemotron 3} (شامل نسخه‌های \en{Nano-30B-A3B} با ۳ میلیارد پارامتر فعال، \en{Super} و \en{Ultra}) با هدف جابه‌جا کردن مرز دقت به توان‌عملیاتی استنباط در سیستم‌های چندعاملی و بافت‌های تا سقف ۱ میلیون توکن توسعه یافته‌اند \cite{nvidia2025nemotron3}. ایده محوری این خانواده، بهره‌گیری از یک معماری ترکیبی (\en{Hybrid Mamba-Transformer MoE}) است که در آن اکثریت قریب به اتفاق لایه‌ها با بلوک‌های \en{Mamba-2} ساخته شده و تنها تعداد بسیار اندکی لایه توجه در فواصل حساب‌شده در شبکه توزیع شده‌اند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    mamba_box/.style={rectangle, draw=teal!80!black, fill=teal!5, rounded corners=4pt, thick, minimum width=4.5cm, minimum height=1cm, align=center},
+    attn_box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=4.5cm, minimum height=1cm, align=center},
+    moe_box/.style={rectangle, draw=orange!80!black, fill=orange!10, rounded corners=4pt, thick, minimum width=3.8cm, minimum height=0.85cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Hybrid layout
+    \node[mamba_box] (m1) at (0, 0) {\textbf{لایه بازگشتی \en{Mamba-2}} \\ حافظه حالت ثابت $\mathcal{O}(1)$ \\ کدگذاری ذاتی و ضمنی موقعیت};
+    \node[moe_box] (moe1) at (0, -1.6) {\textbf{لایه \en{LatentMoE}} \\ ابعاد نهان $\ell < d$};
+    \node[attn_box] (attn) at (0, -3.2) {\textbf{لایه توجه متراکم استراتژیک} (\en{Sparse Placement}) \\ ساختار \en{GQA} با ۲ هد \en{KV} \\ \textbf{حذف کامل \en{RoPE}} (\en{NoPE})};
+    \node[moe_box] (moe2) at (0, -4.8) {\textbf{لایه \en{LatentMoE}} \\ اجرای محاسبات در دقت \en{NVFP4}};
+    \node[mamba_box] (m2) at (0, -6.4) {\textbf{تکرار لایه‌های \en{Mamba-2} $\times k$}};
+
+    % Connections
+    \draw[arrow] (m1) -- (moe1);
+    \draw[arrow] (moe1) -- (attn);
+    \draw[arrow] (attn) -- (moe2);
+    \draw[arrow] (moe2) -- (m2);
+\end{tikzpicture}
+\caption{ترکیب لایه‌های متناوب \en{Mamba-2} و لایه‌های استراتژیک خود‌توجهی فاقد \en{RoPE} در \model{Nemotron 3}.}
+\label{fig:nemotron_3_attention_arch}
+\end{figure}
+
+\paragraph*{مهندسی توجه با حداقل‌سازی مصرف حافظه کش (\en{KV Cache Minimization})}
+در ترنسفورمر استاندارد، تمام لایه‌ها مستلزم اشغال حافظه برای کش \en{KV} هستند. در \model{Nemotron 3}:
+\begin{itemize}
+    \item لایه‌های \en{Mamba-2} از فضای حالت خطی با به‌روزرسانی بازگشتی با ابعاد ثابت بهره می‌برند:
+    \begin{equation}
+        \mathbf{h}_t = \mathbf{A}_t \mathbf{h}_{t-1} + \mathbf{B}_t \mathbf{x}_t, \quad \mathbf{y}_t = \mathbf{C}_t \mathbf{h}_t + \mathbf{D} \mathbf{x}_t
+    \end{equation}
+    در نتیجه مصرف حافظه این لایه‌ها در زمان استنباط مستقل از طول توالی و دارای مرتبه $\mathcal{O}(1)$ است.
+    \item تنها تعداد بسیار معدودی لایه خود‌توجهی چگال در سراسر مدل حفظ شده است (مطابق شکل ۱ گزارش فنی).
+    \item در این لایه‌های معدود توجه، ساختار \en{GQA} به افراطی‌ترین شکل بهینه شده و تنها از ۲ هد کلید-ارزش استفاده می‌شود ($n_{\text{kv}} = 2$).
+    \item این ساختار موجب می‌شود در استنباط وظایف استدلالی متداول (۸K ورودی و ۱۶K خروجی)، مدل \en{Nano 30B-A3B} به \textbf{۳.۳ برابر توان‌عملیاتی بالاتر} نسبت به مدل‌های ترنسفورمر هم‌اندازه (مانند \en{Qwen3-30B-A3B}) دست یابد.
+\end{itemize}
+
+\paragraph*{پارادایم توجه بدون کدگذاری موقعیت (\en{NoPE Paradigm})}
+یکی از نقاط عطف معماری \model{Nemotron 3}، \textbf{حذف کامل امبدینگ موقعیتی روتاری (\en{RoPE})} از لایه‌های توجه است:
+\begin{itemize}
+    \item امبدینگ‌های موقعیتی صریح نظیر \en{RoPE} در زمان برون‌یابی به بافت‌های بالاتر از افق پیش‌آموزش دچار فروپاشی توزیع فرکانسی می‌شوند.
+    \item از آنجا که لایه‌های \en{Mamba-2} به دلیل ساختار ترتیبی و علّی دیفرانسیلی خود ذاتاً اطلاعات موقعیت مطلق و ترتیبی توکن‌ها را استخراج و در بردار پنهان کدگذاری می‌کنند، لایه‌های توجه نیازی به \en{RoPE} ندارند.
+    \item خروجی لایه‌های توجه با همان بردارهای محتوایی مستقیم محاسبه می‌شود. در ارزیابی‌های بنچمارک \en{RULER}، مدل پایه \en{Nemotron 3 Nano} بدون نیاز به هرگونه تنظیمات درون‌یابی یا اصلاح فرکانسی، عملکرد خود را تا سقف بافت ۱ میلیون توکن با پایداری استثنایی حفظ می‌کند.
+\end{itemize}
+
+\paragraph*{پایداری هدهای توجه در آموزش ۴ بیتی \en{NVFP4}}
+در فرآیند پیش‌آموزش بر روی ۲۵ تریلیون توکن با فرمت انقلابی عددی \en{NVFP4}:
+\begin{itemize}
+    \item برای حفظ یکپارچگی سیگنال در لایه‌های اندک توجه، کلیه هدهای تصویرسازی $\mathbf{Q}, \mathbf{K}, \mathbf{V}$ و پروجکشن خروجی لایه توجه به صورت اکید در دقت ممیز شناور \en{BF16} حفظ شده‌اند.
+    \item لایه‌های پروجکشن خروجی مامبا نیز به دلیل مشاهده افت تا ۴۰٪ در بازنمایی‌های نزدیک به صفر در دقت ۴ بیتی، در دقت ترکیبی \en{MXFP8} آموزش دیدند تا تراز ورودی لایه‌های توجه تضمین شود.
+\end{itemize}

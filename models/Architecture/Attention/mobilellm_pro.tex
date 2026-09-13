@@ -1,1 +1,69 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{مقدمه و معماری توجه متناسب با سخت‌افزارهای کم‌مصرف}
+مدل \model{MobileLLM-Pro} یک مدل پایه ۱ میلیارد پارامتری (دارای ۱.۰۸ میلیارد پارامتر با ۳۰ لایه و بعد پنهان ۱۲۸۰) است که با هدف استقرار بر روی پردازنده‌های مرکزی موبایل (\en{CPUs}) و شتاب‌دهنده‌های عصبی (\en{Apple ANE} و \en{Qualcomm HTP}) طراحی شده و پنجره کانتکست ۱۲۸ هزار توکنی را پوشش می‌دهد \cite{huber2025mobilellmpro}. در مدل‌های آن‌دیوایس، بزرگ‌ترین معضل در پشتیبانی از بافت طولانی، افزایش خطی حافظه رم موقت ناشی از ماتریس توجه است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    block/.style={rectangle, draw=teal!80!black, fill=teal!5, rounded corners=4pt, thick, minimum width=4cm, minimum height=0.9cm, align=center},
+    layer_box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=3.5cm, minimum height=0.85cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Architecture
+    \node[block] (input) at (0, 0) {\textbf{دنباله ورودی متنی} \\ واژگان کامل: $202{,}048$ \\ اشتراک وزن امبدینگ و هد خروجی};
+    
+    \node[layer_box] (local) at (-3.5, -1.8) {\textbf{لایه‌های محلی (۳ از هر ۴)} \\ پنجره لغزان ۵۱۲ توکنی \\ مصرف حافظه ایستا در طول توالی};
+    \node[layer_box] (global) at (3.5, -1.8) {\textbf{لایه‌های سراسری (۱ از هر ۴)} \\ لایه اول، آخر و مضارب ۴ \\ تبادل اطلاعات در سراسر بافت};
+    
+    \node[block, draw=purple!80!black, fill=purple!5] (distill) at (0, -3.6) {\textbf{تقطیر مکانی ضمنی} (\en{Implicit Positional Distillation}) \\ یادگیری روابط زاویه‌ای $360^\circ$ فضای \en{RoPE} \\ بدون نیاز به آموزش مستقیم روی متون طولانی};
+    
+    \node[block, draw=orange!80!black, fill=orange!10] (quant) at (0, -5.3) {\textbf{کوانتیزاسیون پویای ۸ بیتی \en{KV Cache}} \\ مقیاس‌گذاری نامتقارن به ازای هر توکن \\ کاهش حجم ردپای رم به کمتر از ۴۰ مگابایت};
+
+    % Connections
+    \draw[arrow] (input) -| (local.north);
+    \draw[arrow] (input) -| (global.north);
+    \draw[arrow] (local.south) |- (distill.west);
+    \draw[arrow] (global.south) |- (distill.east);
+    \draw[arrow] (distill) -- (quant);
+\end{tikzpicture}
+\caption{طراحی لایه توجه هیبریدی محلی-سراسری و فرآیند تقطیر مکانی در \model{MobileLLM-Pro}.}
+\label{fig:mobilellm_pro_attention_arch}
+\end{figure}
+
+\paragraph*{معماری توجه محلی-سراسری متناوب (\en{Local-Global Attention})}
+برای به حداقل رساندن ترافیک حافظه \en{KV Cache}، ساختار لایه‌ها به صورت نسبت ۳ به ۱ پیاده‌سازی شده است:
+\begin{itemize}
+    \item از هر ۴ لایه متوالی، ۳ لایه از مکانیسم پنجره لغزان محلی (\en{Sliding Window Attention}) با طول پنجره محدود به ۵۱۲ توکن استفاده می‌کنند:
+    \begin{equation}
+        \mathbf{A}_{\text{local}}[i, j] = \begin{cases} 
+            \frac{\exp\left( (\mathbf{q}_i \cdot \mathbf{k}_j^T)/\sqrt{d_k} \right)}{\sum_{m = \max(1, i-511)}^i \exp\left( (\mathbf{q}_i \cdot \mathbf{k}_m^T)/\sqrt{d_k} \right)}, & \text{if } 0 \le i - j < 512 \\
+            0, & \text{otherwise}
+        \end{cases}
+    \end{equation}
+    \item یک لایه از هر ۴ لایه، لایه توجه سراسری (\en{Global Attention}) است که به کل بافت تا سقف ۱۲۸ هزار توکن دسترسی دارد. برای تضمین اتصال بنیادین، لایه اول و لایه سی‌ام (آخرین لایه) مدل الزاماً به صورت سراسری پیکربندی شده‌اند.
+    \item مشخصات توجه چندگروهی (\en{GQA}): ۲۰ هد پرسمان با بعد ۶۴ و ۴ جفت کلید-ارزش تعبیه شده است.
+\end{itemize}
+
+\paragraph*{تقطیر موقعیتی ضمنی (\en{Implicit Positional Distillation})}
+معضل بنیادین مدل‌های ۱ میلیارد پارامتری در آموزش کانتکست‌های طولانی، افت شدید در توانایی‌های عمومی و دستورپذیری به دلیل تغییر توزیع داده‌ها در فاز بسط بافت است. \model{MobileLLM-Pro} برای نخستین بار مفهوم تقطیر موقعیتی ضمنی را پیشنهاد کرد:
+\begin{itemize}
+    \item \textbf{هندسه فضای زاویه‌ای \en{RoPE}:} در تبدیل روتاری، بعد فرکانسی $i$ با زاویه $\theta_i \cdot p$ حول مبدا دوران می‌یابد:
+    \begin{equation}
+        \begin{bmatrix} x'_{2i} \\ x'_{2i+1} \end{bmatrix} = \begin{bmatrix} \cos(p\theta_i) & -\sin(p\theta_i) \\ \sin(p\theta_i) & \cos(p\theta_i) \end{bmatrix} \begin{bmatrix} x_{2i} \\ x_{2i+1} \end{bmatrix}
+    \end{equation}
+    در آموزش روی توالی‌های کوتاه ($L_{\text{short}} = 2\text{K}$)، مدل دانش‌آموز صرفاً بازه زاویه‌ای کوچکی $[0, \theta_i \cdot L_{\text{short}}]$ را تجربه می‌کند. الحاق اسناد کوتاه به یکدیگر نیز راهگشا نیست، زیرا وابستگی‌های معنایی واقعی در فواصل دوردست شکل نمی‌گیرند.
+    \item \textbf{انتقال ساختار زاویه‌ای از طریق لوجیت معلم:} مدل معلم (\en{Llama 4-Scout}) که پیش‌تر در بافت ۱۲۸K آموزش دیده است، توزیع کامل روابط مکانی را در لوجیت‌های خروجی خود بازنمایی می‌کند. دانش‌آموز بدون پردازش مستقیم اسناد طولانی و صرفاً با کمینه‌سازی واگرایی کولبک-لایبلر (\en{Forward KL Divergence}):
+    \begin{equation}
+        \mathcal{L}_{\text{KD}} = \mathcal{D}_{\text{KL}}\left( \pi_{\text{teacher}}(\cdot \mid \mathbf{x}) \parallel \pi_{\text{student}}(\cdot \mid \mathbf{x}) \right)
+    \end{equation}
+    روابط موقعیتی زوایای فراتر از پنجره محلی را مستقیماً فرا می‌گیرد. این روش بدون بروز هرگونه شیفت توزیع، دقت بازیابی در آزمون سوزن در انبار کاه (\en{NIH}) را از ۶.۷٪ به ۹۹.۷۸٪ رساند.
+\end{itemize}
+
+\paragraph*{کوانتیزاسیون پویای ۸ بیتی حافظه \en{KV Cache}}
+به منظور کاهش شدید ردپای حافظه زمان اجرا، ورودی‌های حافظه کش کلید-ارزش با الگوریتم نامتقارن پویا به ازای هر توکن به قالب \en{INT8} کوانتیزه می‌شوند:
+\begin{equation}
+    \mathbf{x}_q = s_x \cdot \text{clip}\left( \left\lfloor \frac{\mathbf{x} - z}{s_x} \right\rceil, \, 0, \, 255 \right) + z
+\end{equation}
+که در آن ضریب مقیاس $s_x = (\max(\mathbf{x}) - \min(\mathbf{x})) / 255$ و نقطه صفر $z = \min(\mathbf{x})$ است. این تکنیک حجم کش را در ورودی ۸ هزار توکنی به کمتر از ۴۰ مگابایت می‌رساند.

@@ -1758,6 +1758,131 @@ Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, et~al.
 \newblock {MobileLLM-Pro Technical Report}.
 \newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
 
+\bibitem{hochreiter1997lstm}
+Sepp Hochreiter and J{\"u}rgen Schmidhuber.
+\newblock Long short-term memory.
+\newblock {\em Neural Computation}, 9(8):1735--1780, 1997.
+
+\bibitem{hays2026attention}
+Hasi Hays.
+\newblock Attention mechanisms in neural networks: A comprehensive mathematical
+  treatment - from theory to implementation.
+\newblock {\em arXiv preprint arXiv:2601.03329}, 2026.
+
+\bibitem{hosseinzadeh2025attention}
+Rasoul Hosseinzadeh and Mehdi Sadeghzadeh.
+\newblock Attention mechanisms in transformers: A general survey.
+\newblock {\em Journal of Artificial Intelligence and Data Mining (JAIDM)},
+  13(3):359--368, 2025.
+
+\bibitem{bahdanau2014neural}
+Dzmitry Bahdanau, Kyunghyun Cho, and Yoshua Bengio.
+\newblock Neural machine translation by jointly learning to align and
+  translate.
+\newblock {\em arXiv preprint arXiv:1409.0473}, 2014.
+
+\bibitem{luong2015effective}
+Minh-Thang Luong, Hieu Pham, and Christopher~D. Manning.
+\newblock Effective approaches to attention-based neural machine translation.
+\newblock In {\em Proceedings of the 2015 Conference on Empirical Methods in
+  Natural Language Processing (EMNLP)}, pages 1412--1421, 2015.
+
+\bibitem{serret2026understanding}
+Michel~Fabrice Serret.
+\newblock Understanding transformers and attention mechanisms: An introduction
+  for applied mathematicians.
+\newblock {\em arXiv preprint arXiv:2604.00965}, 2026.
+
+\bibitem{kolaitis2026expressive}
+Phokion~G. Kolaitis and Rik Sengupta.
+\newblock On the expressive power of transformers.
+\newblock {\em arXiv preprint arXiv:2608.12671}, 2026.
+
+\bibitem{merrill2025exact}
+William Merrill and Ashish Sabharwal.
+\newblock Exact expressive power of transformers with padding.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~39, 2025.
+
+\bibitem{li2026characterizing}
+Jiaoda Li and Ryan Cotterell.
+\newblock Characterizing the expressivity of local attention in transformers.
+\newblock {\em arXiv preprint arXiv:2605.00768}, 2026.
+
+\bibitem{yu2026effect}
+Penghao Yu, Haotian Jiang, Zeyu Bao, Ruoxi Yu, and Qianxiao Li.
+\newblock The effect of attention head count on transformer approximation.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{ranmilo2026attention}
+Yuval Ran-Milo.
+\newblock Attention sinks are provably necessary in softmax transformers:
+  Evidence from trigger-conditional tasks.
+\newblock {\em arXiv preprint arXiv:2603.11487}, 2026.
+
+\bibitem{sun2026spike}
+Shangwen Sun, Alfredo Canziani, Yann LeCun, and Jiachen Zhu.
+\newblock The spike, the sparse and the sink: Anatomy of massive activations
+  and attention sinks.
+\newblock {\em arXiv preprint arXiv:2603.05498}, 2026.
+
+\bibitem{fu2026attention}
+Zizhuo Fu, Wenxuan Zeng, Runsheng Wang, and Meng Li.
+\newblock Attention sink forges native moe in attention layers: Sink-aware
+  training to address head collapse.
+\newblock In {\em Proceedings of the 43rd International Conference on Machine
+  Learning (ICML)}, 2026.
+
+\bibitem{qiu2025gated}
+Zihan Qiu et~al.
+\newblock {Gated Attention for Large Language Models: Non-linearity, Sparsity,
+  and Attention-Sink-Free}.
+\newblock {\em arXiv preprint arXiv:2505.06708}, 2025.
+
+\bibitem{anson2025scale}
+Ben Anson, Xi~Wang, and Laurence Aitchison.
+\newblock Scale-invariant attention.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~39, 2025.
+
+\bibitem{saratchandran2026spectral}
+Hemanth Saratchandran and Simon Lucey.
+\newblock Spectral conditioning of attention improves transformer performance.
+\newblock {\em arXiv preprint arXiv:2603.07162}, 2026.
+
+\bibitem{zhang2026locate}
+Hengyuan Zhang, Zhihao Zhang, Mingyang Wang, Zunhai Su, et~al.
+\newblock Locate, steer, and improve: A practical survey of actionable
+  mechanistic interpretability in large language models.
+\newblock {\em arXiv preprint arXiv:2601.14004}, 2026.
+
+\bibitem{kadem2026interpreting}
+Mason Kadem and Rong Zheng.
+\newblock Interpreting transformers through attention head intervention.
+\newblock {\em arXiv preprint arXiv:2601.04398}, 2026.
+
+\bibitem{nam2025causal}
+Andrew~J. Nam, Henry~C. Conklin, Yukang Yang, Thomas~L. Griffiths, Jonathan~D.
+  Cohen, and Sarah-Jane Leslie.
+\newblock Causal head gating: A framework for interpreting roles of attention
+  heads in transformers.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~39, 2025.
+
+\bibitem{lee2026finetuning}
+Chungpa Lee, Jy~yong Sohn, and Kangwook Lee.
+\newblock Fine-tuning without forgetting in-context learning: A theoretical
+  analysis of linear attention models.
+\newblock In {\em Proceedings of the 43rd International Conference on Machine
+  Learning (ICML)}, 2026.
+
+\bibitem{zeng2026glm5}
+Aohan Zeng, Xin Lv, Zhenyu Hou, Zhengxiao Du, Qinkai Zheng, Bin Chen, Da~Yin,
+  et~al.
+\newblock {GLM-5: from Vibe Coding to Agentic Engineering}.
+\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
+
 \bibitem{xie2026mhc}
 Z.~Xie, Y.~Wei, H.~Cao, C.~Zhao, C.~Deng, J.~Li, D.~Dai, H.~Gao, et~al.
 \newblock mhc: Manifold-constrained hyper-connections.
@@ -1797,12 +1922,6 @@ A.~Liu, B.~Feng, B.~Wang, et~al.
 \newblock {DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts
   Language Model}.
 \newblock {\em arXiv preprint arXiv:2405.04434}, 2024.
-
-\bibitem{qiu2025gated}
-Zihan Qiu et~al.
-\newblock {Gated Attention for Large Language Models: Non-linearity, Sparsity,
-  and Attention-Sink-Free}.
-\newblock {\em arXiv preprint arXiv:2505.06708}, 2025.
 
 \bibitem{kimi2026attnres}
 {Kimi Team}.
@@ -2618,5 +2737,27 @@ Zihang Dai, Zhilin Yang, Yiming Yang, Jaime Carbonell, Quoc~V. Le, and Ruslan
 \newblock Transformer-xl: Attentive language models beyond a fixed-length
   context.
 \newblock In {\em Proceedings of ACL}, pages 2978--2988, 2019.
+
+\bibitem{chen2025nexus}
+Hanting Chen, Chong Zhu, Kai Han, Yuchuan Tian, et~al.
+\newblock Nexus: Higher-order attention mechanisms in transformers.
+\newblock {\em arXiv preprint arXiv:2512.03377}, 2025.
+
+\bibitem{sun2026efficient}
+Yutao Sun, Zhenyu Li, Yike Zhang, Tengyu Pan, et~al.
+\newblock Efficient attention mechanisms for large language models: A survey.
+\newblock {\em arXiv preprint arXiv:2507.19595}, 2026.
+
+\bibitem{ustaomeroglu2025theoretical}
+Muhammed Ustaomeroglu and Guannan Qu.
+\newblock A theoretical study of (hyper) self-attention through the lens of
+  interactions: Representation, training, generalization.
+\newblock In {\em Proceedings of the 42nd International Conference on Machine
+  Learning (ICML)}, 2025.
+
+\bibitem{xiao2023streamingllm}
+Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and Mike Lewis.
+\newblock Efficient streaming language models with attention sinks.
+\newblock {\em arXiv preprint arXiv:2309.17453}, 2023.
 
 \end{thebibliography}

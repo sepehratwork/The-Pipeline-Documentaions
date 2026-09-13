@@ -1,1 +1,114 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مقدمه و تحلیل معضلات پیچیدگی توجه در بافت‌های میلیونی}
+مدل‌های پیشرفته خانواده \model{DeepSeek-V4} (شامل نسخه پرچمدار \en{Pro} با ۱.۶ تریلیون پارامتر کل و ۴۹ میلیارد پارامتر فعال، و نسخه سبک \en{Flash} با ۲۸۴ میلیارد پارامتر کل و ۱۳ میلیارد پارامتر فعال) با هدف دستیابی به توانایی پردازش توالی‌های فوق‌طولانی تا سقف بافت یک میلیون توکن (\en{1M-token context window}) طراحی شده‌اند \cite{deepseek2026v4}. در مکانیسم خود‌توجهی سنتی (\en{Vanilla Multi-Head Attention})، پیچیدگی محاسباتی و حجم اشغال حافظه کش کلید-ارزش (\en{KV Cache}) مانع اصلی توسعه به این مقیاس است. برای طول توالی $N$ و بعد مدل $d$، هزینه محاسباتی ضرب ماتریسی $\mathbf{Q}\mathbf{K}^T$ دارای مرتبه زمانی $\mathcal{O}(N^2 d)$ است. افزون بر این، در فاز استنباط خودرگرسیو (\en{Autoregressive Decoding})، حجم حافظه مورد نیاز برای نگهداری بردارهای کلید و ارزش تمام توکن‌های گذشته به صورت خطی با رابطه زیر رشد می‌کند:
+\begin{equation}
+    \text{Mem}_{\text{KV}} = 2 \times B \times L \times n_{\text{kv}} \times d_k \times N \times \text{BytesPerElement}
+\end{equation}
+که در آن $B$ اندازه دسته، $L$ تعداد لایه‌ها، $n_{\text{kv}}$ تعداد هدهای کلید/ارزش و $d_k$ بعد هر هد است. در مقیاس یک میلیون توکن، این مقدار حتی با بهره‌گیری از \en{GQA} یا \en{MLA} سنتی، به چندین ترابایت حافظه \en{HBM} نیاز دارد و نرخ تراکنش پهنای باند حافظه (\en{Memory Bandwidth Bottleneck}) را به گلوگاه فلج‌کننده تبدیل می‌کند.
+
+برای انهدام این سد محاسباتی، \model{DeepSeek-V4} یک معماری توجه هیبریدی متناوب و درهم‌تنیده را معرفی می‌کند که از دو مؤلفه بنیادین تشکیل شده است:
+\begin{enumerate}
+    \item \textbf{توجه تنک فشرده (\en{Compressed Sparse Attention - CSA}):} فشرده‌سازی دنباله کلید-ارزش در بعد طول با ضریب $m=4$ و سپس اعمال توجه تنک محتوا-محور با الگوریتم انتخاب $k$ ورودی برتر.
+    \item \textbf{توجه شدیداً فشرده (\en{Heavily Compressed Attention - HCA}):} فشرده‌سازی تهاجمی‌تر بدون تنک‌سازی با ضریب $m'=128$ به منظور پوشش کامل و پیوسته افق زمانی دوردست.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=3.4cm, minimum height=0.9cm, align=center},
+    csa_box/.style={rectangle, draw=teal!70!black, fill=teal!5, rounded corners=4pt, thick, minimum width=3.2cm, minimum height=0.9cm, align=center},
+    hca_box/.style={rectangle, draw=purple!70!black, fill=purple!5, rounded corners=4pt, thick, minimum width=3.2cm, minimum height=0.9cm, align=center},
+    kernel_box/.style={rectangle, draw=orange!80!black, fill=orange!10, rounded corners=4pt, thick, dashed, minimum width=3.5cm, minimum height=1cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Nodes
+    \node[box] (input) at (0, 0) {\textbf{ورودی حالت‌های پنهان} \\ $\mathbf{H} \in \mathbb{R}^{n \times d}$};
+    
+    \node[csa_box] (csa) at (-4, -2) {\textbf{شاخه \en{CSA}} \\ فشرده‌سازی $m=4$ \\ نمایه تنک \en{Lightning Indexer}};
+    \node[hca_box] (hca) at (4, -2) {\textbf{شاخه \en{HCA}} \\ فشرده‌سازی تهاجمی $m'=128$ \\ توجه پیوسته سراسری (\en{Dense})};
+    \node[box, draw=cyan!80!black, fill=cyan!5] (swa) at (0, -2) {\textbf{شاخه موازی محلی \en{SWA}} \\ پنجره لغزان $n_{\text{win}}=128$ \\ حافظه موقت حالت};
+    
+    \node[kernel_box] (fuse) at (0, -4) {\textbf{هسته توجه چندپرسمانی اشتراکی} \\ \en{Shared Key-Value MQA} \\ نرمال‌سازی \en{RMSNorm} و چاهک توجه (\en{Sink})};
+    
+    \node[box, draw=green!60!black, fill=green!5] (proj) at (0, -5.8) {\textbf{تصویرسازی گروهی خروجی} \\ \en{Grouped Output Projection} ($g$ گروه)};
+    \node[box] (output) at (0, -7.3) {\textbf{خروجی نهایی بلوک توجه} \\ $\hat{\mathbf{o}}_t \in \mathbb{R}^{d}$};
+
+    % Connections
+    \draw[arrow] (input) -| (csa.north);
+    \draw[arrow] (input) -- (swa.north);
+    \draw[arrow] (input) -| (hca.north);
+    
+    \draw[arrow] (csa.south) |- (fuse.west);
+    \draw[arrow] (swa.south) -- (fuse.north);
+    \draw[arrow] (hca.south) |- (fuse.east);
+    
+    \draw[arrow] (fuse.south) -- (proj.north);
+    \draw[arrow] (proj.south) -- (output.north);
+\end{tikzpicture}
+\caption{نمای کلی ساختار لایه توجه هیبریدی در \model{DeepSeek-V4} ترکیب‌کننده \en{CSA}، \en{HCA} و شاخه پنجره لغزان محلی.}
+\label{fig:deepseek_v4_attention_arch}
+\end{figure}
+
+\paragraph*{سازوکار توجه تنک فشرده (\en{Compressed Sparse Attention - CSA})}
+ایده محوری در \en{CSA} تبدیل توکن‌های پیاپی به یک فراتصویر متراکم در گام نخست و انتخاب پویای این فراتصویرها در گام دوم است:
+\begin{itemize}
+    \item \textbf{فشرده‌سازی دنباله کلید-ارزش (\en{KV Compression}):} فرض کنید $\mathbf{H} \in \mathbb{R}^{n \times d}$ ماتریس توالی حالت‌های ورودی باشد. ابتدا دو جفت نگاشت خطی مستقل برای تولید ورودی‌های کلید-ارزش و وزن‌های فشرده‌سازی متناظر اعمال می‌شود:
+    \begin{align}
+        \mathbf{C}^a &= \mathbf{H}\mathbf{W}^{aKV}, \quad \mathbf{C}^b = \mathbf{H}\mathbf{W}^{bKV} \quad \in \mathbb{R}^{n \times c} \\
+        \mathbf{Z}^a &= \mathbf{H}\mathbf{W}^{aZ}, \quad \mathbf{Z}^b = \mathbf{H}\mathbf{W}^{bZ} \quad \in \mathbb{R}^{n \times c}
+    \end{align}
+    که در آن‌ها $\mathbf{W} \in \mathbb{R}^{d \times c}$ پارامترهای آموزش‌پذیر و $c$ بعد تک‌هد کلید-ارزش فشرده است. به ازای هر بلوک با ضریب فشرده‌سازی $m$، دو دنباله $\mathbf{C}^a$ و $\mathbf{C}^b$ از طریق ضرب هادامارد با وزن‌های نرمال‌شده و بایاس‌های مکانی یادگیری‌پذیر $\mathbf{B}^a, \mathbf{B}^b \in \mathbb{R}^{m \times c}$ ادغام می‌شوند:
+    \begin{equation}
+        \left[ \mathbf{S}^a_{mi : m(i+1)-1} \,;\, \mathbf{S}^b_{m(i-1) : mi-1} \right] = \text{Softmax}_{\text{row}}\left( \left[ \mathbf{Z}^a_{mi : m(i+1)-1} + \mathbf{B}^a \,;\, \mathbf{Z}^b_{m(i-1) : mi-1} + \mathbf{B}^b \right] \right)
+    \end{equation}
+    سپس ورودی فشرده نهایی $\mathbf{C}^{\text{Comp}}_i \in \mathbb{R}^{c}$ از رابطه بازگشتی زیر به دست می‌آید:
+    \begin{equation}
+        \mathbf{C}^{\text{Comp}}_i = \sum_{j=mi}^{m(i+1)-1} \mathbf{S}_j^a \odot \mathbf{C}_j^a + \sum_{j=m(i-1)}^{mi-1} \mathbf{S}_j^b \odot \mathbf{C}_j^b
+    \end{equation}
+    این فرمولاسیون طول موثر کلید-ارزش را به میزان $1/m$ تقلیل می‌دهد ($n \to n/m$)، در حالی که همپوشانی بازه‌های زمانی حاصل از ادغام دنباله‌های $a$ و $b$ مانع از دست رفتن اطلاعات در مرز بلوک‌ها می‌گردد.
+    
+    \item \textbf{نمایه‌ساز رعدآسا برای گزینش تنک (\en{Lightning Indexer}):} پس از فشرده‌سازی دنباله، برای هر توکن پرسمان $t$، زیرمجموعه‌ای شامل $k$ بلوک برتر انتخاب می‌شود. ابتدا بردار فشرده نهان پرسمان $\mathbf{c}_t^Q \in \mathbb{R}^{d_c}$ ساخته شده و به پرسمان‌های نمایه‌ساز نگاشت می‌شود:
+    \begin{equation}
+        \mathbf{c}_t^Q = \mathbf{h}_t \mathbf{W}^{DQ}, \quad [\mathbf{q}_{t,1}^I; \dots; \mathbf{q}_{t,n_h^I}^I] = \mathbf{c}_t^Q \mathbf{W}^{IUQ}
+    \end{equation}
+    که در آن $n_h^I$ تعداد هدهای نمایه‌ساز است. وزن‌های پویا برای ترکیب خطی هدها با ضریب $\mathbf{w}_t^I = \mathbf{h}_t \mathbf{W}^w$ تولید شده و امتیاز همبستگی توکن $t$ با بلوک فشرده پیشین $s$ ($s < \lfloor t/m \rfloor$) از طریق فعال‌ساز خطی یکسوساز (\en{ReLU}) محاسبه می‌شود:
+    \begin{equation}
+        \mathcal{I}_{t,s} = \sum_{h=1}^{n_h^I} w_{t,h}^I \cdot \text{ReLU}\left( \mathbf{q}_{t,h}^I \cdot \mathbf{K}_s^{\text{IComp}} \right)
+    \end{equation}
+    سپس عملگر انتخاب برتر، زیرمجموعه بلوک‌های منتخب $\mathcal{C}_t^{\text{SprsComp}} = \{ \mathbf{C}_s^{\text{Comp}} \mid \mathcal{I}_{t,s} \in \text{Top-}k(\mathcal{I}_{t,:}) \}$ را گزینش می‌کند.
+\end{itemize}
+
+\paragraph*{سازوکار توجه شدیداً فشرده (\en{Heavily Compressed Attention - HCA})}
+لایه‌های \en{HCA} برای پشتیبانی از میدان دید جهانی بدون پیچیدگی تنک‌سازی طراحی شده‌اند. در این لایه‌ها، فشرده‌سازی بسیار خشن با ضریب $m'=128$ اعمال می‌گردد، اما محاسبات توجه میان پرسمان و تمام بلوک‌های فشرده به صورت چگال (\en{Dense Attention}) حفظ می‌شود:
+\begin{align}
+    \mathbf{S}_{m'i : m'(i+1)-1} &= \text{Softmax}_{\text{row}}\left( \mathbf{Z}_{m'i : m'(i+1)-1} + \mathbf{B} \right) \\
+    \mathbf{C}^{\text{Comp}}_i &= \sum_{j=m'i}^{m'(i+1)-1} \mathbf{S}_j \odot \mathbf{C}_j
+\end{align}
+کاهش طول توالی به $1/128$ امکان نگهداری و محاسبه توجه کامل به کل گذشته تاریخی متن را با بار محاسباتی بسیار ناچیز فراهم می‌سازد.
+
+\paragraph*{هسته توجه، تصویرسازی گروهی و تکنیک‌های پایدارسازی عددی}
+\begin{itemize}
+    \item \textbf{توجه چندپرسمانی با کلید و ارزش اشتراکی (\en{Shared Key-Value MQA}):} در هر دو ساختار \en{CSA} و \en{HCA}، هدهای پرسمان $\mathbf{q}_{t,i}$ به صورت چندگانه تولید می‌شوند، اما بردار فشرده $\mathbf{C}^{\text{Comp}}$ هم‌زمان نقش کلید و ارزش را ایفا می‌کند:
+    \begin{equation}
+        \mathbf{o}_{t,i} = \text{CoreAttn}\left(\text{query}=\mathbf{q}_{t,i}, \, \text{key}=\mathbf{C}_t, \, \text{value}=\mathbf{C}_t\right)
+    \end{equation}
+    \item \textbf{نرمال‌سازی پرسمان و کلید-ارزش (\en{QK-RMSNorm}):} پیش از ضرب تانسوری پرسمان و کلید، هدهای پرسمان و بردار فشرده کلید-ارزش توسط عملگر \en{RMSNorm} نرمال می‌شوند تا از جهش‌های انفجاری مقادیر لوجیت در توالی‌های طولانی جلوگیری شود.
+    \item \textbf{کدگذاری موقعیت نسبی با \en{Partial RoPE}:} تبدیل روتاری (\en{RoPE}) تنها بر روی ۶۴ بعد انتهایی پرسمان‌ها و بردارهای فشرده اعمال می‌شود. از آنجا که بردار ارزش فشرده دارای اطلاعات موقعیت مطلق است، خروجی ضرب توجه روی ۶۴ بعد انتهایی با دوران معکوس موقعیتی $-i$ به فرم $\text{RoPE}(\mathbf{o}_{t,i}, -i)$ تبدیل می‌شود تا اثر تجمعی موقعیت به یک تراز تفاضلی نسبی واقعی تبدیل شود.
+    \item \textbf{شاخه موازی پنجره لغزان (\en{Sliding Window Attention}):} برای پوشش ضعف مدل در تفکیک توکن‌های واقع در بلوک جاری، شاخه‌ای با پنجره لغزان $n_{\text{win}}=128$ توکن فشرده‌نشده تعبیه گردیده که با ورودی‌های گزینش‌شده الحاق می‌شود.
+    \item \textbf{چاهک توجه یادگیری‌پذیر (\en{Attention Sink}):} برای جلوگیری از الزام مجموع احتمالات سافت‌مکس به عدد یک در زمان نامرتبط بودن پرسمان با گذشته، ضریب یادگیری‌پذیر $z'_h$ در مخرج سافت‌مکس لحاظ می‌شود:
+    \begin{equation}
+        s_{h,i,j} = \frac{\exp(z_{h,i,j})}{\sum_k \exp(z_{h,i,k}) + \exp(z'_h)}
+    \end{equation}
+    \item \textbf{تصویرسازی گروهی خروجی (\en{Grouped Output Projection}):} برای جلوگیری از هزینه ضرب ماتریسی حاصل از ادغام هدهای خروجی ($cn_h \times d$)، ابتدا $n_h$ هد به $g$ گروه شکسته شده، به بعد میانی $d_g < cn_h/g$ فشرده می‌شوند و سپس به بعد پنهان $d$ نگاشت می‌گردند.
+\end{itemize}
+
+\paragraph*{هم‌طراحی سخت‌افزار و معماری حافظه ناهمگن کش}
+در \model{DeepSeek-V4} ساختار حافظه کش کلید-ارزش بازطراحی شده است:
+\begin{itemize}
+    \item \textbf{فرمت ترکیبی ذخیره‌سازی:} ابعاد ۶۴ تایی \en{RoPE} در فرمت \en{BF16} و مابقی ابعاد در فرمت کم‌حجم \en{FP8} ذخیره می‌شوند که بار اشغال حافظه را به نصف می‌رساند.
+    \item \textbf{محاسبات نمایه‌ساز در قالب \en{FP4}:} کلیه ضرب‌های ضرب داخلی در نمایه‌ساز در دقت \en{FP4} اجرا می‌شوند که زمان تحلیل کانتکست‌های میلیونی را شتاب می‌دهد.
+    \item \textbf{ساختار حافظه بلوکی با ک.م.م (\en{LCM}):} به منظور سازگاری با خطوط حافظه، اندازه بلوک کش به اندازه $\text{lcm}(m, m') = \text{lcm}(4, 128) = 128$ توکن تنظیم شده است.
+    \item \textbf{ذخیره‌سازی روی دیسک (\en{On-Disk KV Cache}):} پیشوندهای مشترک طولانی به دیسک‌های پرسرعت \en{NVMe} منتقل شده و لایه‌های پنجره لغزان با راهبرد «محاسبه مجدد در صورت فراخوانی» (\en{Zero SWA Caching}) از بار مصرف حافظه حذف می‌گردند.
+\end{itemize}

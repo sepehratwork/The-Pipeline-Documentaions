@@ -1,1 +1,59 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{مقدمه و پارادایم توجه کامل در برابر رویکردهای تقریب‌زننده}
+خانواده مدل‌های \model{MiniMax-M2} (شامل مدل‌های پایه \en{M2}، \en{M2.5} و نسخه خودتکامل‌یابنده \en{M2.7}) با ۲۲۹.۹ میلیارد پارامتر کل و تنها ۹.۸ میلیارد پارامتر فعال در ۶۲ لایه، بر مبنای اصل «فعال‌سازی حداقلی، هوشمندی حداکثری» طراحی شده‌اند \cite{minimax2026m2}. بر خلاف گرایش فراگیر جامعه مدل‌های باز به استفاده از توجه خطی یا پنجره لغزان، سری \model{M2} از معماری توجه چندسری کامل (\en{Full Multi-Head Attention}) همراه با \en{GQA} در سراسر لایه‌ها بهره می‌برد (۴۸ هد پرسمان، ۸ هد کلید-ارزش و پنجره زمینه بومی ۱۹۲ هزار توکن).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.82, every node/.style={transform shape},
+    block/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=4pt, thick, minimum width=4cm, minimum height=0.9cm, align=center},
+    tree_node/.style={rectangle, draw=teal!80!black, fill=teal!10, rounded corners=3pt, thick, minimum width=2.8cm, minimum height=0.75cm, align=center},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+    % Prefix tree concept
+    \node[block] (full_attn) at (0, 0) {\textbf{توجه کامل \en{Full Attention}} \\ ۴۸ هد پرسمان، ۸ هد کلید-ارزش (\en{GQA}) \\ بافت بومی ۱۹۲ هزار توکن با کدگذاری \en{RoPE}};
+    
+    \node[tree_node] (prefix) at (0, -1.8) {\textbf{پیشوند مشترک بلند} (\en{Common Prefix}) \\ محاسبه یک‌باره توجه علّی در گذر رفت};
+    
+    \node[tree_node, fill=orange!15, draw=orange!80!black] (branch1) at (-3.5, -3.2) {\textbf{شاخه پاسخ ۱} \\ ابزار / استدلال};
+    \node[tree_node, fill=orange!15, draw=orange!80!black] (branch2) at (0, -3.2) {\textbf{شاخه پاسخ ۲} \\ ابزار / استدلال};
+    \node[tree_node, fill=orange!15, draw=orange!80!black] (branch3) at (3.5, -3.2) {\textbf{شاخه پاسخ ۳} \\ ابزار / استدلال};
+    
+    \node[block, draw=purple!80!black, fill=purple!5] (tree_merge) at (0, -4.8) {\textbf{ادغام درخت پیشوند} (\en{Prefix Tree Merging}) \\ صفر بودن خطای تقریب ریاضی \\ شتاب محاسباتی آموزش توجه تا سقف $40\times$};
+    
+    \node[block, draw=green!70!black, fill=green!5] (l3_pool) at (0, -6.4) {\textbf{استخر سراسری کش کلید-ارزش} (\en{Global L3 KV Pool}) \\ مسیریابی آگاه از هزینه جابه‌جایی پیشوندها};
+
+    % Connections
+    \draw[arrow] (full_attn) -- (prefix);
+    \draw[arrow] (prefix) -- (branch1);
+    \draw[arrow] (prefix) -- (branch2);
+    \draw[arrow] (prefix) -- (branch3);
+    \draw[arrow] (branch1.south) |- (tree_merge.west);
+    \draw[arrow] (branch2.south) -- (tree_merge.north);
+    \draw[arrow] (branch3.south) |- (tree_merge.east);
+    \draw[arrow] (tree_merge) -- (l3_pool);
+\end{tikzpicture}
+\caption{معماری توجه کامل و شتاب‌دهی ساختار کش از طریق ادغام درخت پیشوند در \model{MiniMax-M2}.}
+\label{fig:minimax_m2_attention_arch}
+\end{figure}
+
+\paragraph*{چرایی رد توجه هیبریدی و پنجره لغزان در تحلیل‌های تجربی \model{M2}}
+در مدل پیشین این شرکت (\en{MiniMax-Text-01})، از توجه لایتنینگ (\en{Lightning Attention}) استفاده شده بود. اما در پیش‌آموزش سری \model{M2}، پس از سوزاندن صدها میلیارد توکن در مقایسه‌های تجربی با متغیرهای کنترل‌شده، مشخص گردید که معماری‌های تقریبی در بافت‌های فراتر از ۳۲K دچار زوال شدید در وظایف استدلالی چندگامی می‌شوند:
+\begin{itemize}
+    \item در آزمون بازیابی پیوند کلید-واژه (\en{RULER 128K CWE})، مدل توجه کامل امتیاز $90.0$ را ثبت کرد، در حالی که مدل هیبریدی پنجره لغزان (\en{SWA}) به امتیاز $72.0$ تنزل یافت.
+    \item در وظایف پیچیده عامل‌ها که مستلزم صدها گام فراخوانی ابزار و مرور کدهای بزرگ چندفایلی است (\en{SWE-bench Pro} و \en{BrowseComp})، مدل‌های دارای پنجره لغزان یا لایه‌های خطی به علت از دست دادن ردیابی علّی در نقاط عطف متن، دچار انحراف حالت تجمعی شدند.
+    \item تیم \model{MiniMax} نشان داد که هدایت ظرفیت مدل به سمت متخصص‌های تنک (\en{Fine-Grained MoE}) و حفظ توجه کامل متراکم در لایه‌های ترنسفورمر، مصالحه بهینه‌تری بین دقت و سرعت استنباط در دنیای واقعی ایجاد می‌کند.
+\end{itemize}
+
+\paragraph*{ادغام درخت پیشوند در آموزش توجه (\en{Prefix Tree Merging})}
+در فرآیند یادگیری تقویتی چندگامی عامل‌ها، صدها خط سیر پاسخ بر مبنای یک تاریخچه یا پرومپت مشترک گسترش می‌یابند. در رویکرد سنتی، ماتریس خود‌توجهی پیشوند برای هر خط سیر به طور مستقل تکرار و مجدداً محاسبه می‌شود. سیستم \en{Forge} در \model{M2} الگوریتم ادغام درخت پیشوند را به اجرا گذاشت:
+\begin{itemize}
+    \item پاسخ‌های متعلق به یک گروه پرومپت در یک درخت پیشوندی (\en{Trie}) ادغام می‌شوند.
+    \item در گذر پیشرو (\en{Forward Pass})، ماتریس‌های کلید و ارزش پیشوند و محاسبات توجه بر روی آن دقیقاً یک‌بار اجرا می‌شود.
+    \item محاسبات توجه در نقاط انشعاب شاخه‌بندی شده و در مرحله پس‌انتشار با تفکیک متاداده‌ها، گرادیان هر نمونه بازسازی می‌گردد.
+    \item از آنجا که توجه علّی بر روی پیشوند گذشته تابعی کاملاً قطعی و مجزا از توکن‌های آینده است، این بازآرایی محاسباتی از لحاظ ریاضی دقیقاً معادل با آموزش مجزای نمونه‌ها بوده و \textbf{خطای تقریب آن دقیقاً صفر} است، در حالی که شتاب آموزش لایه‌های توجه را تا سقف \textbf{۴۰ برابر} افزایش داده و گلوگاه حافظه را برطرف می‌سازد.
+\end{itemize}
+
+\paragraph*{استخر سراسری سطح سوم کش (\en{Global L3 KV Cache Pool})}
+در سرویس‌دهی آنلاین به عامل‌های اداری و جستجو، برای جلوگیری از مرحله محاسباتی سنگین پیش‌پر کردن کش (\en{Prefill}) در مکالمات چندمرحله‌ای، یک استخر توزیع‌شده با سیستم فایل خوشه‌ای به عنوان حافظه سطح سوم کش تعریف شده است. زمان‌بندی تقاضاها با مکان‌یابی آگاه از هش پیشوند، نشست را به همان گره محاسباتی هدایت می‌کند که بلاک‌های حافظه توجه پیشین را میزبانی می‌کند.
