@@ -1,1 +1,65 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{پارادایم حذف کامل کدگذاری موقعیت صریح (\en{NoPE})}
+مدل \model{Kimi K3} \cite{kimi2026k3} با ۲.۸ تریلیون پارامتر کل و پنجره بافت یک میلیون توکنی، رویکردی ساختارشکنانه را در قبال کدگذاری موقعیت اتخاذ کرده است. در این معماری، لایه‌های توجه چندگانه نهفته دارای گیت (\en{Gated MLA}) به طور کامل بدون هیچ‌گونه کدگذاری موقعیت صریح (\en{No Position Encoding - NoPE}) پیکربندی شده‌اند:
+\begin{equation}
+    q_t = \mathcal{W}_Q x_t, \quad k_t = \mathcal{W}_K x_t \implies \text{Sim}(q_t, k_s) = \frac{q_t^T k_s}{\sqrt{d_k}}
+\end{equation}
+در فرمول‌بندی فوق، هیچ ضرب ماتریس دورانی یا جمع با بردار موقعیت مطلق وجود ندارد. این تصمیم به این دلیل اتخاذ شده که مقیاس‌بندی RoPE در طول‌های میلیونی به علت خطای انباشت فاز و تغییرات توزیعی ناخواسته، بزرگ‌ترین مانع در اکستنشن پنجره زمینه به شمار می‌رود.
+
+\paragraph*{کدگذاری پویای موقعیت از طریق دینامیک بازگشتی \en{KDA}}
+اطلاعات ترتیبی، جهت‌داری زمانی و فواصل نسبی در \model{Kimi K3} به صورت کاملاً \textbf{ضمنی (\en{Implicit})} توسط لایه‌های متناوب توجه دلتای کیمی (\en{Kimi Delta Attention - KDA}) تأمین می‌گردد. ساختار کلی مدل از الگوی لایه‌ای هیبریدی به نسبت ۳ به ۱ (سه لایه KDA به ازای هر یک لایه Gated MLA) پیروی می‌کند. دینامیک حالت پنهان بازگشتی در هر لایه KDA بر اساس قاعده دلتای تصحیح‌شده با گیت فراموشی کانالی اداره می‌شود:
+\begin{equation}
+    S_t = \left( I - \beta_t k_t k_t^T \right) \text{Diag}(\alpha_t) S_{t-1} + \beta_t k_t v_t^T
+\end{equation}
+که در آن:
+\begin{itemize}
+    \item $S_t \in \mathbb{R}^{d_k \times d_v}$ تانسور حالت بازگشتی پیوسته است که نقش حافظه غیرفرار توالی را ایفا می‌کند.
+    \item $\beta_t \in (0, 1)$ نرخ نوشتن داده جدید بر مبنای قاعده دلتا است.
+    \item $\alpha_t \in (0, 1)^{d_k}$ بردار زوال محو شونده کانالی است که به عنوان عامل تنزیل زمانی پیوسته عمل می‌کند.
+\end{itemize}
+
+\paragraph*{تحدید لگاریتم زوال و پایداری تفکیک‌پذیری زمانی}
+برای تضمین پایداری محاسبات عددی و مهار پدیده سرریز یا زوال کامل در بافت‌های یک میلیون توکنی، نگاشت لگاریتم زوال $g_t^h$ با استفاده از تابع سیگموئید مقیاس‌شده از پایین کران‌دار شده است:
+\begin{equation}
+    g_t^h = g_{\min} \cdot \sigma\left( e^{A_h} z_t^h \right) \in (g_{\min}, 0)^{d_k}, \quad \alpha_t^h = \exp(g_t^h)
+\end{equation}
+با تثبیت $g_{\min} = -5$، برای هر کانال داریم:
+\begin{equation}
+    \alpha_{t, j}^h > e^{-5} \approx 6.7 \times 10^{-3}
+\end{equation}
+این کران پایین ریاضیاتی سبب می‌شود ضریب تراکمی تضعیف در طول کاشی‌های محاسباتی ۱۶ توکنی همواره در بازه ممیز شناور \en{BF16} باقی بماند. از آنجا که بردار حالت $S_t$ اطلاعات تاریخی ترتیب ورود کلمات را از طریق ضرب متوالی عملگرهای انتقال نگه‌داری می‌کند، لایه‌های بعدی ترانسفورمر اطلاعات موقعیتی غنی را مستقیماً از محتوای انتقالی دریافت کرده و مدل بدون نیاز به هرگونه دستکاری در فرکانس پایه RoPE یا استفاده از روش‌های الحاقی نظیر YaRN، مستقیماً تا سقف $1\text{M}$ توکن برون‌یابی می‌کند.
+
+\begin{latin}
+\begin{center}
+\begin{tikzpicture}[
+    box/.style={draw=teal!70!black, fill=teal!8, rounded corners=4pt, font=\small\sffamily, align=center, thick},
+    layer/.style={draw=blue!70!black, fill=blue!10, rounded corners=4pt, font=\small\sffamily, align=center, thick},
+    arr/.style={-{Stealth[length=2.5mm]}, thick, color=teal!70!black}
+]
+    \node[box, minimum width=8cm] (input) at (0, 3.5) {Input Sequence $X = [x_1, x_2, \dots, x_t, \dots]$};
+    
+    \node[layer, minimum width=3.6cm, minimum height=1.6cm] (kda) at (-2.3, 1.8) {
+        \textbf{KDA Recurrent Layers}\\
+        $S_t = (I - \beta_t k_t k_t^T)\text{Diag}(\alpha_t)S_{t-1} + \dots$\\
+        \textcolor{teal!80!black}{\textbf{Implicit Dynamic Position Engine}}
+    };
+    
+    \node[layer, minimum width=3.6cm, minimum height=1.6cm] (mla) at (2.3, 1.8) {
+        \textbf{Gated MLA Layers}\\
+        $\text{Attn}(Q, K, V) = \text{Softmax}\left(\frac{Q K^T}{\sqrt{d}}\right)V$\\
+        \textcolor{red!80!black}{\textbf{NoPE (Explicit PE Completely Removed)}}
+    };
+    
+    \node[box, fill=orange!10, draw=orange!70!black, minimum width=8cm] (merge) at (0, -0.2) {
+        Seamless 1M-Token Representation\\
+        (Zero OOD Phase Drift, Inherent Causal Directionality)
+    };
+
+    \draw[arr] (input.south -| kda.north) -- (kda.north);
+    \draw[arr] (input.south -| mla.north) -- (mla.north);
+    \draw[arr] (kda.south) -- (kda.south |- merge.north);
+    \draw[arr] (mla.south) -- (mla.south |- merge.north);
+\end{tikzpicture}
+\end{center}
+\end{latin}

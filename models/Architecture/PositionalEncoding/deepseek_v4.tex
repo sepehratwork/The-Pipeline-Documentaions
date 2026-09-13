@@ -1,1 +1,74 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مبانی کدگذاری موقعیت دورانی جزئی و چالش‌های بازنمایی فشرده}
+در مدل \model{DeepSeek-V4} \cite{deepseek2026v4}، به منظور مدیریت بهینه بافت‌های عظیم یک میلیون توکنی (\en{1M context})، ساختار توجه ترکیبی شامل توجه تنک فشرده (\en{Compressed Sparse Attention - CSA}) و توجه بسیار فشرده (\en{Heavily Compressed Attention - HCA}) به کار گرفته شده است. در این ساختار، بعد نهفته هر سر توجه ($c$) برابر با ۵۱۲ است ($c = 512$). اعمال ماتریس دوران متعامد به تمامی ابعاد یک سر توجه ۵۱۲ بعدی علاوه بر تحمیل سربار محاسباتی سنگین، به لحاظ تئوری اطلاعات منجر به پراکندگی بازنمایی در ابعاد بدون بار معنایی موقعیتی می‌گردد. از این رو، مدل از راهبرد \textbf{کدگذاری دورانی جزئی (\en{Partial RoPE})} \cite{su2024roformer} بهره می‌برد؛ بدین معنا که دوران تنها بر روی \textbf{۶۴ بعد انتهایی} بردارهای پرس‌وجو (\en{Query})، کلید-مقدار (\en{KV}) و خروجی توجه اعمال می‌شود:
+\begin{equation}
+\begin{split}
+    q_{t, h} &= \left[ q_{t, h}^{(1:c-64)} \,\|\, \mathcal{R}_{\Theta, t}^{64} \left( q_{t, h}^{(c-63:c)} \right) \right] \in \mathbb{R}^c \\
+    k_{s, h} &= \left[ k_{s, h}^{(1:c-64)} \,\|\, \mathcal{R}_{\Theta, s}^{64} \left( k_{s, h}^{(c-63:c)} \right) \right] \in \mathbb{R}^c
+\end{split}
+\end{equation}
+که در آن $\mathcal{R}_{\Theta, t}^{64} \in \text{SO}(64)$ یک ماتریس دوران متعامد بلوکی حقیقی متشکل از ۳۲ بلوک دورانی دوبعدی است:
+\begin{equation}
+    \mathcal{R}_{\Theta, t}^{64} = \text{diag}\left( R_1(t), R_2(t), \dots, R_{32}(t) \right), \quad R_j(t) = \begin{bmatrix} \cos(t\theta_j) & -\sin(t\theta_j) \\ \sin(t\theta_j) & \cos(t\theta_j) \end{bmatrix}
+\end{equation}
+با فرکانس‌های زاویه‌ای مشخص‌شده به صورت هندسی:
+\begin{equation}
+    \theta_j = b^{-2(j-1)/64}, \quad j \in \{1, 2, \dots, 32\}
+\end{equation}
+
+\paragraph*{مسئله نشت موقعیت مطلق و فرمول‌بندی دوران معکوس (\en{Inverse RoPE})}
+در سازوکار \en{CSA} و \en{HCA}، حافظه پنهان کلید و مقدار در طول توالی فشرده می‌شود؛ به‌گونه‌ای که هر ورودی فشرده $C_i^{\text{Comp}}$ حاصل ترکیب خطی وزن‌دار مبتنی بر سافت‌مکس بر روی بلوک‌های مجاور است و در مرحله توجه به عنوان \textbf{هم کلید و هم مقدار} (\en{Shared Key-Value MQA}) عمل می‌کند. در توجه استاندارد، حاصل ضرب داخلی $\langle q_t, k_s \rangle$ موقعیت نسبی را از طریق تعامد ماتریس‌های دوران محقق می‌سازد:
+\begin{equation}
+    (\mathcal{R}_{\Theta, t}^{64} q)^T (\mathcal{R}_{\Theta, s}^{64} k) = q^T (\mathcal{R}_{\Theta, t}^{64})^T \mathcal{R}_{\Theta, s}^{64} k = q^T \mathcal{R}_{\Theta, s-t}^{64} k
+\end{equation}
+با این حال، چون $C_s^{\text{Comp}}$ خود در جایگاه مقدار (\en{Value}) قرار گرفته و در تشکیل بردار خروجی ضرب می‌شود، خروجی هسته توجه $o_{t, i}$ به صورت ناخواسته تحت تأثیر مستقیم بردارهای دوران‌یافته قرار می‌گیرد:
+\begin{equation}
+    o_{t, i} = \sum_{s} A_{t, s} C_s^{\text{Comp}}
+\end{equation}
+این ترکیب خطی سبب نشت مؤلفه‌های فاز مطلق موقعیت $s$ به فضای پنهان لایه‌های بعدی شده و نقض‌کننده خاصیت بنیادین ناوردایی انتقالی (\en{Translation Invariance}) است. برای برطرف ساختن این نقص تئوریک، مهندسان مدل راهبرد نوین \textbf{دوران معکوس (\en{Inverse RoPE})} را در ۶۴ بعد انتهایی بردار خروجی اعمال کرده‌اند:
+\begin{equation}
+    \hat{o}_{t, i}^{(c-63:c)} = \mathcal{R}_{\Theta, -t}^{64} \left( o_{t, i}^{(c-63:c)} \right)
+\end{equation}
+با جایگذاری بردار خروجی، رابطه دیفرانسیلی انتقال فاز به شکل زیر بازنویسی می‌شود:
+\begin{equation}
+    \hat{o}_{t, i}^{(c-63:c)} = \mathcal{R}_{\Theta, -t}^{64} \left( \sum_s A_{t, s} \mathcal{R}_{\Theta, s}^{64} v_s^{(c-63:c)} \right) = \sum_s A_{t, s} \left( \mathcal{R}_{\Theta, -t}^{64} \mathcal{R}_{\Theta, s}^{64} \right) v_s^{(c-63:c)} = \sum_s A_{t, s} \mathcal{R}_{\Theta, s - t}^{64} v_s^{(c-63:c)}
+\end{equation}
+این تبدیل تضمین می‌کند که خروجی نهایی توجه برای هر توکن پرس‌وجو در موقعیت $t$، تنها حاوی اطلاعات فاصله نسبی تمایزیافته $s - t$ نسبت به توکن‌های کلید باشد.
+
+\paragraph*{بهینه‌سازی ذخیره‌سازی و دقت تانسورهای موقعیت}
+در راستای کاهش ردپای حافظه \en{KV Cache} در مقیاس ۱ میلیون توکن، ذخیره‌سازی داده‌های کلید-مقدار در دو سطح تفکیک شده است:
+\begin{itemize}
+    \item \textbf{ابعاد ۶۴ گانه کدگذاری دورانی:} با فرمت ممیز شناور ۱۶ بیتی (\en{BF16}) ذخیره می‌شوند تا کوچک‌ترین خطای گردکردن در زوایای فاز با فواصل بزرگ ($|s - t| \gg 0$) پدید نیاید.
+    \item \textbf{ابعاد ۴۴۸ گانه غیر دورانی:} با فرمت ۸ بیتی (\en{FP8}) ذخیره می‌شوند که منجر به کاهش نزدیک به ۵۰ درصدی حجم کش بدون افت خطی در پایداری موقعیتی می‌گردد.
+\end{itemize}
+
+\begin{latin}
+\begin{center}
+\begin{tikzpicture}[
+    box/.style={draw=blue!70!black, fill=blue!8, rounded corners=4pt, font=\small\sffamily, align=center, thick},
+    op/.style={draw=red!70!black, fill=red!10, rounded corners=4pt, font=\small\sffamily, align=center, thick},
+    arr/.style={-{Stealth[length=2.5mm]}, thick, color=blue!60!black}
+]
+    \node[box, minimum width=3cm, minimum height=1cm] (q) at (0, 4) {Query Vector $q_t \in \mathbb{R}^{512}$\\(Dim: $1 \dots 448$ | $449 \dots 512$)};
+    \node[box, minimum width=3cm, minimum height=1cm] (k) at (6, 4) {KV Entry $C_s^{\text{Comp}} \in \mathbb{R}^{512}$\\(Dim: $1 \dots 448$ | $449 \dots 512$)};
+    
+    \node[op, minimum width=2.5cm] (rope_q) at (0, 2.3) {Apply $\mathcal{R}_{\Theta, t}^{64}$ on\\last 64 dims};
+    \node[op, minimum width=2.5cm] (rope_k) at (6, 2.3) {Apply $\mathcal{R}_{\Theta, s}^{64}$ on\\last 64 dims};
+    
+    \node[box, fill=teal!10, draw=teal!70!black, minimum width=5.5cm, minimum height=0.9cm] (core) at (3, 0.8) {Core Attention Computation\\$\text{Score}_{t,s} = \text{Softmax}\left( \langle q_t, C_s^{\text{Comp}} \rangle / \sqrt{c} \right)$};
+    
+    \node[box, minimum width=4cm] (out) at (3, -0.6) {Output $o_{t,i} = \sum_s A_{t,s} C_s^{\text{Comp}}$\\(Absolute Position Contaminated)};
+    \node[op, fill=orange!15, draw=orange!80!black, minimum width=4.5cm] (inv_rope) at (3, -2.0) {Apply Inverse Rotation $\mathcal{R}_{\Theta, -t}^{64}$\\on last 64 dims};
+    \node[box, fill=green!10, draw=green!60!black, minimum width=4cm] (final) at (3, -3.3) {Relative Output $\hat{o}_{t,i}$\\$\sum_s A_{t,s} \mathcal{R}_{\Theta, s-t}^{64} v_s$};
+
+    \draw[arr] (q) -- (rope_q);
+    \draw[arr] (k) -- (rope_k);
+    \draw[arr] (rope_q) -- (core);
+    \draw[arr] (rope_k) -- (core);
+    \draw[arr] (core) -- (out);
+    \draw[arr] (out) -- (inv_rope);
+    \draw[arr] (inv_rope) -- (final);
+\end{tikzpicture}
+\end{center}
+\end{latin}

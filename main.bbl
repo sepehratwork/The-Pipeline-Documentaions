@@ -1418,6 +1418,187 @@ A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.
   generation.
 \newblock {\em arXiv preprint arXiv:2509.19128}, 2025.
 
+\bibitem{cirrincione2026geometry}
+Giansalvo Cirrincione.
+\newblock On the geometry of positional encodings in transformers.
+\newblock {\em Transactions on Machine Learning Research (TMLR)}, 2026.
+
+\bibitem{jiguo2026position}
+Jiguo Li.
+\newblock Position encoding in transformers: From absolute and relative methods
+  to rope and long-context scaling.
+\newblock {\em arXiv preprint arXiv:2608.10021}, 2026.
+
+\bibitem{love2025giving}
+Xiaoliang Luo and Bradley~C. Love.
+\newblock Giving llms too much rope: A limit on sutton's bitter lesson.
+\newblock Bradley C. Love Academic Blog, June 2025.
+
+\bibitem{gu2026deconstructing}
+Zihan Gu, Ruoyu Chen, Han Zhang, Hua Zhang, and Yue Hu.
+\newblock Deconstructing positional information: From attention logits to
+  training biases.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{vaswani2017attention}
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
+  Aidan~N. Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
+\newblock Attention is all you need.
+\newblock {\em Advances in Neural Information Processing Systems}, 30, 2017.
+
+\bibitem{singh2026relative}
+Subham Singh, Ashutosh Mishra, and Subha Raut.
+\newblock Relative positions generalize, absolute positions memorize: An
+  implicit-bias account of length generalization in attention.
+\newblock {\em arXiv preprint arXiv:2607.18759}, 2026.
+
+\bibitem{huang2025formal}
+Xinting Huang, Andy Yang, Satwik Bhattamishra, Yash Sarrof, Andreas Krebs,
+  Hattie Zhou, Preetum Nakkiran, and Michael Hahn.
+\newblock A formal framework for understanding length generalization in
+  transformers.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{irani2026positional}
+Habib Irani and Vangelis Metsis.
+\newblock Positional encoding in transformer-based time series models: A
+  survey.
+\newblock {\em arXiv preprint arXiv:2502.12370}, 2026.
+
+\bibitem{shaw2018self}
+Peter Shaw, Jakob Uszkoreit, and Ashish Vaswani.
+\newblock Self-attention with relative position representations.
+\newblock In {\em Proceedings of NAACL-HLT}, pages 464--468, 2018.
+
+\bibitem{raffel2020exploring}
+Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael
+  Matena, Yanqi Zhou, Wei Li, and Peter~J. Liu.
+\newblock Exploring the limits of transfer learning with a unified text-to-text
+  transformer.
+\newblock {\em Journal of Machine Learning Research (JMLR)}, 21(140):1--67,
+  2020.
+
+\bibitem{press2022train}
+Ofir Press, Noah~A. Smith, and Mike Lewis.
+\newblock Train short, test long: Attention with linear biases enables input
+  length extrapolation.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2022.
+
+\bibitem{gopalakrishnan2026decoupling}
+Anand Gopalakrishnan, Robert Csord{\'a}s, J{\"u}rgen Schmidhuber, and
+  Michael~C. Mozer.
+\newblock Decoupling the "what" and "where" with polar coordinate positional
+  embedding.
+\newblock {\em Proceedings of the 43rd International Conference on Machine
+  Learning (ICML)}, 306, 2026.
+
+\bibitem{wertheimer2026frayed}
+Davis Wertheimer, Aozhong Zhang, Derrick Liu, Penghang Yin, and Naigang Wang.
+\newblock Frayed rope and long inputs: A geometric perspective.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{du2026rope}
+Yufeng Du, Phillip Harris, Minyang Tian, Eliu~A Huerta, Srikanth Ronanki,
+  Subendhu Rongali, Aram Galstyan, and Hao Peng.
+\newblock Rope distinguishes neither positions nor tokens in long contexts,
+  provably.
+\newblock {\em arXiv preprint arXiv:2605.15514}, 2026.
+
+\bibitem{liu2025survey}
+Yijun Liu, Jinzheng Yu, Yang Xu, Zhongyang Li, and Qingfu Zhu.
+\newblock A survey on transformer context extension: Approaches and evaluation.
+\newblock {\em arXiv preprint arXiv:2503.13299}, 2025.
+
+\bibitem{chen2023extending}
+Shouyuan Chen, Sherman Wong, Liangjian Chen, and Yuandong Tian.
+\newblock Extending context window of large language models via position
+  interpolation.
+\newblock {\em arXiv preprint arXiv:2306.15595}, 2023.
+
+\bibitem{peng2024yarn}
+Bowen Peng, Jeffrey Quesnelle, Honglu Fan, and Enrico Shippole.
+\newblock Yarn: Efficient context window extension of large language models.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2024.
+
+\bibitem{ding2024longrope}
+Yiran Ding, Li~Lyna Zhang, Chengruidong Zhang, Yuanyuan Xu, Ning Shang, Jiahang
+  Xu, Fan Yang, and Mao Yang.
+\newblock Longrope: Extending llm context window beyond 2 million tokens.
+\newblock {\em International Conference on Machine Learning (ICML)}, 2024.
+
+\bibitem{shang2025longrope2}
+Ning Shang et~al.
+\newblock Longrope2: Near-lossless llm context window scaling.
+\newblock {\em arXiv preprint arXiv:2502.12345}, 2025.
+
+\bibitem{zuo2025position}
+Chunsheng Zuo, Pavel Guerzhoy, and Michael Guerzhoy.
+\newblock Position information emerges in causal transformers without
+  positional encodings via similarity of nearby embeddings.
+\newblock {\em Proceedings of the 31st International Conference on
+  Computational Linguistics (COLING)}, pages 9418--9430, 2025.
+
+\bibitem{kim2025behind}
+Junu Kim, Xiao Liu, Zhenghao Lin, Lei Ji, Yeyun Gong, and Edward Choi.
+\newblock Behind rope: How does causal mask encode positional information?
+\newblock {\em arXiv preprint arXiv:2509.21042}, 2025.
+
+\bibitem{li2026rethinking}
+Qian Li, Xinyu Mao, and Shang-Hua Teng.
+\newblock Rethinking the role of positional encoding: Sliding-window
+  transformers without pe remain turing complete.
+\newblock {\em arXiv preprint arXiv:2606.01532}, 2026.
+
+\bibitem{herasimchyk2026residual}
+Hanna Herasimchyk, Robin Labryga, Tomislav Prusina, and S{\"o}ren Laue.
+\newblock A residual-aware theory of position bias in transformers.
+\newblock {\em arXiv preprint arXiv:2602.16837}, 2026.
+
+\bibitem{yang2025rope}
+Bowen Yang, Bharat Venkitesh, Dwarak Talupuru, Hangyu Lin, David Cairuz, Phil
+  Blunsom, and Acyr Locatelli.
+\newblock Rope to nope and back again: A new hybrid attention strategy.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+
+\bibitem{li2025theoretical}
+Yin Li.
+\newblock Theoretical analysis of positional encodings in transformer models:
+  Impact on expressiveness and generalization.
+\newblock {\em arXiv preprint arXiv:2506.06398}, 2025.
+
+\bibitem{devlin2018bert}
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+\newblock Bert: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock In {\em Proceedings of NAACL-HLT}, pages 4171--4186, 2019.
+
+\bibitem{nvidia2025nemotron3}
+{NVIDIA}.
+\newblock {NVIDIA Nemotron 3: Efficient and Open Intelligence}.
+\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
+
+\bibitem{qwen2025qwen3}
+{Team Qwen}.
+\newblock Qwen3 technical report.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{an2024training}
+Chenxin An, Fei Huang, Jun Zhang, Shansan Gong, Xipeng Qiu, Chang Zhou, and
+  Lingpeng Kong.
+\newblock {Training-Free Long-Context Scaling of Large Language Models}.
+\newblock {\em arXiv preprint arXiv:2402.17463}, 2024.
+
+\bibitem{olmo2025olmo3}
+{Olmo Team}.
+\newblock {Olmo 3}.
+\newblock {\em arXiv preprint}, 2025.
+
 \bibitem{gastaldi2025foundations}
 Juan~Luis Gastaldi, John Terilla, Luca Malagutti, Brian DuSell, Tim Vieira, and
   Ryan Cotterell.
@@ -1576,27 +1757,6 @@ Artidoro Pagnoni, Ram Pasunuru, Pedro Rodriguez, et~al.
 Patrick Huber, Ernie Chang, Wei Wen, Igor Fedorov, et~al.
 \newblock {MobileLLM-Pro Technical Report}.
 \newblock {\em arXiv preprint arXiv:2511.06719}, 2025.
-
-\bibitem{nvidia2025nemotron3}
-{NVIDIA}.
-\newblock {NVIDIA Nemotron 3: Efficient and Open Intelligence}.
-\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
-
-\bibitem{qwen2025qwen3}
-{Team Qwen}.
-\newblock Qwen3 technical report.
-\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
-
-\bibitem{olmo2025olmo3}
-{Olmo Team}.
-\newblock {Olmo 3}.
-\newblock {\em arXiv preprint}, 2025.
-
-\bibitem{vaswani2017attention}
-Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
-  Aidan~N. Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
-\newblock Attention is all you need.
-\newblock {\em Advances in Neural Information Processing Systems}, 30, 2017.
 
 \bibitem{xie2026mhc}
 Z.~Xie, Y.~Wei, H.~Cao, C.~Zhao, C.~Deng, J.~Li, D.~Dai, H.~Gao, et~al.
@@ -2445,5 +2605,18 @@ R.~Berry, M.~Jordan, and L.~Soldaini.
 Lean Wang, Hao Gao, Chenggang Zhao, Xingkai Sun, and Damai Dai.
 \newblock Auxiliary-loss-free load balancing strategy for mixture-of-experts.
 \newblock {\em arXiv preprint arXiv:2408.15664}, 2024.
+
+\bibitem{kumar2025positional}
+Abhinav Kumar, Adesh Gupta, Mansi Gupta, and Shivank Garg.
+\newblock Positional embeddings in transformer models: Evolution from text to
+  vision domains.
+\newblock ICLR Blogposts, April 2025.
+
+\bibitem{dai2019transformerxl}
+Zihang Dai, Zhilin Yang, Yiming Yang, Jaime Carbonell, Quoc~V. Le, and Ruslan
+  Salakhutdinov.
+\newblock Transformer-xl: Attentive language models beyond a fixed-length
+  context.
+\newblock In {\em Proceedings of ACL}, pages 2978--2988, 2019.
 
 \end{thebibliography}

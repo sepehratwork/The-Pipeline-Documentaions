@@ -1,0 +1,288 @@
+\item \textbf{مرور جامع بر ادبیات پژوهش و سیر تحول مکانیسم‌های کدگذاری موقعیت (\en{Positional Encoding})}
+
+\paragraph*{مقدمه و ضرورت ریاضیاتی اطلاعات موقعیت (\en{Necessity of Positional Information})}
+مکانیسم خودتوجهی (\en{Self-Attention}) به عنوان هسته بنیادین مدل‌های ترنسفورمر، ذیل روابط جبر خطی نسبت به جایگشت توکن‌های ورودی هم‌وردا (\en{Permutation Equivariant}) است. فرض کنید توالی ورودی متشکل از $n$ توکن از واژگان $\mathcal{V}$ باشد:
+\begin{equation}
+    (t_1, t_2, \dots, t_n) \in \mathcal{V}^n
+\end{equation}
+ماتریس بازنمایی پنهان ورودی $X = [x_1, x_2, \dots, x_n]^\top \in \mathbb{R}^{n \times d}$ از طریق ماتریس‌های تصویر کیوری ($W_Q$), کلید ($W_K$) و مقدار ($W_V$) در $\mathbb{R}^{d \times d_k}$ تصویر می‌شود. ماتریس امتیاز خام توجه بدون اعمال مؤلفه موقعیتی برابر است با:
+\begin{equation}
+    S_{ij} = \frac{(x_i W_Q)(x_j W_K)^\top}{\sqrt{d_k}} = \frac{x_i M x_j^\top}{\sqrt{d_k}}, \quad M = W_Q W_K^\top \in \mathbb{R}^{d \times d}
+\end{equation}
+خروجی لایه توجه با اعمال تابع بیشینه هموار سطری (\en{Row-wise Softmax}) حاصل می‌شود:
+\begin{equation}
+    \text{Attn}(X) = A V = \text{softmax}(S) V
+\end{equation}
+مطابق با قضیه اثبات‌شده توسط سیرینچونه \cite{cirrincione2026geometry}، اگر $P_\sigma \in \mathbb{R}^{n \times n}$ ماتریس جایگشت متناظر با جایگشت دلخواه $\sigma$ روی اندیس‌های توالی باشد، ورودی جایگشت‌یافته برابر با $X_\sigma = P_\sigma X$ خواهد بود. در نتیجه:
+\begin{equation}
+    S_\sigma = \frac{(P_\sigma X W_Q)(P_\sigma X W_K)^\top}{\sqrt{d_k}} = P_\sigma S P_\sigma^\top
+\end{equation}
+از آنجا که عملگر $\text{softmax}$ به صورت سطری اعمال می‌شود، با عملگر جایگشت سطری جابه‌جاپذیر (\en{Commutative}) است. بنابراین:
+\begin{equation}
+    A_\sigma = \text{softmax}(P_\sigma S P_\sigma^\top) = P_\sigma \text{softmax}(S) P_\sigma^\top = P_\sigma A P_\sigma^\top
+\end{equation}
+و خروجی توجه تبدیل می‌شود به:
+\begin{equation}
+    \text{Attn}(X_\sigma) = (P_\sigma A P_\sigma^\top)(P_\sigma X W_V) = P_\sigma A (P_\sigma^\top P_\sigma) X W_V = P_\sigma \text{Attn}(X)
+\end{equation}
+این تساوی اثبات می‌کند که ترنسفورمر بدون سیگنال موقعیتی، قادر به تمایز توالی اصلی از هیچ‌یک از جایگشت‌های آن نبوده و توانایی حل وظایف حساس به ترتیب کلمات را ندارد \cite{cirrincione2026geometry, jiguo2026position}.
+
+\paragraph*{درس تلخ ساتن در برابر پیش‌فرض‌های انسانی (\en{Sutton's Bitter Lesson vs. Inductive Biases})}
+ریچارد ساتن در اصل معروف «درس تلخ» استدلال می‌کند که روش‌های عمومی متکی بر محاسبات و یادگیری مستقیم از داده‌ها همواره بر روش‌های مبتنی بر فرضیات شهودی انسانی غلبه می‌کنند. همان‌طور که بردلی لاو \cite{love2025giving} واکاوی نموده است، تاریخچه مدل‌های زبانی در حوزه رمزگذاری موقعیت مسیری نامتعارف را پیموده است:
+\begin{itemize}
+    \item \textbf{نسل اول (۲۰۱۷):} آغاز با توابع ریاضی از پیش طراحی‌شده (سینوسی-کسینوسی) حاوی پیش‌فرض زوال با فاصله (\en{Distance Decay}).
+    \item \textbf{انحراف به سمت درس تلخ (۲۰۱۸--۲۰۲۰):} گذار به تعبیه‌های موقعیت مطلق یادگیری‌پذیر (\en{Learned APE}) در مدل‌هایی مانند \en{BERT} و \en{GPT-2/3} به منظور فراگیری داده‌محور موقعیت.
+    \item \textbf{بازگشت ناگزیر به پیش‌فرض‌های هندسی (۲۰۲۱ تاکنون):} شکست مدل‌های یادگیری‌پذیر در اکستراپولاسیون و طول‌های طولانی، محققان را ناچار به رجعت به سمت ساختارهای جبری و دورانی نظیر \en{RoPE} و \en{ALiBi} ساخت \cite{love2025giving}.
+\end{itemize}
+
+\paragraph*{چارچوب ماتریس‌های تپلیتز: رژیم‌های جمع‌پذیر و ضرب‌پذیر (\en{Toeplitz Framework})}
+بر پایه تحلیل طیفی و تجزیه ساختاری گو و همکاران \cite{gu2026deconstructing}، هر توکن $x_i$ در لایه‌های پنهان می‌تواند به مؤلفه محتوایی $c_i$ و مؤلفه موقعیتی $p_i$ تجزیه گردد ($x_i = c_i + p_i$). به منظور رعایت اصل ناوردایی انتقالی (\en{Translation Invariance})، برهم‌کنش‌های مکانی باید ماهیت ماتریس تپلیتز (\en{Toeplitz Matrix}) داشته باشند که در آن درایه‌ها روی هر قطر فرعی مقداری ثابت دارند ($T_{ij} = a_{i-j}$). بدین ترتیب، روش‌های موقعیت به دو کلاس مجزا تفکیک می‌شوند:
+\begin{itemize}
+    \item \textbf{مکانیزم‌های جمع‌پذیر (\en{Additive PEs}):} در این روش‌ها ماتریس لاجیت توجه از مجموع ماتریس‌های گِرَم (\en{Gram Matrices}) و یک ماتریس تپلیتز صریح $B$ تشکیل می‌شود:
+    \begin{equation}
+        L_{\text{Additive}} = G_{q_c, k_c} + G_{q_c, k_p} + G_{q_p, k_c} + G_{q_p, k_p} + B
+    \end{equation}
+    که در مدل‌های مطلق $B=0$ بوده و در مدل‌های نسبی نظیر \en{T5} و \en{ALiBi}، ماتریس تپلیتز $B$ مستقیماً به لاجیت افزوده می‌شود.
+    \item \textbf{مکانیزم‌های ضرب‌پذیر (\en{Multiplicative PEs / RoPE}):} موقعیت از طریق ضرب هادامار (\en{Hadamard product}) با هسته تپلیتز مختلط $G_e$ وارد عمل می‌شود:
+    \begin{equation}
+        L_{\text{RoPE}} = \text{Re}\left\{ (G_{q_c, k_c} + G_{q_c, k_p} + G_{q_p, k_c} + G_{q_p, k_p}) \circ G_e \right\}
+    \end{equation}
+    که در آن $(G_e)_{ij} = e^{\iota(i-j)\theta}$ بوده و موجب جفت‌شدگی غیرخطی و قوی محتوا و موقعیت می‌گردد \cite{gu2026deconstructing}.
+\end{itemize}
+
+\paragraph*{دیاگرام سیر تکامل و رده‌بندی ساختاری مکانیسم‌های موقعیت}
+شکل \ref{fig:pe_taxonomy_evolution} روند توسعه تاریخی و دسته‌بندی معماری‌های گوناگون کدگذاری موقعیت را به تصویر کشیده است.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.6cm and 1.8cm,
+    every node/.style={font=\small, align=center},
+    box/.style={rectangle, rounded corners=6pt, draw=blue!70!black, fill=blue!5, thick, minimum width=3.4cm, minimum height=1.1cm, drop shadow},
+    spec/.style={rectangle, rounded corners=6pt, draw=teal!70!black, fill=teal!5, thick, minimum width=3.4cm, minimum height=1.1cm, drop shadow},
+    fail/.style={rectangle, rounded corners=6pt, draw=red!70!black, fill=red!5, thick, minimum width=3.4cm, minimum height=1.1cm, drop shadow},
+    edge/.style={-Latex, thick, draw=blue!80!black}
+]
+    % Level 1: Absolute
+    \node[box] (sin) {\textbf{\en{Sinusoidal PE} (2017)}\\هندسه قطعی فرکانسی};
+    \node[box, right=of sin] (learned) {\textbf{\en{Learned APE} (2018)}\\جدول پارامتریک آموزش‌پذیر};
+    
+    % Level 2: Relative & ALiBi
+    \node[box, below=of sin] (rpe) {\textbf{\en{Shaw / T5 RPE} (2018--20)}\\بایاس سطل‌بندی مسافتی};
+    \node[box, right=of rpe] (alibi) {\textbf{\en{ALiBi} (2021)}\\بایاس خطی استاتیک لاجیت};
+    
+    % Level 3: RoPE
+    \node[box, below=of rpe] (rope) {\textbf{\en{RoPE} (2021)}\\دوران دوفازی کیوری و کلید};
+    
+    % Level 4: Analyses and Advances
+    \node[fail, below=of rope] (patho) {\textbf{آسیب‌شناسی‌های \en{RoPE} (2026)}\\\en{Du et al. / Wertheimer et al.}\\الیاسینگ، فروپاشی سینک};
+    \node[spec, left=of patho] (pope) {\textbf{\en{PoPE} (2026)}\\\en{Gopalakrishnan et al.}\\تفکیک دوقطبی محتوا و موقعیت};
+    \node[spec, right=of patho] (hybrid) {\textbf{\en{RNoPE-SWA} (2025)}\\\en{Cohere (Yang et al.)}\\تقسیم کار پنجره لغزان};
+    
+    % Level 5: NoPE and Information Geometry
+    \node[spec, below=of patho] (nope) {\textbf{تئوری ماسک علیتی \en{NoPE} (2025--26)}\\\en{Zuo / Kim / Qian Li et al.}\\کامل بودن تورینگ و الگوی مجاورت};
+    \node[spec, right=of nope] (mds) {\textbf{تعبیه بهینه \en{MDS} (2026)}\\\en{Cirrincione}\\متریک هلینگر و تقریب تنش};
+
+    % Connections
+    \draw[edge] (sin) -- (rpe);
+    \draw[edge] (learned) -- (alibi);
+    \draw[edge] (rpe) -- (rope);
+    \draw[edge] (alibi) -- (rope);
+    \draw[edge] (rope) -- (patho);
+    \draw[edge] (patho) -- (pope);
+    \draw[edge] (patho) -- (hybrid);
+    \draw[edge] (rope) -- (mds);
+    \draw[edge] (rpe) -- (nope);
+\end{tikzpicture}%
+}
+\caption{تبارشناسی، سیر تکاملی و الگوهای ساختاری روش‌های کدگذاری موقعیت در مدل‌های ترنسفورمر}
+\label{fig:pe_taxonomy_evolution}
+\end{figure}
+
+\paragraph*{نسل اول: کدهای موقعیت مطلق (\en{Absolute Positional Encodings - APE})}
+تعبیه موقعیت سینوسی واسوانی و همکاران \cite{vaswani2017attention, jiguo2026position} از توابع پایه متعامد جهت تفکیک ابعاد فرکانسی بهره می‌گیرد:
+\begin{align}
+    PE_{(pos, 2i)} &= \sin\left(\frac{pos}{10000^{2i/d}}\right) = \sin(pos \cdot \theta_i) \\
+    PE_{(pos, 2i+1)} &= \cos\left(\frac{pos}{10000^{2i/d}}\right) = \cos(pos \cdot \theta_i)
+\end{align}
+که در آن $\theta_i = 10000^{-2i/d}$ برای $i \in \{0, \dots, d/2 - 1\}$ است. در یک زیرفضای دوبعدی، عملگر انتقال برای جابه‌جایی $\Delta$ طبق اتحاد جمع زوایا به صورت یک ماتریس متعامد تبدیل می‌شود:
+\begin{equation}
+    PE_i(pos + \Delta) = \begin{bmatrix} \cos(\Delta\theta_i) & \sin(\Delta\theta_i) \\ -\sin(\Delta\theta_i) & \cos(\Delta\theta_i) \end{bmatrix} PE_i(pos)
+\end{equation}
+همچنین ضرب داخلی میان موقعیت‌های $m$ و $n$ تنها به اختلاف آن‌ها وابسته است:
+\begin{equation}
+    PE(m)^\top PE(n) = \sum_{i=0}^{d/2 - 1} \cos((m - n)\theta_i)
+\end{equation}
+
+در نقطه مقابل، در کدهای یادگیری‌پذیر (\en{Learned APE})، جدول موقعیت $P \in \mathbb{R}^{L_{max} \times d}$ از طریق پس‌انتشار خطا به‌روزرسانی می‌شود. سیرینچونه \cite{cirrincione2026geometry} در \textbf{قضیه جداسازی موقعیتی (\en{Positional Separation Theorem})} اثبات می‌کند که اگر تابع زیان $\mathcal{L}(P)$ مشتق‌پذیر، نسبت به رشد پارامترها قاهر (\en{Coercive}) و داده‌ها نامانا و حساس به ترتیب باشند، در هر نقطه کمینه سراسری $P^*$ لزوماً داریم:
+\begin{equation}
+    \forall i \neq j: \quad p_i^* \neq p_j^*
+\end{equation}
+اما در تعمیم طول، سینگ و همکاران \cite{singh2026relative} در \textbf{گزاره قفل‌شدگی موقعیت (\en{Position Pinning})} نشان می‌دهند که اگر طول آموزش محدود به $L_{max}$ باشد، بردارهای $p_j$ برای $j \ge L_{max}$ هیچ گرادیانی دریافت نکرده ($\frac{\partial \mathcal{L}}{\partial p_j} = 0$) و تحت کاهش وزن به صفر میل می‌کنند. در نتیجه در فاز ارزیابی روی طول‌های $L' > L_{max}$، بردارها فاقد اطلاعات مکانی بوده و مدل ناچاراً به آخرین اندیس آموزش‌دیده قفل شده و دچار سقوط عملکردی به سطح شانس تصادفی می‌شود.
+
+\paragraph*{چارچوب ترنسفورمر حدی (\en{Limit Transformers}) و زبان \en{C-RASP}}
+هوانگ و همکاران \cite{huang2025formal} برای درک ظرفیت تعمیم طول کدهای مطلق، ساختار انتزاعی \textbf{ترنسفورمر حدی (\en{Limit Transformer})} را صورت‌بندی کردند که در آن طول زمینه به بی‌نهایت میل کرده و ماتریس‌های وزن در فرم محصولات پایه‌ای تپلیتز ناوردای انتقالی بازنمایی می‌شوند:
+\begin{equation}
+    a_{i,j}^{(l,h)} = (y_j^{(l-1)})^\top K_{l,h}^\top Q_{l,h} y_i^{(l-1)} + \phi_{l,h}(j, i)
+\end{equation}
+آن‌ها با تطبیق این ترنسفورمرها با مدل محاسباتی \en{C-RASP[periodic, local]}، اثبات کردند که تعمیم طول بدون خطا در ترنسفورمرهای دارای تعبیه موقعیت مطلق، منحصراً برای وظایفی میسر است که دارای پیچیدگی ارتباطاتی حداکثر لگاریتمی ($\mathcal{O}(\log N)$) باشند. وظایفی نظیر کپی کردن با تکرار \en{n-gram} یا جمع ارقام به دلیل نیاز به پیچیدگی ارتباطاتی خطی، تحت هیچ شرایطی در ترنسفورمرهای استاندارد تعمیم‌پذیر نخواهند بود \cite{huang2025formal}.
+
+\paragraph*{نسل دوم: کدهای موقعیت نسبی و سازوکار \en{ALiBi}}
+کدهای نسبی تلاش کردند وابستگی به اندیس‌های مطلق را برطرف سازند \cite{irani2026positional}. رویکرد شاو \cite{shaw2018self} با افزودن بردار برش‌یافته فاصله به کلیدها و مقادیر و رویکرد \en{T5} \cite{raffel2020exploring} با اختصاص یک اسکالر سطل‌بندی‌شده لگاریتمی به لاجیت توجه، وابستگی را مستقیماً تابع $j-i$ قرار دادند:
+\begin{equation}
+    s_{ij}^{\text{T5}} = \frac{q_i k_j^\top}{\sqrt{d_k}} + b_{\text{bucket}(j - i)}
+\end{equation}
+پرس و همکاران \cite{press2022train} ساختار \en{ALiBi} را با حذف کامل هرگونه بردار تعبیه و تزریق جریمه خطی شیب‌دار به ازای هر سر توجه ارائه دادند:
+\begin{equation}
+    s_{ij}^{(h)} = \frac{q_i^{(h)} (k_j^{(h)})^\top}{\sqrt{d_k}} - m_h |i - j|, \quad m_h = 2^{-\frac{8h}{H}}
+\end{equation}
+سیرینچونه \cite{cirrincione2026geometry} با محاسبه میزان تنش هندسی نشان داد که در پیکره‌های با تقارن تقریبی جابه‌جایی، ماتریس فاصله آماری ماهیت رتبه-۱ پیدا کرده و ساختار اسکالر \en{ALiBi} خطای هندسی به مراتب کمتری نسبت به \en{RoPE} ثبت می‌کند. با این حال، سینگ و همکاران \cite{singh2026relative} نشان دادند که \en{ALiBi} به دلیل یکنواختی صلب شیب‌ها، توانایی متمرکز ساختن یک سر توجه بر یک فاصله نسبی غیرمجاور دلخواه (نظیر انتخاب توکن در فاصله $K=2$ بدون وزن‌دهی به $K=1$) را از دست می‌دهد. علاوه بر آن، گو و همکاران \cite{gu2026deconstructing} نشان دادند گرادیان \en{ALiBi} در مواجهه با توزیع‌های مسافتی متقارن، مستعد خنثی‌سازی و ابطال کامل گرادیان (\en{Gradient Cancellation}) است.
+
+\paragraph*{نسل سوم: تعبیه موقعیت دورانی (\en{RoPE}) و تئوری موج حامل}
+رویکرد \en{RoPE} \cite{su2024roformer} با چرخش بردارها در فضاهای دوبعدی، موقعیت نسبی را در ضرب داخلی پدید می‌آورد:
+\begin{equation}
+    q'_m = R_m q_m, \quad k'_n = R_n k_n \implies (q'_m)^\top k'_n = q_m^\top R_{n-m} k_n
+\end{equation}
+که در آن $R_m = \text{diag}(R(m\theta_0), \dots, R(m\theta_{d/2-1}))$. سینگ و همکاران \cite{singh2026relative} در نظریه \textbf{موج حامل همسو با هدف (\en{Target-Aligned Carrier})} اثبات کردند که فرآیند آموزش تحت تابع زیان متقاطع، کیوری و کلید را به سوی راستای بردار واحد $u$ با چرخش فاز اولیه سوق می‌دهد:
+\begin{equation}
+    W_K x_t = \rho u + \xi_t, \quad W_Q x_n = \rho R_{-K} u + \xi'_n \quad (\mathbb{E}[\xi] = 0)
+\end{equation}
+در نتیجه، امید ریاضی لاجیت در جابه‌جایی $\delta = t - n$ به صورت زیر است:
+\begin{equation}
+    \phi(\delta) = \mathbb{E}[\sqrt{d}\ell_t \mid \delta] = \rho^2 u^\top R_{\delta + K} u = \rho^2 \sum_{i=1}^{d/2} p_i \cos((\delta + K)\theta_i)
+\end{equation}
+این هسته فرکانسی دقیقاً در نقطه هدف $\delta = -K$ بیشینه می‌گردد. زوال دقت در بافت‌های بلند بر پایه \textbf{قانون رقت توجه (\en{Attention Dilution Law})} رخ می‌دهد:
+\begin{equation}
+    a_*(L) = \frac{e^{\phi(-K)}}{\sum_{\delta} e^{\phi(\delta)}} = \frac{1}{1 + (L-1)\bar{r}_L} \ge \frac{1}{1 + (L-1)e^{-\mu}}
+\end{equation}
+که نشان می‌دهد افت عملکرد ناشی از تضعیف نمره توجه به دلیل بزرگ شدن مخرج سافت‌مکس در طول‌های بلند است \cite{singh2026relative}.
+
+\paragraph*{درهم‌تنیدگی محتوا و فاز و ابداع ساختار \en{PoPE}}
+گوپالاکریشنان و همکاران \cite{gopalakrishnan2026decoupling} با بازنویسی \en{RoPE} در مختصات قطبی نشان دادند که این روش دچار نقیصه ساختاری **درهم‌تنیدگی چیستی و کجایی (\en{What-Where Entanglement})** است. اگر کیوری و کلید با دامنه‌های محتوایی $\mu_q, \mu_k$ و فازهای ذاتی محتوا $\phi_q, \phi_k$ در نظر گرفته شوند:
+\begin{equation}
+    a_{ts}^{\text{RoPE}} = \sum_{c=1}^{d/2} \mu_{qtc} \mu_{ksc} \cos\Big( (s - t)\theta_c + \underbrace{(\phi_{ksc} - \phi_{qtc})}_{\text{تداخل فاز محتوا با موقعیت}} \Big)
+\end{equation}
+این تداخل مانع از آدرس‌دهی مستقل محتوا و موقعیت شده و در مسائلی مانند نمایه‌سازی غیرمستقیم (\en{Indirect Indexing}) دقت مدل را به ۱۱٪ محدود می‌سازد. به منظور رفع این عیب، مدل **\en{PoPE} (\en{Polar Coordinate Positional Embedding})** ارائه شد که در آن دامنه بردارها توسط تابع $\text{softplus}$ صرفاً از محتوا، و فاز آن‌ها مستقیماً از موقعیت تشکیل می‌شود \cite{gopalakrishnan2026decoupling}:
+\begin{equation}
+    \mu_{\tilde{k}_{sc}} = \ln(1 + e^{k_{sc}}), \quad \phi_{\tilde{k}_{sc}} = s\theta_c \implies a_{ts}^{\text{PoPE}} = \sum_{c=1}^d \mu_{\tilde{q}_{tc}} \mu_{\tilde{k}_{sc}} \cos((s - t)\theta_c + \delta_c)
+\end{equation}
+با تفکیک کامل این دو مفهوم، تعداد فرکانس‌ها به $d$ افزایش یافته و دقت وظایف نمایه‌سازی به **۹۴.۸٪** ارتقا می‌یابد.
+
+\paragraph*{هندسه خوشه‌بندی، تئوری \en{Frayed RoPE} و پیدایش \en{RoPE-ID}}
+ورتهایمر و همکاران \cite{wertheimer2026frayed} با آنالیز تجربی مدل‌های \en{LLaMA-3}، \en{Gemma} و \en{OLMo} کشف کردند که در فضای نهفته، بردارهای کلید و کیوری در ربع‌های متقابل قرار گرفته و ضرب داخلی میانگین منفی دارند. در این ساختار، توکن آغازین توالی (\en{Sink Token}) با دارا بودن نرم کوچک ($\|k_{\text{sink}}\|_2 \approx 0$)، ضرب داخلی نزدیک به صفر و در نتیجه بیشترین وزن توجه را به طور پیش‌فرض به خود اختصاص می‌دهد تا از ترکیب ناخواسته اطلاعات پیشگیری شود.
+
+اما در طول‌های بلند فراتر از آموزش، چرخش‌های مکرر \en{RoPE} موجب کاهش مقدار منفرد نخست (\en{First Singular Value - FSV}) می‌گردد:
+\begin{equation}
+    \frac{\|R(X)\|_2}{\|X\|_2} \xrightarrow{n \to \infty} \frac{1}{\sqrt{2}} \max_k \alpha_k
+\end{equation}
+در حالی که نرم فروبنیوس حفظ می‌شود ($\|R(X)\|_F = \|X\|_F$). در نتیجه، رتبه پایدار (\en{Stable Rank}) ماتریس منبسط می‌شود:
+\begin{equation}
+    \lim_{n \to \infty} \frac{\text{srank}(R(X))}{\text{srank}(X)} = \frac{2}{\max_k \alpha_k^2} \in [2, d]
+\end{equation}
+این رخداد به پراکندگی ابرهای نقطه‌ای، هم‌پوشانی بردارهای کلید و کیوری، تولید ضرب‌های داخلی مثبت کاذب و نهایتاً از کار افتادن توکن سینک منجر می‌شود. برای مقابله با این پدیده، معماری **\en{RoPE-ID}** پیشنهاد شده است که با محدود کردن \en{RoPE} به تنها ۵۰٪ از ابعاد و تضمین چرخش حداقل دو دور کامل در طول آموزش برای فرکانس‌های پایه، مانع از فروپاشی هندسی مدل در طول‌های بلند می‌گردد \cite{wertheimer2026frayed}.
+
+\paragraph*{آسیب‌شناسی‌های تئوریک RoPE در طول‌های بلند: مدل‌سازی نرمال و حالات چهارگانه خرابی}
+دو و همکاران \cite{du2026rope} ضرب غیرنرمال \en{RoPE} را ذیل قضیه حد مرکزی لیندبرگ به عنوان یک متغیر تصادفی نرمال مدل‌سازی کردند:
+\begin{equation}
+    \tilde{S} \sim \mathcal{N}\left( \mu_M, \sigma_M^2 \right), \quad \mu_M \approx \sum_{n=\lambda(M)}^{h-1} a_n \cos(\phi_n), \quad \sigma_M^2 \approx \sum_{n=0}^{\lambda(M)-1} \frac{a_n^2}{2}
+\end{equation}
+با افزایش طول بستر $M$، میانگین فاز زوال یافته و واریانس فرکانس‌های بالا رشد می‌کند که چهار پیامد مخرب تئوریک به همراه دارد \cite{du2026rope}:
+\begin{enumerate}
+    \item \textbf{واژگونی موقعیت (\en{Position Inversion}):} احتمال ترجیح توکن کلید در فاصله بسیار دورتر نسبت به نزدیک‌تر به مقدار بحرانی $0.5$ (هم‌ارز شانس تصادفی) میل می‌کند:
+    \begin{equation}
+        \text{Pr}(\text{Inversion}) \ge \Phi\left( -\log 2 \sqrt{\frac{h}{\log B (\log M - 0.5 \log 2)}} \right) \xrightarrow{\log M \log B \to \infty} 0.5
+    \end{equation}
+    \item \textbf{پدیداری نام‌مستعار موقعیت (\en{Position Aliasing}):} به دلیل تفکیک‌پذیری محدود نمایش ممیز شناور (مانند \en{BF16} با مانتیس $f=7$)، احتمال انطباق کامل نمرات دو فاصله مجزا با نرخ نمایی به ۱ میل می‌کند:
+    \begin{equation}
+        \text{Pr}(\text{Aliasing}) \ge 1 - (1 - E)^{M-1} \xrightarrow{M \to \infty} 1
+    \end{equation}
+    این رخداد به پدیده ناوردایی توجه (\en{Attention Invariance}) می‌انجامد که طی آن جابه‌جایی فیزیکی توکن‌ها تغییری در نمرات توجه حاصل نمی‌کند.
+    \item \textbf{واژگونی اولویت توکن (\en{Token Inversion}):} معکوس شدن اولویت معنایی دو کلید در فواصل دور نسبت به فاصله صفر.
+    \item \textbf{پدیداری نام‌مستعار توکن (\en{Token Aliasing}):} برابری کامل نمره توجه دو کلید متمایز در یک موقعیت یکسان به دلیل خطای گرد کردن ممیز شناور با نرخ خطای $\Theta(2^{-f}\sqrt{h}M)$.
+\end{enumerate}
+افزایش پایه زاویه $B$ خطاهای توکن را کاهش می‌دهد اما خطاهای تمایز موقعیت را به شدت تشدید می‌کند که یک تضاد ساختاری اجتناب‌ناپذیر است \cite{du2026rope}.
+
+\paragraph*{پدیده انباشت تک‌سر در لایه‌های کم‌عمق (\en{Single-Head Deposit Pattern})}
+گو و همکاران \cite{gu2026deconstructing} نشان دادند که به دلیل جفت‌شدگی ضربی و تقویت ژاکوبی پس‌انتشار خطا، نسبت سیگنال به نویز گرادیان در لایه‌های ابتدایی با رابطه زیر تشدید نمایی می‌شود:
+\begin{equation}
+    \text{SNR}_l \ge \left( \prod_{k=l}^{L-1} \gamma_k \right) \text{SNR}_L, \quad \gamma_k > 1
+\end{equation}
+این پویایی موجب می‌شود کل بار یادگیری منطق موقعیتی بر روی یک سر منفرد در لایه اول متمرکز شود (\en{Single-Head Deposit Pattern}) و سایر سرها غیرفعال گردند. با بهره‌گیری از معماری \en{MLA} در \en{DeepSeek-V3} که فضاهای پنهان را به زیرفضاهای مستقل \en{RoPE} و \en{NoPE} تفکیک می‌کند، این انباشت مخرّب مهار شده و بار محاسباتی در سراسر مدل توزیع می‌گردد \cite{gu2026deconstructing, jiguo2026position}.
+
+\paragraph*{روش‌های توسعه و اکستراپولاسیون RoPE در زمینه‌های طولانی}
+برای انطباق فازهای فرکانس پایین خارج از توزیع با طول‌های فراتر از آموزش، متدهای مختلفی ابداع شده‌اند \cite{jiguo2026position, liu2025survey}:
+\begin{itemize}
+    \item \textbf{درون‌یابی موقعیت (\en{PI}):} فشرده‌سازی خطی زاویه‌ها $\theta'_r = \theta_r / s$ که منجر به کاهش تفکیک‌پذیری در ابعاد محلی می‌شود \cite{chen2023extending}.
+    \item \textbf{مقیاس‌بندی \en{NTK-Aware}:} تغییر پایه فرکانس $b' = b \cdot s^{d/(d-2)}$ به منظور حفظ فرکانس‌های بالا و فشرده‌سازی لایه‌ای فرکانس‌های پایین \cite{jiguo2026position}.
+    \item \textbf{روش \en{YaRN}:} ترکیب درون‌یابی مقطعی فرکانس بر مبنای تعداد دوران‌ها در طول پایه به همراه کالیبراسیون دمای توجه سافت‌مکس با ضریب $\sqrt{t} = (0.1 \ln s + 1)^{-1}$ \cite{peng2024yarn}.
+    \item \textbf{مدل‌های \en{LongRoPE} و \en{LongRoPE2}:} بهره‌گیری از الگوریتم جستجوی ژنتیک برای بهینه‌سازی غیریکنواخت ضرایب هر بعد و بازتعریف ابعاد بحرانی بر مبنای دوره‌های موثر آموزش \cite{ding2024longrope, shang2025longrope2}.
+\end{itemize}
+
+\paragraph*{پارادوکس حذف کامل موقعیت (\en{NoPE}) و پویایی‌های ماسک علیتی}
+زوئو و همکاران \cite{zuo2025position} دریافتند که در مدل‌های بدون کدگذاری موقعیت (\en{NoPE})، ماتریس شباهت کسینوسی لایه‌های میانی به طور خودبه‌خودی الگوی مجاورت مقادیر نزدیک (\en{Adjacency Pattern}) را آشکار می‌سازد ($P_{\text{Adjacency}} > 0.97$). کیم و همکاران \cite{kim2025behind} با فرمولاسیون تحلیلی یک مدل فاقد پارامتر ثابت کردند که اثر میانگین‌گیری انباشتی در حضور ماسک علیتی، تابعی اکیداً صعودی نسبت به اندیس کلید $j \le i$ در لایه دوم تولید می‌کند:
+\begin{equation}
+    \langle y_i^{(2)}, y_j^{(2)} \rangle = \frac{g(i)}{h(i)h(j)}, \quad \frac{\partial h(j)}{\partial j} < 0 \implies \text{امتیاز توجه با نزدیکی } j \text{ به } i \text{ اکیداً افزایش می‌یابد}
+\end{equation}
+این قضیه منشأ پیدایش ناخودآگاه سیگنال موقعیت از بطن ساختار علیتی را اثبات می‌کند \cite{kim2025behind}.
+
+علاوه بر این، چیان لی و همکاران \cite{li2026rethinking} با طرح مدل خودرگرسیو \en{Parity-HIST} ثابت کردند که ترنسفورمرهای دارای پنجره لغزان حتی بدون داشتن هرگونه تعبیه موقعیت، قابلیت شبیه‌سازی ماشین‌های پست (\en{Post Machines}) را دارا بوده و بنابراین **کامل تورینگ (\en{Turing Complete})** هستند. روند حذف از ابتدای صف از طریق ردگیری تغییرات پاریتی هیستوگرام پنجره صورت می‌گیرد:
+\begin{equation}
+    e_\sigma = r \oplus p
+\end{equation}
+این اثبات نشان می‌دهد که پویایی‌های زمانی ورود و خروج اطلاعات در پنجره متحرک، ساختار ترتیبی لازم برای محاسبات همگانی را فراهم می‌آورد \cite{li2026rethinking}.
+
+\paragraph*{نظریه رول‌اوت آگاه از اتصالات پسماند و تحلیل پدیده \en{Lost-in-the-Middle}}
+هراسیمچوک و همکاران \cite{herasimchyk2026residual} خطای تئوریک اثبات‌های پیشین مبنی بر فروپاشی حتمی توجه در عمق بی‌نهایت را آشکار ساختند. با در نظر گرفتن عملگر پسماند نرمال‌شده:
+\begin{equation}
+    R^{(t)} = (1 - \lambda_t)I + \lambda_t A^{(t)}, \quad P^{(T)} = R^{(T)} R^{(T-1)} \dots R^{(1)}
+\end{equation}
+آن‌ها ثابت کردند که اگر مجموع ضرایب توجه متناهی باشد ($\sum_{t=1}^\infty \lambda_t < \infty$)، فروپاشی توجه رخ نداده و مقادیر روی قطر اصلی اکیداً مثبت باقی می‌مانند. همچنین برهم‌کنش چهار نیروی ساختاری شامل ماسک علیتی (رانش به آغاز)، اتصالات پسماند (رانش به پایان)، بایاس موقعیت نسبی (ترجیح پایان) و محتوای قطری خودتوجهی، موجب شکل‌گیری منحنی U-شکل نفوذ اطلاعات شده و منشأ ساختاری پدیده افت کارایی در میانه متن (\en{Lost-in-the-Middle}) را توجیه می‌نماید \cite{herasimchyk2026residual}.
+
+\paragraph*{تقسیم کار خودبه‌خودی و معماری ترکیبی \en{RNoPE-SWA}}
+یانگ و همکاران در شرکت کوهیر \cite{yang2025rope} با بررسی مدل‌های هیبرید نشان دادند که لایه‌های \en{NoPE} به صورت طبیعی وظیفه بازیابی اطلاعات سراسری و سوزن‌های پنهان در فواصل دور را عهده‌دار می‌شوند، در حالی که لایه‌های مجهز به \en{RoPE} بار پردازش وابستگی‌های محلی و بایاس نزدیکی را به دوش می‌کشند. بر این اساس، معماری **\en{RNoPE-SWA}** با ترکیب یک لایه توجه کامل \en{NoPE} پس از هر سه لایه توجه لغزان محلی مجهز به \en{RoPE} طراحی شد که ضمن کاهش ۷۵ درصدی حافظه \en{KV Cache}، عملکردی فراتر از مدل‌های سنتی در توالی‌های بسیار طولانی ثبت می‌کند \cite{yang2025rope}.
+
+\paragraph*{هندسه اطلاعات، فاصله هلینگر و تعبیه بهینه \en{MDS}}
+سیرینچونه \cite{cirrincione2026geometry} مسئله تعیین موقعیت بهینه را از منظر هندسه اطلاعات صورتبندی نمود. برای توزیع‌های آماری کلمات در موقعیت‌های گوناگون ($\mu_i, \mu_j$)، فاصله ریمانی هلینگر به صورت زیر تعریف می‌شود:
+\begin{equation}
+    d_H(\mu_i, \mu_j) = \sqrt{\frac{1}{2} \sum_{v \in \mathcal{V}} \left( \sqrt{\mu_i(v)} - \sqrt{\mu_j(v)} \right)^2}
+\end{equation}
+با توجه به خمیدگی منیفولد آماری فیشر، نگاشت ایزومتریک مستقیم به فضای اقلیدسی ناممکن است. بهترین تقریب مسطح توسط ماتریس دوطرفه‌مرکزشده گرام $B = -\frac{1}{2} H D^2 H$ و الگوریتم مقیاس‌بندی چندبعدی کلاسیک (\en{Classical MDS}) با حداقل‌سازی شاخص تنش (\en{Stress}) به دست می‌آید:
+\begin{equation}
+    B = U \Lambda U^\top \implies P_{\text{MDS}} = U_d \Lambda_d^{1/2} \in \mathbb{R}^{n \times d}
+\end{equation}
+قضیه محوری این دیدگاه نشان می‌دهد که در صورت مانایی آماری پیکره، ماتریس $B$ سیرکولانت شده و بردارهای ویژه آن به توابع پایه تبدیل فوریه گسسته (سینوسی-کسینوسی واسوانی) همگرا می‌شوند؛ امری که پس از سال‌ها دلیل موفقیت کدهای سینوسی را تبیین کرد. همچنین به دلیل زوال سریع مقادیر ویژه، موقعیت بهینه رتبه پایین دارد ($r \ll d$) و می‌توان ماتریس موقعیت را به شکل فاکتورگیری‌شده $P = A B^\top$ با مصرف تا ۸۸٪ پارامتر کمتر بازنمایی کرد \cite{cirrincione2026geometry}.
+
+\paragraph*{کدگذاری بر پایه توابع متعامد و کران‌های تعمیم رادماخر}
+یین لی \cite{li2025theoretical} با بهره‌گیری از توابع پایه ویولت (\en{Daubechies-4}) و چندجمله‌ای‌های لژاندر جفت‌شده با نگاشت هذلولوی اشباع‌شونده $\tanh(\gamma \frac{pos}{N_{max}})$، کدهای متعامدی معرفی کرد که کران بالای خطای اکستراپولاسیون در آن‌ها بر خلاف کدهای سینوسی به صورت نمایی زوال می‌یابد:
+\begin{equation}
+    \|PE_{\text{wavelet}}(pos) - PE_{\text{wavelet}}(N_{max})\|_2 \le \mathcal{O}\left(\exp(-\beta(pos - N_{max}))\right)
+\end{equation}
+بر اساس تحلیل پیچیدگی رادماخر ($\mathcal{R}_m(\mathcal{F})$)، کدهای متعامد نرمال‌شده بدون افزایش غیرخطی ظرفیت فرضیه مدل، کران تعمیم خطای آزمون را در مقیاس‌های فراتر از آموزش پایدار نگه می‌دارند \cite{li2025theoretical}.
+
+\paragraph*{مقایسه جامع مشخصات فنی مکانیزم‌های کدگذاری موقعیت}
+جدول \ref{tab:pe_comprehensive_comparison} مقایسه تحلیلی تمامی روش‌های مورد بحث را بر اساس ویژگی‌های ساختاری، نظری و عملکردی خلاصه می‌نماید.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه جامع و تطبیقی ویژگی‌های نظری و عملیاتی مکانیزم‌های کدگذاری موقعیت در مدل‌های ترنسفورمر}
+\label{tab:pe_comprehensive_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{مکانیسم} & \textbf{محل و نحوه تزریق} & \textbf{پیچیدگی محاسباتی} & \textbf{سازگاری با \en{KV-Cache}} & \textbf{ظرفیت اکستراپولاسیون} & \textbf{چالش بنیادین} & \textbf{منابع کلیدی} \\
+\midrule
+\textbf{\en{Sinusoidal PE}} & تعبیه ورودی (جمع) & $\mathcal{O}(Ld)$ & کامل & ضعیف (ابهام دوره‌ای فرکانس) & درهم‌آمیختگی اولیه با بردار محتوا & \cite{vaswani2017attention, cirrincione2026geometry, li2025theoretical} \\
+\textbf{\en{Learned APE}} & تعبیه ورودی (جمع) & $\mathcal{O}(Ld)$ & کامل & ناممکن (توقف در $L_{max}$) & پدیده \en{Position Pinning} و انجماد گرادیان & \cite{devlin2018bert, singh2026relative, love2025giving} \\
+\textbf{\en{T5 Relative}} & لاجیت توجه (جمع) & $\mathcal{O}(L^2)$ & نیازمند بازسازی سطل‌ها & متوسط (محدود به سطل‌ها) & ناتوانی در مدل‌سازی فواصل پیوسته & \cite{raffel2020exploring, irani2026positional} \\
+\textbf{\en{ALiBi}} & لاجیت توجه (جمع) & $\mathcal{O}(L^2)$ & کامل & مناسب تحت زوال یکنواخت & ناتوانی در جداسازی آفست‌های غیرمجاور & \cite{press2022train, singh2026relative, gu2026deconstructing} \\
+\textbf{\en{RoPE}} & کیوری و کلید (دوران) & $\mathcal{O}(L^2 d)$ & کامل (ذخیره پس از دوران) & ضعیف بدون فشرده‌سازی فاز & درهم‌تنیدگی محتوا و موقعیت؛ الیاسینگ & \cite{su2024roformer, du2026rope, wertheimer2026frayed} \\
+\textbf{\en{PoPE}} & کیوری و کلید (قطبی) & $\mathcal{O}(L^2 d)$ & نیازمند ذخیره دامنه و فاز & بسیار بالا بدون آموزش تکمیلی & افزایش سربار ضرب اعداد مختلط & \cite{gopalakrishnan2026decoupling} \\
+\textbf{\en{RoPE-ID}} & ۵۰٪ کانال‌ها (دوران سریع) & $\mathcal{O}(L^2 d)$ & کامل & عالی در طول‌های بسیار بلند & نیازمند تنظیم دقیق مرز فرکانس‌ها & \cite{wertheimer2026frayed} \\
+\textbf{\en{RNoPE-SWA}} & لایه‌ای هیبرید (۱:۳) & کاهش ۷۵٪ در \en{KV} & بهینه‌سازی حداکثری حافظه & بسیار بالا با ثبات یادگیری & بازطراحی بلوک‌های لایه‌های متوالی & \cite{yang2025rope} \\
+\textbf{\en{MDS Optimal}} & تعبیه کم‌رتبه ($r \ll d$) & $\mathcal{O}(r(n+d))$ & کامل & وابسته به ایستایی آماری پیکره & هزینه $\mathcal{O}(n^3)$ تجزیه ویژه پیش از آموزش & \cite{cirrincione2026geometry} \\
+\textbf{\en{NoPE (Causal)}} & ساختار ذاتی ماسک علیتی & صفر پارامتر & کامل & بالا تحت تنظیمات خاص & وابستگی به یادگیری غیرمستقیم در پارامترها & \cite{zuo2025position, kim2025behind, li2026rethinking} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
