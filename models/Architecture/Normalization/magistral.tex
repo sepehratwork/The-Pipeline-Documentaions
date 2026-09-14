@@ -1,1 +1,52 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{مقدمه و راهبرد آموزش بدون تقطیر در \en{Magistral}}
+مدل‌های خانواده \model{Magistral} \cite{mistral2025magistral} شامل نسخه‌های \en{Magistral Medium} و \en{Magistral Small} (۲۴ میلیارد پارامتر) نخستین مدل‌های استدلالی شرکت \en{Mistral AI} هستند. این مدل‌ها به طور خاص جهت سنجش پتانسیل یادگیری تقویتی برخط با پاداش‌های قابل‌تأیید (\en{RLVR}) بدون نیاز به ردپاهای استدلالی مدل‌های معلم طراحی شده‌اند. در این چارچوب، نرمال‌سازی در بطن محاسبات آماری تابع تلفات و دینامیک‌های گرادیان ایفای نقش می‌کند.
+
+\paragraph*{نرمال‌سازی طول توالی در تابع تلفات \en{GRPO}}
+در استدلال‌های طولانی، طول زنجیره تفکر (\en{Chain-of-Thought}) در گروه‌های مختلف تولید ممکن است تا ۵ برابر تفاوت داشته باشد. میانگین‌گیری مرسوم تک‌تک دنباله‌ها موجب سوگیری شدید یادگیری به سمت پاسخ‌های طولانی می‌شود. در \model{Magistral}، تابع تلفات از طریق تقسیم بر مجموع طول کل توکن‌های کل گروه نرمال‌سازی می‌شود:
+\begin{equation}
+    \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{q, \{o_i\}_{i=1}^G} \left[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \mathcal{L}_{i,t}(\theta) \right]
+\end{equation}
+که در آن:
+\begin{equation}
+    \mathcal{L}_{i,t}(\theta) = \min\left( r_{i,t}(\theta) \hat{A}_{i,t}^{\text{norm}}, \; \text{clip}(r_{i,t}(\theta), 1-\varepsilon_{\text{low}}, 1+\varepsilon_{\text{high}}) \hat{A}_{i,t}^{\text{norm}} \right)
+\end{equation}
+این نرمال‌سازی بر پایه توکن (\en{Token-Level Loss Normalization}) از تزریق گرادیان‌های کاذب ناشی از پاسخ‌های غیربهینه طویل جلوگیری می‌کند.
+
+\paragraph*{نرمال‌سازی مزیت در سطح مینی‌بچ (\en{Minibatch Advantage Normalization})}
+برخلاف روش‌های متداول که مزیت را صرفاً در سطح پاسخ‌های یک پرامپت منفرد ($G$ خروجی) به صورت $\hat{A}_i = r_i - \mu$ استانداردسازی می‌کنند، در \model{Magistral} اثبات شده است که این امر سوالات بسیار سخت یا بسیار آسان را به دلیل انحراف معیار نزدیک به صفر دچار خطای مقیاس می‌کند. بنابراین، نرمال‌سازی ثانویه در سطح کل مینی‌بچ اعمال می‌شود:
+\begin{equation}
+    \hat{A}_{i,t}^{\text{norm}} = \frac{\hat{A}_i - \hat{A}_{\text{mean}}}{\hat{A}_{\text{std}}}
+\end{equation}
+که در آن $\hat{A}_{\text{mean}}$ و $\hat{A}_{\text{std}}$ میانگین و انحراف معیار کل نمونه‌های درون مینی‌بچ جاری هستند.
+
+\paragraph*{تثبیت آنتروپی با تحدید نامتقارن منطقه اعتماد (\en{Clip-Higher})}
+برای ممانعت از فروپاشی آنتروپی سیاست در فاز \en{RL}، استفاده از جمله کمکی آنتروپی (\en{Entropy Bonus}) به دلیل ایجاد ناپایداری شدید در ترکیب داده‌های ریاضی و کد کنار گذاشته شد. به جای آن، کران بالای منطقه اعتماد گشادتر در نظر گرفته شد:
+\begin{equation}
+    \varepsilon_{\text{low}} = 0.2, \qquad \varepsilon_{\text{high}} \in [0.26, 0.28]
+\end{equation}
+این عدم تقارن اجازه می‌دهد احتمالات مربوط به توکن‌های نادر اما کلیدی در استدلال‌های ریاضی فضای لازم را برای افزایش وزن پیدا کنند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=orange!80, fill=orange!8, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=orange!70!black}
+]
+    \node (gen) at (0, 4.2) [box, text width=6.5cm] {تولید $G$ پاسخ استدلالی $\{o_i\}_{i=1}^G$ برای پرامپت $q$};
+    \node (rew) at (0, 2.9) [box, text width=6.5cm] {محاسبه پاداش ترکیبی: $r_i = r_{\text{format}} + r_{\text{correct}} + r_{\text{len}} + r_{\text{lang}}$};
+    \node (advnorm) at (0, 1.5) [norm, text width=6.5cm] {نرمال‌سازی مزیت در سطح مینی‌بچ:\\ $\hat{A}_{i}^{\text{norm}} = (\hat{A}_i - \hat{A}_{\text{mean}}) / \hat{A}_{\text{std}}$};
+    \node (lossnorm) at (0, 0.0) [norm, text width=6.5cm] {نرمال‌سازی طول توالی تلفات:\\ تقسیم بر مجموع کل توکن‌ها $\sum_{i=1}^G |o_i|$};
+    \node (clip) at (0, -1.4) [box, text width=6.5cm] {به‌روزرسانی گرادیان با ناحیه اعتماد نامتقارن\\ $\varepsilon_{\text{low}} = 0.2, \; \varepsilon_{\text{high}} \in [0.26, 0.28]$};
+
+    \draw [arr] (gen) -- (rew);
+    \draw [arr] (rew) -- (advnorm);
+    \draw [arr] (advnorm) -- (lossnorm);
+    \draw [arr] (lossnorm) -- (clip);
+\end{tikzpicture}
+\caption{خط لوله نرمال‌سازی آماری در الگوریتم یادگیری تقویتی مدل \model{Magistral}}
+\label{fig:magistral_norm}
+\end{figure}

@@ -1,1 +1,72 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و راهبرد نرمال‌سازی در سری \en{Qwen3}}
+خانواده مدل‌های \model{Qwen3} \cite{qwen2025qwen3} شامل ۶ مدل متراکم (از ۰.۶B تا ۳۲B) و ۲ مدل \en{MoE} (مدل‌های ۳۰B-A3B و پرچم‌دار ۲۳۵B-A22B) است. در این مدل‌ها، بهینه‌سازی دقیق دینامیک‌های توجه و پایداری در طول آموزش روی ۳۶ تریلیون توکن و ۱۱۹ زبان گوناگون، تغییرات اساسی را در لایه‌های نرمال‌سازی تحمیل کرده است.
+
+\paragraph*{حذف کامل \en{QKV-Bias} و تثبیت توزیع بازنمایی}
+برخلاف مدل‌های نسل قبل (\en{Qwen2.5})، در سری \model{Qwen3} کلیه جملات بایاس از پروجکشن‌های خطی کوئری، کلید و مقدار حذف شده‌اند:
+\begin{equation}
+    Q = X W_Q, \qquad K = X W_K, \qquad V = X W_V
+\end{equation}
+حذف این بایاس‌ها مانع از ایجاد جابه‌جایی ثابت میانگین (\en{Mean Shift}) در فضای ویژگی‌ها شده و پایداری لایه‌های نرمال‌سازی بعدی را دوچندان می‌سازد.
+
+\paragraph*{مکانیزم \en{QK-Norm} و مهار ریاضی فروپاشی آنتروپی توجه}
+مهم‌ترین ارتقای معماری در بلوک ترنسفورمر \model{Qwen3}، استفاده از نرمال‌سازی کوئری و کلید (\en{QK-Norm}; Dehghani et al., 2023) به ازای تک‌تک سرهای توجه است. برای هر سر توجه $h \in \{1, \dots, n_h\}$:
+\begin{equation}
+    q_h^{\text{norm}} = \text{RMSNorm}(q_h) = \frac{q_h}{\sqrt{\frac{1}{d_k}\sum_{j=1}^{d_k} q_{h,j}^2 + \epsilon}} \odot \gamma_q^h
+\end{equation}
+\begin{equation}
+    k_h^{\text{norm}} = \text{RMSNorm}(k_h) = \frac{k_h}{\sqrt{\frac{1}{d_k}\sum_{j=1}^{d_k} k_{h,j}^2 + \epsilon}} \odot \gamma_k^h
+\end{equation}
+که در آن $d_k$ بعد سر توجه، $\epsilon = 10^{-6}$ و $\gamma_q^h, \gamma_k^h \in \mathbb{R}^{d_k}$ بردارهای مقیاس یادگیری‌پذیر هستند.
+
+*اثبات مهار کران بالای لاجیت‌های توجه*: در ترنسفورمرهای استاندارد بدون نرمال‌سازی، نُرم بردارهای کوئری و کلید می‌تواند به تناسب عمق لایه $l$ به صورت $\|q\|_2 \sim \mathcal{O}(\sqrt{l})$ رشد کند. این امر سبب می‌شود ماتریس امتیازات ضرب داخلی $S = Q K^\top / \sqrt{d_k}$ مقادیر فرین به خود بگیرد. با اعمال \en{QK-Norm}، نُرم بردارها در سطح ثابتی مقید می‌گردد:
+\begin{equation}
+    \|q_h^{\text{norm}}\|_2 \approx \sqrt{d_k}, \qquad \|k_h^{\text{norm}}\|_2 \approx \sqrt{d_k}
+\end{equation}
+بنابراین، مقدار قدر مطلق لاجیت‌های توجه بر اساس نابرابری کوشی-شوارتز (\en{Cauchy-Schwarz Inequality}) به صورت تحلیلی محدود می‌شود:
+\begin{equation}
+    \left| \frac{(q_h^{\text{norm}})^\top k_h^{\text{norm}}}{\sqrt{d_k}} \right| \le \frac{\|q_h^{\text{norm}}\|_2 \|k_h^{\text{norm}}\|_2}{\sqrt{d_k}} \approx \frac{\sqrt{d_k} \sqrt{d_k}}{\sqrt{d_k}} = \sqrt{d_k}
+\end{equation}
+این کران قطعی مانع از آن می‌شود که توزیع احتمالات سافت‌مکس دچار فروپاشی آنتروپی (\en{Entropy Collapse}) شده و به یک توزیع تک‌نقطه‌ای دیراک تبدیل شود. در نتیجه، واریانس گرادیان‌های پس‌انتشار در طول ۳۶ تریلیون توکن آموزش کاملاً پایدار باقی می‌ماند.
+
+\paragraph*{نرمال‌سازی توازن بار کارشناسان در سطح کل دسته‌ها (\en{Global-Batch MoE Normalization})}
+در مدل‌های \en{Qwen3-30B-A3B} و \en{Qwen3-235B-A22B}، تخصیص توکن‌ها به ۱۲۸ کارشناس ریزدانه با استفاده از یک تلفات توازن بار که در سطح کل دسته‌های توزیع‌شده (\en{Global Batch}) نرمال‌سازی شده است، هدایت می‌شود \cite{shao2024deepseekmath}:
+\begin{equation}
+    \mathcal{L}_{\text{balance}} = \alpha \sum_{e=1}^E f_e P_e, \qquad f_e = \frac{1}{B \times T} \sum_{b=1}^B \sum_{t=1}^T \mathbb{I}(\text{token } t \to \text{expert } e)
+\end{equation}
+نرمال‌سازی کسر توکن‌های تخصیص‌یافته ($f_e$) در مقیاس کل خوشه پردازشی، از اشباع موضعی کارشناسان در گره‌های مستقل پردازشی جلوگیری می‌نماید.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=blue!70, fill=blue!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    qknorm/.style={rectangle, draw=red!70, fill=red!8, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=blue!60!black}
+]
+    \node (in) at (0, 5.2) [box, text width=6cm] {ورودی لایه $x_l$};
+    \node (pre1) at (0, 4.0) [norm, text width=5cm] {Pre-RMSNorm};
+    \node (proj) at (0, 2.7) [box, text width=6.5cm] {پروجکشن بدون بایاس: $Q = X W_Q, \; K = X W_K, \; V = X W_V$};
+    \node (qknorm) at (0, 1.3) [qknorm, text width=7.2cm] {اعمال QK-Norm به ازای هر سر:\\ $q^{\text{norm}} = \text{RMSNorm}(q), \quad k^{\text{norm}} = \text{RMSNorm}(k)$};
+    \node (attn) at (0, -0.1) [box, text width=6.5cm] {محاسبه توجه کران‌دار: $\text{Softmax}\left( \frac{q^{\text{norm}} (k^{\text{norm}})^\top}{\sqrt{d_k}} \right) V$};
+    \node (res) at (0, -1.3) [box, text width=4.5cm] {اتصال باقی‌مانده مستقیم};
+    \node (pre2) at (0, -2.4) [norm, text width=5cm] {Pre-RMSNorm};
+    \node (ffn) at (0, -3.6) [box, text width=6.5cm] {SwiGLU / MoE با توازن بار Global-Batch};
+    \node (out) at (0, -4.8) [box, text width=5cm] {خروجی لایه $x_{l+1}$};
+
+    \draw [arr] (in) -- (pre1);
+    \draw [arr] (pre1) -- (proj);
+    \draw [arr] (proj) -- (qknorm);
+    \draw [arr] (qknorm) -- (attn);
+    \draw [arr] (attn) -- (res);
+    \draw [arr] (res) -- (pre2);
+    \draw [arr] (pre2) -- (ffn);
+    \draw [arr] (ffn) -- (out);
+    \draw [arr] (in.east) -- ++(1.4,0) |- (res.east);
+    \draw [arr] (res.west) -- ++(-1.4,0) |- (out.west);
+\end{tikzpicture}
+\caption{سازوکار نرمال‌سازی \en{QK-Norm} و لایه‌های مربوطه در بلوک ترنسفورمر \model{Qwen3}}
+\label{fig:qwen3_norm}
+\end{figure}

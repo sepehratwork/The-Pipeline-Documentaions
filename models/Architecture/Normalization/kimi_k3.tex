@@ -1,1 +1,84 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{مقدمه و نوآوری‌های چندبعدی نرمال‌سازی در \en{Kimi K3}}
+مدل \model{Kimi K3} \cite{kimi2026k3} به عنوان یک مدل چندوجهی ترکیبی با ۲.۸ تریلیون پارامتر کل و ۱۰۴ میلیارد پارامتر فعال بر پایه پنجره زمینه ۱ میلیون توکنی، سازوکارهای نرمال‌سازی را در سه بعد دنباله (\en{Sequence})، عمق شبکه (\en{Depth}) و کانال‌ها (\en{Channels}) دگرگون ساخته است.
+
+\paragraph*{ته‌نشینی توجه عمیق (\en{AttnRes}) و نرمال‌سازی کلیدها با \en{RMSNorm}}
+در شبکه‌های به شدت عمیق (۹۳ لایه در \model{Kimi K3})، جمع جبری ساده در اتصالات باقی‌مانده سبب انباشت کورکورانه اطلاعات و تسلط بازنمایی‌های میانی بر خروجی نهایی می‌شود. \model{Kimi K3} با ارائه سازوکار ته‌نشینی توجه عمیق (\en{Attention Residuals - AttnRes})، جمع ثابت باقی‌مانده را با یک سازوکار توجه در امتداد عمق لایه‌ها جایگزین کرده است:
+\begin{equation}
+    h_l = \sum_{i=0}^{l-1} \alpha_{i \to l} v_i
+\end{equation}
+که در آن $v_i = f_i(h_i)$ خروجی لایه $i$ و $v_0 = h_1$ امبدینگ توکن ورودی است. هسته توجه میان شبه‌کوئری یادگیری‌پذیر لایه $q_l = w_l \in \mathbb{R}^d$ و کلیدهای لایه‌های قبل $k_i$ با استفاده از عملگر \en{RMSNorm} فرمول‌بندی شده است:
+\begin{equation}
+    \phi(q_l, k_i) = \exp\left( q_l^\top \text{RMSNorm}(k_i) \right), \qquad \alpha_{i \to l} = \frac{\phi(q_l, k_i)}{\sum_{j=0}^{l-1} \phi(q_l, k_j)}
+\end{equation}
+*تحلیل آماری و تئوری اطلاعات*: بدون اعمال \en{RMSNorm} بر روی کلیدها $k_i$، لایه‌های انتهایی که نُرم فعال‌سازی بسیار بزرگ‌تری دارند به طور نامتناسبی ضرایب توجه $\alpha_{i \to l}$ را به خود اختصاص می‌دهند و آنتروپی توجه عمقی به صفر میل می‌کند. عملگر \en{RMSNorm} اندازه بردار کلید را در سطح کره فرضی با شعاع $\sqrt{d}$ نرمال کرده و گزینش اطلاعات را صرفاً تابع هم‌راستایی کسینوسی شبه‌کوئری و بردار لایه قرار می‌دهد.
+
+\paragraph*{نرمال‌سازی در توجه دلتای کیمی (\en{KDA})}
+لایه‌های توجه خطی \en{Kimi Delta Attention} از سه سطح نرمال‌سازی بهره می‌برند:
+\begin{itemize}
+    \item \textbf{نرمال‌سازی کروی کوئری و کلید با \en{L2Norm}:}
+    برای هر هد توجه $h$:
+    \begin{equation}
+        q_t^h, k_t^h = \text{L2Norm}\left( \text{Swish}(\text{ShortConv}(W_{q/k}^h x_t)) \right) = \frac{z}{\|z\|_2}
+    \end{equation}
+    این نرمال‌سازی اقلیدسی به صورت تحلیلی تضمین می‌کند که ماتریس تصویرساز در قانون دلتا:
+    \begin{equation}
+        S_t = (I - \beta_t k_t k_t^\top) \text{Diag}(\alpha_t) S_{t-1} + \beta_t k_t v_t^\top
+    \end{equation}
+    دارای مقادیر ویژه اکیداً درون بازه $[1-\beta_t, 1] \subset (0, 1]$ باشد، چرا که نُرم $\|k_t\|_2 = 1$ است. در نتیجه، وضعیت بازگشتی $S_t \in \mathbb{R}^{d_k \times d_v}$ دچار واگرایی یا تضعیف نمایی نمی‌شود.
+    \item \textbf{نرمال‌سازی \en{Head-wise RMSNorm} در خروجی بازگشتی:}
+    خروجی وضعیت پنهان پیش از اعمال گیتینگی که ابعاد آن گسترش یافته، تحت نرمال‌سازی قرار می‌گیرد:
+    \begin{equation}
+        y_t = W_o \left[ \text{Sigmoid}(W_g x_t) \odot \text{RMSNorm}(\tilde{o}_t) \right]
+    \end{equation}
+    \item \textbf{فرسایش لگاریتمی کران‌دار از پایین (\en{Lower-Bounded Decay}):}
+    برای اجتناب از خطای سرریز در ممیز شناور \en{BF16} ناشی از معکوس ضریب تجمع فرسایش $1/\Gamma_{1 \to C}$، نرخ فرسایش با سیگموئید مقیاس‌دار نرمال و مقید می‌شود:
+    \begin{equation}
+        g_t^h = g_{\min} \text{Sigmoid}(e^{A_h} z_t^h) \in (g_{\min}, 0)^{d_k}, \quad g_{\min} = -5
+    \end{equation}
+\end{itemize}
+
+\paragraph*{نرمال‌سازی شاخه کارشناسان در \en{Normalized LatentMoE}}
+در معماری کارشناسان نهفته، توکن ورودی ابتدا به بعد نهفته $\ell = 3584$ فشرده شده و پس از پردازش توسط ۱۶ کارشناس از بین ۸۹۶ کارشناس، تجمیع می‌گردد: $u = \sum_{i \in \mathcal{T}_k(x)} p_i E_i^{\text{routed}}(W^\downarrow x)$.
+مدل \model{Kimi K3} یک لایه \en{RMSNorm} صریح را مستقیماً میان بردار خروجی کارشناسان و پروجکشن صعودی $W^\uparrow$ قرار داده است:
+\begin{equation}
+    y = \sum_{j=1}^{N_s} E_j^{\text{shared}}(x) + W^\uparrow \text{RMSNorm}(u)
+\end{equation}
+این نرمال‌سازی نوسانات شدید مقیاس ناشی از تفاوت وزن‌های تخصیص‌یافته توسط روتر را خنثی ساخته و بازنمایی شاخه کارشناسان را پیش از تجمیع با کارشناسان اشتراکی پایدار می‌سازد.
+
+\paragraph*{تحدید نرم فعال‌سازی با \en{SiTU-GLU}}
+برای کنترل مقادیر دورافتاده در محاسبات با دقت پایین (\en{FP8} و \en{FP4})، تابع فعال‌سازی \en{SiTU-GLU} با ساختار زیر توسعه داده شده است:
+\begin{equation}
+    \text{SiTU-GLU}(x) = \left[ \beta_1 \tanh\left(\frac{W_g x}{\beta_1}\right) \odot \text{Sigmoid}(W_g x) \right] \odot \left[ \beta_2 \tanh\left(\frac{W_u x}{\beta_2}\right) \right]
+\end{equation}
+با انتخاب هایپرپارامترهای $\beta_1 = 4$ و $\beta_2 = 25$، نُرم بینهایت فعال‌سازی لایه اف‌اف‌ان به صورت تحلیلی مقید به مقدار زیر می‌شود:
+\begin{equation}
+    \|\text{SiTU-GLU}(x)\|_\infty \le \beta_1 \beta_2 = 100
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=blue!70, fill=blue!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    kda/.style={rectangle, draw=purple!70, fill=purple!8, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=blue!60!black}
+]
+    \node (res_in) at (0, 5.2) [box, text width=7cm] {بازنمایی‌های عمق بلوک $h_1, \dots, h_{l-1}$};
+    \node (attnres) at (0, 3.8) [norm, text width=7cm] {Block AttnRes با کلیدهای نرمال‌شده:\\ $\alpha_{i \to l} = \text{Softmax}_i(q_l^\top \text{RMSNorm}(k_i))$};
+    \node (kda_blk) at (0, 2.2) [kda, text width=7.2cm] {توجه دلتا (\en{KDA}) یا \en{Gated MLA}\\ $\bullet$ اعمال L2Norm بر روی هدهای $q$ و $k$\\ $\bullet$ اعمال RMSNorm بر وضعیت بازگشتی قبل از گیت خروجی};
+    \node (moe_norm) at (0, 0.6) [norm, text width=7.2cm] {Normalized LatentMoE:\\ $y = E_{\text{shared}}(x) + W^\uparrow \text{RMSNorm}(u)$};
+    \node (situglu) at (0, -0.8) [box, text width=6.5cm] {فعال‌ساز SiTU-GLU کران‌دار: $\|\text{SiTU-GLU}\|_\infty \le 100$};
+    \node (out) at (0, -2.1) [box, text width=5cm] {خروجی بلوک ترنسفورمر $h_l$};
+
+    \draw [arr] (res_in) -- (attnres);
+    \draw [arr] (attnres) -- (kda_blk);
+    \draw [arr] (kda_blk) -- (moe_norm);
+    \draw [arr] (moe_norm) -- (situglu);
+    \draw [arr] (situglu) -- (out);
+\end{tikzpicture}
+\caption{لایه‌های متوالی نرمال‌سازی در ساختار بلوک ترنسفورمر \model{Kimi K3}}
+\label{fig:kimi_k3_norm}
+\end{figure}

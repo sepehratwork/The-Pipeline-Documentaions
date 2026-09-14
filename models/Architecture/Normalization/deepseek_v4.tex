@@ -1,1 +1,96 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مقدمه و نقش نرمال‌سازی در پردازش توالی‌های میلیونی}
+در مدل‌های \model{DeepSeek-V4} \cite{deepseek2026v4} که در دو نسخه \en{DeepSeek-V4-Pro} (با ۱.۶ تریلیون پارامتر کل و ۴۹ میلیارد پارامتر فعال) و \en{DeepSeek-V4-Flash} (با ۲۸۴ میلیارد پارامتر کل و ۱۳ میلیارد پارامتر فعال) عرضه شده‌اند، پردازش پایدار بافت‌های متنی تا سقف یک میلیون توکن (\en{1M tokens}) مستلزم بازمهندسی ساختاری سازوکارهای نرمال‌سازی است. در این معماری، نرمال‌سازی از یک لایه تنظیم مقیاس ساده به یک سامانه چندلایه جهت تضمین ناگسترش‌پذیری عملگرها (\en{Non-expansiveness})، تحدید مقادیر ویژه، و پیشگیری از انفجار لاجیت‌های توجه تبدیل شده است.
+
+\paragraph*{اتصالات فوق‌پیوسته مقید به منیفولد (\en{mHC}) و تحدید منیفولد بیرکهوف}
+یکی از بزرگ‌ترین چالش‌های انباشت صدها بلوک ترنسفورمر، رشد نمایی دامنه سیگنال در مسیر باقی‌مانده و فروپاشی عددی است. مدل \model{DeepSeek-V4} معماری اتصالات فوق‌پیوسته (\en{Hyper-Connections - HC}) را ارتقا داده و آن را به صورت اتصالات مقید به منیفولد (\en{Manifold-Constrained Hyper-Connections - mHC}) پیاده‌سازی نموده است. در این رویکرد، پهنای جریان باقی‌مانده با ضریب $n_{\text{hc}} = 4$ گسترش می‌یابد:
+\begin{equation}
+    X_{l+1} = B_l X_l + C_l \mathcal{F}_l(A_l X_l)
+\end{equation}
+که در آن $X_l \in \mathbb{R}^{n_{\text{hc}} \times d}$ حالت باقی‌مانده قبل از لایه $l$ است. برای پارامتریزاسیون دینامیک، تانسور ورودی ابتدا فلت شده و با عملگر \en{RMSNorm} استانداردسازی می‌شود:
+\begin{equation}
+    \hat{X}_l = \text{RMSNorm}(\text{vec}(X_l)) \in \mathbb{R}^{1 \times n_{\text{hc}} d}
+\end{equation}
+سپس پارامترهای خام به‌صورت خطی محاسبه می‌گردند:
+\begin{align}
+    \tilde{A}_l &= \alpha_l^{\text{pre}} \cdot (\hat{X}_l W_l^{\text{pre}}) + S_l^{\text{pre}} \\
+    \tilde{B}_l &= \alpha_l^{\text{res}} \cdot \text{Mat}(\hat{X}_l W_l^{\text{res}}) + S_l^{\text{res}} \\
+    \tilde{C}_l &= \alpha_l^{\text{post}} \cdot (\hat{X}_l W_l^{\text{post}})^\top + S_l^{\text{post}}
+\end{align}
+
+به منظور تثبیت دینامیک پس‌انتشار، ماتریس انتقال باقی‌مانده $B_l \in \mathbb{R}^{n_{\text{hc}} \times n_{\text{hc}}}$ به منیفولد ماتریس‌های دابل-استوکستیک یا پلی‌توپ بیرکهوف (\en{Birkhoff Polytope}) مقید می‌شود:
+\begin{equation}
+    \mathcal{M} \coloneqq \left\{ M \in \mathbb{R}^{n_{\text{hc}} \times n_{\text{hc}}} \;\middle|\; M \mathbf{1}_{n_{\text{hc}}} = \mathbf{1}_{n_{\text{hc}}}, \; \mathbf{1}_{n_{\text{hc}}}^\top M = \mathbf{1}_{n_{\text{hc}}}^\top, \; M \ge 0 \right\}
+\end{equation}
+
+بر اساس قضیه پرود-فروبنیوس (\en{Perron-Frobenius Theorem})، بزرگ‌ترین مقدار ویژه یک ماتریس نامنفی دابل-استوکستیک دقیقاً برابر با ۱ است، بنابراین نُرم طیفی آن محدود است:
+\begin{equation}
+    \|B_l\|_2 = 1 \implies \|B_l X_l\|_F \le \|B_l\|_2 \|X_l\|_F = \|X_l\|_F
+\end{equation}
+این قید تحلیلی تضمین می‌کند که تبدیل باقی‌مانده کاملاً ناگسترش‌پذیر (\en{Non-expansive}) بوده و واریانس در طول لایه‌ها واگرا نشود. علاوه بر این، از آنجا که فضای $\mathcal{M}$ نسبت به ضرب ماتریسی بسته است ($\forall M_1, M_2 \in \mathcal{M} \implies M_1 M_2 \in \mathcal{M}$)، انباشت عمیق لایه‌ها در فاز رفت و برگشت گرادیان از ثبات قطعی برخوردار خواهد بود.
+
+\paragraph*{نرمال‌سازی پروجکشن سینک‌هورن-ناپ (\en{Sinkhorn-Knopp Algorithm})}
+برای نگاشت ماتریس خام $\tilde{B}_l$ بر منیفولد $\mathcal{M}$، ابتدا تابع نمایی جهت تضمین اکیداً مثبت بودن اعمال می‌شود: $M^{(0)} = \exp(\tilde{B}_l)$. سپس نرمال‌سازی متناوب سطری و ستونی طی $t_{\max} = 20$ تکرار محاسبه می‌گردد:
+\begin{equation}
+    M^{(t)} = \mathcal{T}_r(\mathcal{T}_c(M^{(t-1)}))
+\end{equation}
+که در آن عملگرهای نرمال‌سازی سطری و ستونی به شکل زیر تعریف می‌شوند:
+\begin{equation}
+    \left[\mathcal{T}_c(M)\right]_{ij} = \frac{M_{ij}}{\sum_{k=1}^{n_{\text{hc}}} M_{kj}}, \qquad \left[\mathcal{T}_r(M)\right]_{ij} = \frac{M_{ij}}{\sum_{k=1}^{n_{\text{hc}}} M_{ik}}
+\end{equation}
+برای ممانعت از پدیده کنسل شدن سیگنال (\en{Signal Cancellation})، نگاشت‌های ورودی و خروجی نیز از طریق تابع سیگموئید نرمال و کران‌دار می‌شوند:
+\begin{equation}
+    A_l = \sigma(\tilde{A}_l), \qquad C_l = 2\sigma(\tilde{C}_l)
+\end{equation}
+
+\paragraph*{نرمال‌سازی هدهای کوئری و ورودی‌های فشرده در \en{CSA} و \en{HCA}}
+در لایه‌های توجه تنک فشرده (\en{Compressed Sparse Attention - CSA}) و توجه به شدت فشرده (\en{Heavily Compressed Attention - HCA})، به ازای هر $m$ ورودی کلید-مقدار، فشرده‌سازی با نرمال‌سازی سطری سافت‌مکس انجام می‌گیرد:
+\begin{equation}
+    \left[ S^a_{mi:m(i+1)-1} ; S^b_{m(i-1):mi-1} \right] = \text{Softmax}_{\text{row}}\left( \left[ Z^a_{mi:m(i+1)-1} + B^a ; Z^b_{m(i-1):mi-1} + B^b \right] \right)
+\end{equation}
+این نرمال‌سازی تضمین می‌کند که ضریب وزنی تجمیع توکن‌های بافت در تولید مؤلفه‌های $C_i^{\text{Comp}}$، دقیقاً یک ترکیب محدب با مجموع وزن ۱ باشد:
+\begin{equation}
+    \sum_{j=mi}^{m(i+1)-1} S^a_{j} + \sum_{j=m(i-1)}^{mi-1} S^b_{j} = 1
+\end{equation}
+
+همچنین پیش از انجام ضرب داخلی توجه، یک عملگر \en{RMSNorm} مستقل بر روی تک‌تک سرهای کوئری و تنها سرِ ورودی‌های فشرده کلید-مقدار اعمال می‌گردد:
+\begin{equation}
+    \tilde{q}_{t,i} = \text{RMSNorm}(q_{t,i}), \qquad \tilde{C}^{\text{Comp}}_t = \text{RMSNorm}(C^{\text{Comp}}_t)
+\end{equation}
+این نرمال‌سازی پیشگیرانه، لاجیت‌های حاصل از ضرب داخلی را در طول بافت‌های ۱ میلیون توکنی مقید کرده و نیاز به روش‌های پیرایش گرادیان مانند \en{QK-Clip} در بهینه‌ساز \en{Muon} را به کلی مرتفع می‌سازد.
+
+\paragraph*{چاهک توجه (\en{Attention Sink}) و تثبیت توزیع احتمالات}
+جهت رفع پدیده تمرکز کاذب توجه بر توکن‌های نخستین در توالی‌های بسیار طولانی، یک لاجیت چاهک یادگیری‌پذیر $z'_h$ به مخرج سافت‌مکس اضافه می‌شود:
+\begin{equation}
+    s_{h,i,j} = \frac{\exp(z_{h,i,j})}{\sum_k \exp(z_{h,i,k}) + \exp(z'_h)}
+\end{equation}
+از دیدگاه تئوری اطلاعات، چاهک توجه به شبکه اجازه می‌دهد تا زمانی که هیچ اطلاعات مفیدی در بافت پیشین وجود ندارد، مجموع وزن توجه به توکن‌ها را به صفر میل دهد ($\sum_j s_{h,i,j} < 1$) و از تخریب بازنمایی با نویز زمینه‌ای جلوگیری کند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=blue!70, fill=blue!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    sinkhorn/.style={rectangle, draw=red!70, fill=red!8, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=blue!60!black}
+]
+    \node (in) at (0, 6.5) [box, text width=5cm] {جریان باقی‌مانده $X_l \in \mathbb{R}^{n_{\text{hc}} \times d}$};
+    \node (vecnorm) at (-3.2, 5.0) [norm, text width=4.2cm] {$\hat{X}_l = \text{RMSNorm}(\text{vec}(X_l))$};
+    \node (gen) at (-3.2, 3.5) [box, text width=4.2cm] {تولید پارامترهای خام $\tilde{A}_l, \tilde{B}_l, \tilde{C}_l$};
+    \node (sink) at (3.2, 3.5) [sinkhorn, text width=4.2cm] {الگوریتم Sinkhorn-Knopp ($t_{\max}=20$)\\ $B_l \in \mathcal{M} \implies \|B_l\|_2 = 1$};
+    \node (sublayer) at (-3.2, 1.8) [box, text width=4.2cm] {لایه زیرین $\mathcal{F}_l(A_l X_l)$\\ $A_l = \sigma(\tilde{A}_l), \; C_l = 2\sigma(\tilde{C}_l)$};
+    \node (merge) at (0, 0.2) [norm, text width=6.2cm] {ترکیب باقی‌مانده:\\ $X_{l+1} = B_l X_l + C_l \mathcal{F}_l(A_l X_l)$};
+
+    \draw [arr] (in) -| (vecnorm);
+    \draw [arr] (vecnorm) -- (gen);
+    \draw [arr] (gen) -- (sublayer);
+    \draw [arr] (gen) -- node[above, font=\scriptsize] {پروجکشن $\tilde{B}_l$} (sink);
+    \draw [arr] (sublayer) |- (merge);
+    \draw [arr] (sink) |- (merge);
+    \draw [arr] (in) -- ++(3.2,0) |- (sink);
+\end{tikzpicture}
+\caption{جریان نرمال‌سازی در اتصالات فوق‌پیوسته مقید به منیفولد (\en{mHC}) مدل \model{DeepSeek-V4}}
+\label{fig:deepseek_v4_mhc}
+\end{figure}

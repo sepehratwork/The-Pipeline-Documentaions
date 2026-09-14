@@ -1,1 +1,79 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{مقدمه و راهبرد پیش‌نرمال‌سازی در \en{GLM-5}}
+مدل زبانی \model{GLM-5} \cite{zeng2026glm5} که توسط تیم \en{GLM} و دانشگاه سینگهوا معرفی شده است، ساختاری از نوع مخلوط کارشناسان (\en{MoE}) با ۷۴۴ میلیارد پارامتر کل و ۴۰ میلیارد پارامتر فعال در ۸۰ لایه ترنسفورمر دارد. این مدل برای تسلط بر وظایف پیچیده مهندسی عامل‌محور (\en{Agentic Engineering}) و استدلال عمیق، پردازش توالی‌های تا سقف ۲۰۰ هزار توکن را در فاز پیش‌آموزش و پس‌آموزش هدف قرار داده است. در این چارچوب، نرمال‌سازی ستون فقرات پایداری آموزش توزیع‌شده ناهمگام و تطبیق بومی با شتاب‌دهنده‌های هوش مصنوعی است.
+
+\paragraph*{پیکربندی \en{Pre-LN RMSNorm} در ساختار بلوک}
+مدل \model{GLM-5} چیدمان استاندارد پیش‌نرمال‌سازی (\en{Pre-Layer Normalization}) را با استفاده از تابع \en{RMSNorm} به کار می‌گیرد. فرم برداری به‌روزرسانی بلوک ترنسفورمر به صورت زیر فرمول‌بندی می‌شود:
+\begin{align}
+    u_l &= x_l + \text{MLA}(\text{RMSNorm}(x_l)) \\
+    x_{l+1} &= u_l + \text{MoE}(\text{RMSNorm}(u_l))
+\end{align}
+در بعد پنهان مدل ($d = 6144$)، عملگر \en{RMSNorm} تضمین می‌کند که واریانس ورودی زیرلایه‌ها مقید به ۱ باقی بماند:
+\begin{equation}
+    \text{RMSNorm}(z) = \frac{z}{\sqrt{\frac{1}{d}\sum_{k=1}^d z_k^2 + \epsilon}} \odot \gamma
+\end{equation}
+با ثابت نگه داشتن نُرم ورودی، توابع گرادیان در مسیر اتصال مستقیم باقی‌مانده بدون تضعیف یا انفجار ناشی از مقیاس به لایه‌های اولیه بازمی‌گردند.
+
+\paragraph*{تکنیک \en{Muon Split} جهت پایدارسازی لاجیت‌های توجه}
+در معماری توجه نهفته چندسری (\en{Multi-head Latent Attention - MLA})، به کارگیری بهینه‌ساز \en{Muon} به صورت کلاسیک برای به‌روزرسانی ماتریس‌های پروجکشن $W^{UQ}, W^{UK}, W^{UV}$، به دلیل ابعاد بالای پنهان، باعث توزیع ناهمگون مقادیر ویژه میان هدهای مختلف می‌شد. این پدیده موجب می‌شد هدهایی با گرادیان بزرگ‌تر جهت به‌روزرسانی را تصاحب کرده و لاجیت‌های توجه دچار جهش‌های غیرقابل‌کنترل گردند.
+
+برای حل این چالش، تکنیک \en{Muon Split} در \model{GLM-5} طراحی شد. در این روش، ماتریس‌های پروجکشن توجه به ماتریس‌های کوچک‌تر مجزا به ازای هر یک از ۶۴ هد توجه افراز می‌شوند:
+\begin{equation}
+    W^{UQ} = \begin{bmatrix} W_1^{UQ} \\ W_2^{UQ} \\ \vdots \\ W_{n_h}^{UQ} \end{bmatrix}, \qquad W_i^{UQ} \in \mathbb{R}^{d_c \times d_{\text{head}}}
+\end{equation}
+سپس عملگر متعامدسازی نیوتن-شولتز (\en{Newton-Schulz iterations}) به طور کاملاً مجزا بر روی هر زیرماتریس اعمال می‌گردد:
+\begin{equation}
+    \tilde{W}_i^{UQ} \leftarrow \text{Orthogonalize}(W_i^{UQ}), \quad \forall i \in \{1, \dots, n_h\}
+\end{equation}
+این متعامدسازی مستقل در سطح هدها موجب می‌شود که مقیاس وزن‌های پروجکشن هدهای گوناگون با نرخ‌های متناسب خود به‌روزرسانی شوند. در نتیجه، مقیاس لاجیت‌های توجه در طول پیش‌آموزش بدون نیاز به هیچ‌گونه هرس لاجیت (\en{QK-Clipping}) در وضعیتی پایدار تثبیت می‌گردد.
+
+\paragraph*{نرمال‌سازی مزیت گروهی و خط‌مشی در \en{Asynchronous RL}}
+در مرحله بهینه‌سازی سیاست با الگوریتم \en{GRPO} ناهمگام، پایدارسازی توزیع گرادیان با تکنیک \en{IcePop} حاصل می‌شود. در این راستا، نسبت عدم انطباق آموزش و استنتاج (\en{Training-Inference Mismatch Ratio}) به کمک یک بازه نرمال‌سازی فیلتر می‌شود:
+\begin{equation}
+    \rho_{i,t} = \frac{\pi_{\theta_{\text{old}}}^{\text{train}}(y_{i,t} \mid x, y_{i,<t})}{\pi_{\theta_{\text{old}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}, \qquad \text{pop}(\rho_{i,t}, 1/\beta, \beta) = \begin{cases} 
+        \rho_{i,t}, & \text{if } 1/\beta \le \rho_{i,t} \le \beta \\ 
+        0, & \text{otherwise} 
+    \end{cases}
+\end{equation}
+علاوه بر این، مزیت درون‌گروهی به وسیله میانگین و انحراف معیار پاسخ‌های تولیدشده برای یک پرامپت نرمال‌سازی می‌شود:
+\begin{equation}
+    \hat{A}_{i,t} = \frac{R_i - \text{mean}(R_1, \dots, R_G)}{\text{std}(R_1, \dots, R_G)}
+\end{equation}
+این استانداردسازی آماری تضمین می‌کند که جهت گرادیان‌ها تنها متأثر از برتری کیفی نسبی پاسخ‌ها باشد و تفاوت مطلق پاداش‌ها در وظایف گوناگون سبب واگرایی یادگیری نشود.
+
+\paragraph*{نرمال‌سازی و چرخش آماری فعال‌سازی‌ها در کوانتیزاسیون (\en{QuaRot})}
+جهت استقرار مدل بر بستر سخت‌افزارهای پردازشی چینی \en{Huawei Ascend} با دقت ترکیبی \en{W4A8}، مدیریت مقادیر دورافتاده (\en{Activation Outliers}) ضروری است. با استفاده از الگوریتم \en{QuaRot} \cite{ashkboos2024quarot}، ماتریس‌های چرخش هادامارد متعامد $H$ در لایه‌ها ادغام می‌شوند:
+\begin{equation}
+    \tilde{x} = x H, \qquad \tilde{W} = H^\top W, \qquad H H^\top = I
+\end{equation}
+این تبدیل مقیاس انرژی مقادیر دورافتاده را به صورت متقارن روی تمامی کانال‌ها توزیع نموده و نُرم بیشینه مؤلفه‌ها را شدیداً کاهش می‌دهد که خطای خطی کوانتیزاسیون را به حداقل ممکن می‌رساند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=blue!70, fill=blue!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=blue!60!black}
+]
+    \node (in) at (0, 5.0) [box, text width=6cm] {ورودی لایه $x_l \in \mathbb{R}^{6144}$};
+    \node (pre1) at (0, 3.8) [norm, text width=5cm] {Pre-RMSNorm ($\epsilon = 10^{-6}$)};
+    \node (mla) at (0, 2.4) [box, text width=6.5cm] {توجه نهفته چندسری (\en{MLA}) با \en{Muon Split}\\ متعامدسازی مجزا به ازای هر یک از ۶۴ هد};
+    \node (res1) at (0, 1.1) [box, text width=4.5cm] {اتصال باقی‌مانده اول: $u_l = x_l + \text{MLA}(\dots)$};
+    \node (pre2) at (0, -0.1) [norm, text width=5cm] {Pre-RMSNorm ($\epsilon = 10^{-6}$)};
+    \node (moe) at (0, -1.4) [box, text width=6.5cm] {مخلوط کارشناسان (\en{MoE})\\ ۲۵۶ کارشناس، ۸ کارشناس فعال};
+    \node (out) at (0, -2.6) [box, text width=4.5cm] {خروجی لایه $x_{l+1} \in \mathbb{R}^{6144}$};
+
+    \draw [arr] (in) -- (pre1);
+    \draw [arr] (pre1) -- (mla);
+    \draw [arr] (mla) -- (res1);
+    \draw [arr] (res1) -- (pre2);
+    \draw [arr] (pre2) -- (moe);
+    \draw [arr] (moe) -- (out);
+    \draw [arr] (in.east) -- ++(1.5,0) |- (res1.east);
+    \draw [arr] (res1.west) -- ++(-1.5,0) |- (out.west);
+\end{tikzpicture}
+\caption{چیدمان نرمال‌سازی در بلوک ترنسفورمر مدل \model{GLM-5}}
+\label{fig:glm5_block}
+\end{figure}

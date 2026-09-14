@@ -1,1 +1,55 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{مقدمه و فلسفه طراحی \en{MiniMax-M2}}
+خانواده مدل‌های \model{MiniMax-M2} \cite{minimax2026m2} (از نسخه پایه تا مدل پیشرفته \en{M2.7}) بر پایه اصل «فعال‌سازی‌های خرد، هوشمندی کلان» (\en{Mini Activations Unleashing Max Real-World Intelligence}) ساخته شده‌اند. مدل پایه دارای ۲۲۹.۹ میلیارد پارامتر کل است در حالی که تنها ۹.۸ میلیارد پارامتر به ازای هر توکن فعال می‌شود. این معماری شامل ۶۲ لایه ترنسفورمر، بعد پنهان $d = 3072$ و طول بافت بومی ۱۹۲ هزار توکن است.
+
+\paragraph*{پیش‌نرمال‌سازی با \en{RMSNorm} در لایه‌های مدل اصلی}
+در سراسر ۶۲ لایه ترنسفورمر، پیش‌نرمال‌سازی (\en{Pre-LN}) به صورت زیر تعبیه شده است:
+\begin{align}
+    x'_l &= x_l + \text{GQA}(\text{RMSNorm}(x_l)) \\
+    x_{l+1} &= x'_l + \text{MoE}(\text{RMSNorm}(x'_l))
+\end{align}
+در بخش خودتوجهی از ۴۸ سر کوئری و ۸ سر کلید-مقدار (\en{GQA}) بهره‌برداری می‌شود. عملگر \en{RMSNorm} تضمین می‌نماید که ورودی‌های زیرلایه‌ها در فضای بافت طولانی (۱۹۲K) همواره روی منیفولد اقلیدسی با مقیاس یکنواخت باقی بمانند.
+
+\paragraph*{نرمال‌سازی لایه‌ای در ماژول پیش‌بینی چندتوکنی (\en{MTP})}
+مدل \model{MiniMax-M2} در فاز پیش‌آموزش و ادامه آن، از ماژول‌های پیش‌بینی چندتوکنی (\en{Multi-Token Prediction - MTP}) برای پیش‌بینی همزمان $K = 3$ توکن آینده استفاده می‌کند. هر بلوک \en{MTP} ساختار لایه‌ای مدل اصلی را منعکس می‌سازد. برای ادغام بدون اعوجاج بازنمایی لایه اصلی با ماژول \en{MTP}:
+\begin{equation}
+    h_i^{\text{MTP}} = \text{TransformerBlock}\left( \text{LinearProjection}(\text{RMSNorm}(h_i)) \right)
+\end{equation}
+اعمال \en{RMSNorm} قبل از پروجکشن خطی، شوک‌های ناشی از تفاوت مقیاس گرادیان در آموزش همزمان مدل اصلی و پیش‌بینی چندتوکنی را مهار می‌سازد.
+
+\paragraph*{نرمال‌سازی احتمالاتی در گیتینگ سیگموئید با بایاس کارشناسان}
+در لایه مخلوط کارشناسان که شامل ۲۵۶ کارشناس ریزدانه (با فعال‌سازی ۸ کارشناس در هر توکن) است، به جای استفاده از تابع سافت‌مکس که یک نرمال‌سازی جمع-صفر (\en{Zero-Sum}) تحمیل می‌کند، از گیتینگ سیگموئیدی مستقل بهره گرفته شده است:
+\begin{equation}
+    s_i = \sigma(W_g x + b_i) = \frac{1}{1 + e^{-(W_g x + b_i)}}
+\end{equation}
+بایاس‌های یادگیری‌پذیر $b_i$ به صورت مستقیم توزیع فراخوانی کارشناسان را نرمال کرده و نیاز به تلفات کمکی توازن بار را به حداقل می‌رسانند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=blue!70, fill=blue!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=blue!60!black}
+]
+    \node (in) at (0, 4.8) [box, text width=5.5cm] {بردار ورودی لایه $x_l \in \mathbb{R}^{3072}$};
+    \node (norm1) at (0, 3.6) [norm, text width=4.5cm] {Pre-RMSNorm};
+    \node (gqa) at (0, 2.3) [box, text width=6.5cm] {GQA Attention (48 سر Q، 8 سر KV)\\ با چرخش فرکانسی RoPE};
+    \node (add1) at (0, 1.1) [box, text width=4.5cm] {اتصال باقی‌مانده مستقیم: $x'_l = x_l + \text{Attn}$};
+    \node (norm2) at (0, 0.0) [norm, text width=4.5cm] {Pre-RMSNorm};
+    \node (moe) at (0, -1.2) [box, text width=6.5cm] {MoE FFN با گیتینگ سیگموئیدی\\ ۲۵۶ کارشناس ریزدانه، ۸ فعال با بایاس $b_i$};
+    \node (out) at (0, -2.4) [box, text width=5.5cm] {خروجی لایه $x_{l+1} \in \mathbb{R}^{3072}$};
+
+    \draw [arr] (in) -- (norm1);
+    \draw [arr] (norm1) -- (gqa);
+    \draw [arr] (gqa) -- (add1);
+    \draw [arr] (add1) -- (norm2);
+    \draw [arr] (norm2) -- (moe);
+    \draw [arr] (moe) -- (out);
+    \draw [arr] (in.east) -- ++(1.4,0) |- (add1.east);
+    \draw [arr] (add1.west) -- ++(-1.4,0) |- (out.west);
+\end{tikzpicture}
+\caption{پیکربندی نرمال‌سازی در بلوک ترنسفورمر \model{MiniMax-M2}}
+\label{fig:minimax_m2_norm}
+\end{figure}

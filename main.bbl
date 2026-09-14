@@ -2114,6 +2114,186 @@ Bo~Yin, Xingyi Yang, and Xinchao Wang.
   with Latent Dimensions and NVFP4 Training}.
 \newblock {\em arXiv preprint arXiv:2502.33333}, 2025.
 
+\bibitem{ioffe2015batch}
+Sergey Ioffe and Christian Szegedy.
+\newblock Batch normalization: Accelerating deep network training by reducing
+  internal covariate shift.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  448--456, 2015.
+
+\bibitem{ba2016layer}
+Jimmy~Lei Ba, Jamie~Ryan Kiros, and Geoffrey~E Hinton.
+\newblock Layer normalization.
+\newblock {\em arXiv preprint arXiv:1607.06450}, 2016.
+
+\bibitem{santurkar2018batch}
+Shibani Santurkar, Dimitris Tsipras, Andrew Ilyas, and Aleksander Madry.
+\newblock How does batch normalization help optimization?
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  31, 2018.
+
+\bibitem{octavia2025survey}
+Arlo Octavia.
+\newblock Transformer architecture evolution in large language models: A
+  survey.
+\newblock {\em Preprint}, 2025.
+
+\bibitem{liu2020understanding}
+Liyuan Liu, Xiaodong Liu, Jianfeng Gao, Weizhu Chen, and Jiawei Han.
+\newblock Understanding the difficulty of training transformers.
+\newblock In {\em Empirical Methods in Natural Language Processing (EMNLP)},
+  pages 5747--5763, 2020.
+
+\bibitem{radford2019language}
+Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya
+  Sutskever.
+\newblock Language models are unsupervised multitask learners.
+\newblock {\em OpenAI Technical Report}, 2019.
+
+\bibitem{zhang2019root}
+Biao Zhang and Rico Sennrich.
+\newblock Root mean square layer normalization.
+\newblock {\em Advances in Neural Information Processing Systems}, 32, 2019.
+
+\bibitem{henry2020query}
+Alex Henry, Prudhvi~Raj Dachapally, Shubham~Shantaram Pawar, and Yuxuan Chen.
+\newblock Query-key normalization for transformers.
+\newblock In {\em Findings of EMNLP 2020}, pages 4246--4253, 2020.
+
+\bibitem{sun2025curse}
+Wenfang Sun, Xinyuan Song, Pengxiang Li, Lu~Yin, Yefeng Zheng, and Shiwei Liu.
+\newblock The curse of depth in large language models.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~39, 2025.
+
+\bibitem{gromov2025unreasonable}
+Andrey Gromov, Kushal Tirumala, Hassan Shapourian, Paolo Glorioso, and
+  Daniel~A. Roberts.
+\newblock The unreasonable ineffectiveness of the deeper layers.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{sun2024massive}
+Mingjie Sun, Xinlei Chen, J.~Zico Kolter, and Zhuang Liu.
+\newblock Massive activations in large language models.
+\newblock {\em arXiv preprint arXiv:2402.17762}, 2024.
+
+\bibitem{li2025mixln}
+Pengxiang Li, Lu~Yin, and Shiwei Liu.
+\newblock Mix-ln: Unleashing the power of deeper layers by combining pre-ln and
+  post-ln.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{kim2025periln}
+Jeonghoon Kim, Byeongchan Lee, Cheonbok Park, Yeontaek Oh, Beomjun Kim, Taehwan
+  Yoo, Seongjin Shin, Dongyoon Han, Jinwoo Shin, and Kang~Min Yoo.
+\newblock Peri-ln: Revisiting normalization layer in the transformer
+  architecture.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2025.
+
+\bibitem{zhuo2025hybridnorm}
+Zhijian Zhuo, Yutao Zeng, Ya~Wang, Sijun Zhang, Jian Yang, Xiaoqing Li, Xun
+  Zhou, and Jinwen Ma.
+\newblock Hybridnorm: Towards stable and efficient transformer training via
+  hybrid normalization.
+\newblock {\em arXiv preprint arXiv:2503.04598}, 2025.
+
+\bibitem{chen2026keel}
+Chen Chen and Lai Wei.
+\newblock Post-layernorm is back: Stable, expressive, and deep.
+\newblock {\em arXiv preprint arXiv:2601.19895}, 2026.
+
+\bibitem{li2026siamesenorm}
+Tianyu Li, Dongchen Han, Zixuan Cao, Haofeng Huang, Mengyu Zhou, Ming Chen,
+  Erchao Zhao, Xiaoxi Jiang, Guanjun Jiang, and Gao Huang.
+\newblock Siamesenorm: Breaking the barrier to reconciling pre/post-norm.
+\newblock {\em arXiv preprint arXiv:2602.08064}, 2026.
+
+\bibitem{zhu2025transformers}
+Jiachen Zhu, Xinlei Chen, Kaiming He, Yann LeCun, and Zhuang Liu.
+\newblock Transformers without normalization.
+\newblock In {\em IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, 2025.
+
+\bibitem{chen2026stronger}
+Mingzhi Chen, Taiming Lu, Jiachen Zhu, Mingjie Sun, and Zhuang Liu.
+\newblock Stronger normalization-free transformers.
+\newblock {\em arXiv preprint arXiv:2512.10938}, 2026.
+
+\bibitem{budzinskiy2026numerical}
+Stanislav Budzinskiy, Wenyi Fang, Longbin Zeng, and Philipp Petersen.
+\newblock Numerical stability analysis of large language models.
+\newblock {\em arXiv preprint arXiv:2503.10251}, 2026.
+
+\bibitem{qi2025dnt}
+Xianbiao Qi, Marco Chen, Wenjie Xiao, Jiaquan Ye, Yelin He, Chun-Guang Li, and
+  Zhouchen Lin.
+\newblock Dnt: A deeply normalized transformer that can be trained by momentum
+  sgd.
+\newblock {\em arXiv preprint arXiv:2507.17501}, 2025.
+
+\bibitem{burger2025meanfield}
+Martin Burger, Samira Kabri, Yury Korolev, Tim Roith, and Lukas Weigand.
+\newblock Analysis of mean-field models arising from self-attention dynamics in
+  transformer architectures with layer normalization.
+\newblock {\em arXiv preprint arXiv:2501.03096}, 2025.
+
+\bibitem{kan2026stability}
+Kelvin Kan, Xingjian Li, Benjamin~J. Zhang, Tuhin Sahai, Stanley Osher, Krishna
+  Kumar, and Markos~A. Katsoulakis.
+\newblock Stability of transformers under layer normalization.
+\newblock {\em arXiv preprint arXiv:2510.09904}, 2026.
+
+\bibitem{singhal2025impact}
+Rishi Singhal and Jung-Eun Kim.
+\newblock Impact of layer norm on memorization and generalization in
+  transformers.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~39, 2025.
+
+\bibitem{karagodin2025normalization}
+Nikita Karagodin, Shu Ge, Yury Polyanskiy, and Philippe Rigollet.
+\newblock Normalization in attention dynamics.
+\newblock {\em arXiv preprint arXiv:2510.22026}, 2025.
+
+\bibitem{lopezrubio2026enhanced}
+Ezequiel L{\'o}pez-Rubio, Javier Montes-P{\'e}rez, and Esteban~Jos{\'e} Palomo.
+\newblock Enhanced qknorm normalization for neural transformers with the lp
+  norm.
+\newblock {\em arXiv preprint arXiv:2602.05006}, 2026.
+
+\bibitem{cai2026seednorm}
+Wenrui Cai, Defa Zhu, Qingjie Liu, and Qiyang Min.
+\newblock Seednorm: Self-rescaled dynamic normalization.
+\newblock {\em arXiv preprint arXiv:2510.22777}, 2026.
+
+\bibitem{baroni2025transformers}
+Luca Baroni, Galvin Khara, Joachim Schaeffer, Marat Subkhankulov, and Stefan
+  Heimersheim.
+\newblock Transformers don't need layernorm at inference time: Scaling
+  layernorm removal to gpt-2 xl and the implications for mechanistic
+  interpretability.
+\newblock {\em arXiv preprint arXiv:2507.02559}, 2025.
+
+\bibitem{zsamboki2026postnorm}
+P{\'a}l Zs{\'a}mboki, Benjamin Levi, David Ansel~Josef Smith, Mitansh
+  Kagalwala, Arlington Kell, Samuel Liechty, and Cong Wang.
+\newblock Post-norm can resharpen attention.
+\newblock {\em arXiv preprint arXiv:2510.08341}, 2026.
+
+\bibitem{wu2026looped}
+Lyumin Wu, Chenyang Zhang, and Yuan Cao.
+\newblock Looped transformers with layer normalization provably learn the power
+  method.
+\newblock {\em arXiv preprint arXiv:2606.00605}, 2026.
+
+\bibitem{zeng2026glm5}
+Aohan Zeng, Xin Lv, Zhenyu Hou, Zhengxiao Du, Qinkai Zheng, Bin Chen, Da~Yin,
+  et~al.
+\newblock {GLM-5: from Vibe Coding to Agentic Engineering}.
+\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
+
 \bibitem{hochreiter1997lstm}
 Sepp Hochreiter and J{\"u}rgen Schmidhuber.
 \newblock Long short-term memory.
@@ -2232,12 +2412,6 @@ Chungpa Lee, Jy~yong Sohn, and Kangwook Lee.
   analysis of linear attention models.
 \newblock In {\em Proceedings of the 43rd International Conference on Machine
   Learning (ICML)}, 2026.
-
-\bibitem{zeng2026glm5}
-Aohan Zeng, Xin Lv, Zhenyu Hou, Zhengxiao Du, Qinkai Zheng, Bin Chen, Da~Yin,
-  et~al.
-\newblock {GLM-5: from Vibe Coding to Agentic Engineering}.
-\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
 
 \bibitem{xie2026mhc}
 Z.~Xie, Y.~Wei, H.~Cao, C.~Zhao, C.~Deng, J.~Li, D.~Dai, H.~Gao, et~al.
@@ -3103,5 +3277,18 @@ Yann~N Dauphin, Angela Fan, Michael Auli, and David Grangier.
 \newblock {Language Modeling with Gated Convolutional Networks}.
 \newblock {\em International Conference on Machine Learning (ICML)}, pages
   933--941, 2017.
+
+\bibitem{sinkhorn1964relationship}
+Richard Sinkhorn.
+\newblock A relationship between arbitrary positive matrices and doubly
+  stochastic matrices.
+\newblock {\em The Annals of Mathematical Statistics}, 35(2):876--879, 1964.
+
+\bibitem{xiong2020layer}
+Ruibin Xiong, Yunchang Yang, Di~He, Kai Zheng, Shuxin Zheng, Chen Xing,
+  Huishuai Zhang, Yanyan Lan, Liwei Wang, and Tie-Yan Liu.
+\newblock On layer normalization in the transformer architecture.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  10524--10533, 2020.
 
 \end{thebibliography}

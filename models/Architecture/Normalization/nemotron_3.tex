@@ -1,1 +1,56 @@
-\item \textbf asd
+\item \model{Nemotron-3}
+
+\paragraph*{مقدمه و ساختار هیبریدی \en{Nemotron 3}}
+خانواده مدل‌های \model{Nemotron 3} شرکت انویدیا \cite{nvidia2025nemotron3} (شامل نسخه‌های \en{Nano}، \en{Super} و \en{Ultra}) با به‌کارگیری معماری هیبریدی \en{Mamba-Transformer MoE}، دستیابی به سرعت پردازش بالا و طول بافت تا سقف یک میلیون توکن را ممکن ساخته‌اند. این مدل‌ها به دلیل حضور لایه‌های حالت بازگشتی، دستخوش تحولی بنیادین در نرمال‌سازی مکانی و دامنه‌ای شده‌اند.
+
+\paragraph*{حذف کامل \en{RoPE} و نرمال‌سازی موقعیتی ذاتی}
+در معماری‌های ترنسفورمر مرسوم، استفاده از کدگذاری چرخشی موقعیت (\en{RoPE}) در پنجره‌های بافت بسیار طولانی منجر به خروج فرکانس‌های زاویه‌ای از توزیع پیش‌آموزش و ناپایداری توجه می‌شود. در مدل‌های \model{Nemotron 3}، به دلیل تعبیه لایه‌های پی‌درپی \en{Mamba-2} \cite{vaswani2017attention} که اطلاعات موقعیت و فرسایش زمانی را در ماتریس حالت پنهان $h_t = A_t h_{t-1} + B_t x_t$ به صورت ساختاریافته حمل می‌کنند، تمامی کدگذاری‌های موقعیتی صریح نظیر \en{RoPE} از لایه‌های خودتوجهی حذف شده‌اند. این طراحی مانع از برهم‌کنش منفی نُرم کوئری-کلید و زاویه چرخش در توالی‌های یک میلیون توکنی می‌گردد.
+
+\paragraph*{نرمال‌سازی ابعادی در \en{LatentMoE}}
+در مدل‌های \en{Super} و \en{Ultra}، ساختار کارشناسان نهفته (\en{LatentMoE}) به‌کار گرفته شده است. در این چارچوب، توکن ورودی پیش از گسیل به کارشناسان، از بعد مدل $d$ به فضای نهفته کوچک‌تر $\ell < d$ (با ضریب فشرده‌سازی $d/\ell \approx 4$) نگاشت داده می‌شود:
+\begin{equation}
+    z = W_{\text{latent\_down}} x \in \mathbb{R}^\ell, \qquad x \in \mathbb{R}^d
+\end{equation}
+این تصویرسازی خطی فشرده، حجم ترافیک ارتباطات \en{All-to-All} میان گره‌ها را تا ضریب ۴ کاهش داده و واریانس بارهای ارسال‌شده را یکنواخت می‌سازد. کلیه محاسبات گیتینگ و کارشناسان اشتراکی در همان بعد اصلی $d$ نرمال باقی می‌مانند.
+
+\paragraph*{نرمال‌سازی در آموزش با دقت \en{NVFP4} و تبدیل \en{RHT}}
+برای آموزش پایدار مدل‌ها تا سقف ۲۵ تریلیون توکن با فرمت بسیار کوچک عددی \en{NVFP4}:
+\begin{itemize}
+    \item \textbf{تبدیل هادامارد تصادفی (\en{Random Hadamard Transforms - RHT}):}
+    برای از بین بردن مقادیر دورافتاده در فعال‌سازی‌ها قبل از محاسبه گرادیان وزن (\en{wgrad})، تبدیل متعامد هادامارد اعمال می‌گردد:
+    \begin{equation}
+        \tilde{X} = X \cdot H, \qquad H H^\top = I
+    \end{equation}
+    این تبدیل بدون تغییر در نُرم بردارها، انرژی مقادیر پیک را در سراسر ابعاد پخش کرده و از سرریز در بازه محدود نمایی فرمت \en{E2M1} جلوگیری می‌کند.
+    \item \textbf{مقیاس‌بندی دوبعدی میکروبلوک‌ها (\en{2D Micro-Block Scaling}):}
+    تانسورها در بلوک‌های ۱۶ عنصری با فاکتورهای مقیاس \en{E4M3} و مقیاس جهانی \en{FP32} نرمال‌سازی می‌شوند تا خطای تلفات در مقایسه با مبنای \en{BF16} به کمتر از ۰.۶٪ محدود شود.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=green!70!black, fill=green!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=green!60!black}
+]
+    \node (in) at (0, 4.5) [box, text width=6cm] {ورودی لایه $x_l \in \mathbb{R}^d$};
+    \node (pre1) at (0, 3.3) [norm, text width=5cm] {Pre-RMSNorm};
+    \node (hybrid) at (0, 2.0) [box, text width=7.2cm] {لایه Mamba-2 (حالت بازگشتی با نرمال‌سازی زمانی)\\ یا خودتوجهی چندسری GQA بدون نیاز به RoPE};
+    \node (res1) at (0, 0.8) [box, text width=4.5cm] {اتصال باقی‌مانده مستقیم};
+    \node (pre2) at (0, -0.3) [norm, text width=5cm] {Pre-RMSNorm};
+    \node (latent) at (0, -1.6) [box, text width=7.2cm] {LatentMoE FFN\\ تصویرسازی فشرده $d \to \ell$ با مقیاس‌بندی NVFP4 و RHT};
+    \node (out) at (0, -2.8) [box, text width=5cm] {خروجی لایه $x_{l+1} \in \mathbb{R}^d$};
+
+    \draw [arr] (in) -- (pre1);
+    \draw [arr] (pre1) -- (hybrid);
+    \draw [arr] (hybrid) -- (res1);
+    \draw [arr] (res1) -- (pre2);
+    \draw [arr] (pre2) -- (latent);
+    \draw [arr] (latent) -- (out);
+    \draw [arr] (in.east) -- ++(1.4,0) |- (res1.east);
+    \draw [arr] (res1.west) -- ++(-1.4,0) |- (out.west);
+\end{tikzpicture}
+\caption{ساختار بلوک هیبریدی و نقاط نرمال‌سازی در مدل \model{Nemotron 3}}
+\label{fig:nemotron3_norm}
+\end{figure}

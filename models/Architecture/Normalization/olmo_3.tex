@@ -1,1 +1,65 @@
-\item \textbf asd
+\item \model{OLMo-3}
+
+\paragraph*{مقدمه و شفافیت معماری در \en{OLMo 3}}
+مدل‌های \model{OLMo 3} \cite{olmo2025olmo3} توسعه‌یافته در مؤسسه هوش مصنوعی آلن (\en{Ai2}) در دو مقیاس ۷ میلیارد (۳۲ لایه، بعد پنهان ۴۰۹۶) و ۳۲ میلیارد پارامتر (۶۴ لایه، بعد پنهان ۵۱۲۰) به عنوان مدل‌های کاملاً باز عرضه شده‌اند. طراحی سازوکارهای نرمال‌سازی در این مدل‌ها با هدف مهار نوسانات گرادیان در طول آموزش ۶ تریلیون توکنی و تسهیل تعمیم بافت به ۶۴ هزار توکن صورت گرفته است.
+
+\paragraph*{پیکربندی \en{Pre-RMSNorm} و نرمال‌سازی خروجی نهایی}
+مدل \model{OLMo 3} از پیش‌نرمال‌سازی با \en{RMSNorm} در ابتدای هر زیرلایه خودتوجهی و شبکه پیش‌خور \en{SwiGLU} بهره می‌برد:
+\begin{equation}
+    \text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2 + \epsilon}} \odot \gamma, \qquad \epsilon = 10^{-5}
+\end{equation}
+نکته قابل توجه، عدم اعمال وزن میرایی (\en{Weight Decay}) بر بردار گین $\gamma$ لایه‌های نرمال‌سازی و تانسور تعبیه توکن‌ها است تا مقیاس بازنمایی دچار افت تدریجی نشود. علاوه بر این، یک لایه \en{RMSNorm} مستقل بر روی خروجی لایه آخر پیش از ارسال به هد واژگان تعبیه شده است (\en{Layer Norm Applied to Outputs}).
+
+\paragraph*{تلفات تنظیم لاجیت‌ها (\en{Logit Z-Loss Normalization})}
+یکی از نوآوری‌های مهم در پایداری پیش‌آموزش \model{OLMo 3}، افزودن تلفات کمکی \en{Logit Z-Loss} با ضریب وزنی $c_z = 10^{-5}$ به تابع تلفات اصلی کراس‌آنتروپی است:
+\begin{equation}
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + c_z \cdot \mathcal{L}_z
+\end{equation}
+\begin{equation}
+    \mathcal{L}_z = \log^2 Z = \left( \log \sum_{i=1}^V \exp(z_i) \right)^2
+\end{equation}
+که در آن $z_i$ لاجیت‌های خام خروجی برای واژگان با اندازه $V = 100,288$ هستند.
+*تحلیل ریاضی و آماری*: تابع تقسیم سافت‌مکس $Z = \sum_i \exp(z_i)$ در صورت رشد مقادیر لاجیت می‌تواند به شدت بزرگ شده و باعث خطای سرریز در محاسبات با ممیز شناور (\en{bfloat16}) گردد. جریمه مجذور لگاریتم تابع تقسیم، گرادیان زیر را تولید می‌کند:
+\begin{equation}
+    \frac{\partial \mathcal{L}_z}{\partial z_k} = 2 \log Z \cdot \frac{\exp(z_k)}{Z} = 2 \log Z \cdot P(w_k)
+\end{equation}
+این گرادیان به عنوان یک نیروی بازدارنده عمل کرده و لاجیت‌ها را در نزدیکی مقدار خنثی (میانگین نزدیک به صفر) نرمال و مقید نگه می‌دارد و از پدیده سرریز در محاسبات پیشگیری می‌کند.
+
+\paragraph*{تثبیت سرهای توجه با \en{QK-Norm}}
+در تمام لایه‌های توجه \model{OLMo 3}—شامل لایه‌های توجه با پنجره لغزان ۴۰۹۶ توکنی (\en{SWA}) و لایه‌های توجه کامل—عملگر \en{QK-Norm} به صورت مستقل بر روی هر سر اعمال می‌شود:
+\begin{equation}
+    q_{\text{head}} \leftarrow \text{RMSNorm}(q_{\text{head}}), \qquad k_{\text{head}} \leftarrow \text{RMSNorm}(k_{\text{head}})
+\end{equation}
+این نرمال‌سازی به همراه روش مقیاس‌بندی فرکانسی \en{YaRN} \cite{peng2023yarn}، اکستراپولاسیون بافت مدل را از ۸K به ۶۴K توکن بدون کوچک‌ترین افتی در آزمون‌های ارزیابی \en{RULER} تضمین کرده است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=blue!70, fill=blue!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    zloss/.style={rectangle, draw=red!70, fill=red!8, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=blue!60!black}
+]
+    \node (in) at (0, 5.0) [box, text width=6cm] {ورودی لایه $x_l \in \mathbb{R}^{d_{\text{model}}}$};
+    \node (pre1) at (0, 3.8) [norm, text width=5cm] {Pre-RMSNorm ($\epsilon = 10^{-5}$)};
+    \node (attn) at (0, 2.4) [box, text width=7.2cm] {توجه ترکیبی Full / SWA (پنجره ۴۰۹۶)\\ مجهز به QK-Norm مجزا به ازای هر سر};
+    \node (res1) at (0, 1.1) [box, text width=4.5cm] {اتصال باقی‌مانده مستقیم};
+    \node (pre2) at (0, -0.1) [norm, text width=5cm] {Pre-RMSNorm ($\epsilon = 10^{-5}$)};
+    \node (ffn) at (0, -1.3) [box, text width=6.5cm] {شبکه پیش‌خور SwiGLU FFN};
+    \node (final_norm) at (0, -2.6) [norm, text width=5cm] {Final Output RMSNorm};
+    \node (zloss) at (0, -3.9) [zloss, text width=7.2cm] {هد واژگان و نرمال‌سازی لاجیت با Logit Z-Loss:\\ $\mathcal{L}_z = 10^{-5} \cdot \left( \log \sum \exp(z_i) \right)^2$};
+
+    \draw [arr] (in) -- (pre1);
+    \draw [arr] (pre1) -- (attn);
+    \draw [arr] (attn) -- (res1);
+    \draw [arr] (res1) -- (pre2);
+    \draw [arr] (pre2) -- (ffn);
+    \draw [arr] (ffn) -- (final_norm);
+    \draw [arr] (final_norm) -- (zloss);
+    \draw [arr] (in.east) -- ++(1.4,0) |- (res1.east);
+    \draw [arr] (res1.west) -- ++(-1.4,0) |- (final_norm.west);
+\end{tikzpicture}
+\caption{پیکربندی نرمال‌سازی در بلوک ترنسفورمر و خروجی نهایی مدل \model{OLMo 3}}
+\label{fig:olmo3_norm}
+\end{figure}

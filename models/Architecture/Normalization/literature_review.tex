@@ -1,0 +1,393 @@
+\item \textbf{مرور جامع و تاریخچه تحلیلی سازوکارهای نرمال‌سازی در معماری ترنسفورمر}
+
+\paragraph*{مقدمه، اهمیت بهینه‌سازی و چرایی لایه‌های نرمال‌سازی}
+لایه‌های نرمال‌سازی (\en{Normalization Layers}) از زمان شکل‌گیری مدل‌های عمیق، از اساسی‌ترین مؤلفه‌های تثبیت یادگیری و تضمین همگرایی پایدار به‌شمار می‌روند \cite{ioffe2015batch, ba2016layer}. در معماری بنیادین ترنسفورمر (\en{Transformer}) \cite{vaswani2017attention}، این لایه‌ها نقش تنظیم پویای توزیع فعال‌سازها (\en{Activation Distribution})، هموارسازی چشم‌انداز زیان (\en{Loss Landscape Smoothing})، مهار تغییرات ناگهانی کوواریات داخلی (\en{Internal Covariate Shift}) و تعدیل جریان پس‌انتشار گرادیان (\en{Gradient Backpropagation}) را بر عهده دارند \cite{santurkar2018batch}. با این حال، با مقیاس‌گیری مدل‌های زبانی بزرگ (\en{LLMs}) به صدها میلیارد پارامتر و عمق‌های فراتر از صد لایه، مشخص شده است که شیوه استاندارد استفاده از لایه‌های نرمال‌سازی به یک گلوگاه ساختاری برای ظرفیت بازنمایی تبدیل می‌شود. هدف از این بخش، واکاوی جامع پایه‌های ریاضی، تحلیل آماری چندبعدی، بررسی پایداری عددی در محاسبات با دقت ترکیبی، نقد آسیب‌شناسانه دوگانه کلاسیک \en{Pre-LN} و \en{Post-LN}، و در نهایت تبیین معماری‌های نوین هیبریدی و بدون نرمال‌سازی بر پایه آخرین دستاوردهای علمی سال‌های ۲۰۲۴ تا ۲۰۲۶ است.
+
+\paragraph*{سیر تحول تاریخی و ادوار چهارگانه توسعه نرمال‌سازی در مدل‌های زبانی (۲۰۱۷–۲۰۲۶)}
+بر پایه تحلیل‌های تجربی و فراتحلیلی بر روی ده‌ها معماری زبانی ثبت‌شده \cite{tan2025crystallization, octavia2025survey}، تحول لایه‌های نرمال‌سازی در بستر زمان را می‌توان به چهار دوره مشخص تفکیک نمود:
+\begin{itemize}
+    \item \textbf{دوره نخست؛ پایه‌گذاری و گذار کلاسیک (۲۰۱۷–۲۰۱۹):} معرفی معماری ترنسفورمر با ساختار پسا-نرمال‌سازی (\en{Post-LN}) \cite{vaswani2017attention} که در آن نرمال‌سازی پس از تجمیع شاخه باقیمانده اعمال می‌شد. ناکامی این مدل‌ها در آموزش شبکه‌های عمیق بدون گرم‌کردن دقیق نرخ یادگیری (\en{Warm-up}) \cite{liu2020understanding}، منجر به پیدایش ساختار پیش-نرمال‌سازی (\en{Pre-LN}) در مدل‌هایی چون \model{GPT-2} \cite{radford2019language} گردید.
+    \item \textbf{دوره دوم؛ مقیاس‌پذیری و بازطراحی کارایی (۲۰۲۰–۲۰۲۲):} گسترش مرزهای ابعادی به صدها میلیارد پارامتر نظیر \model{GPT-3} \cite{brown2020language} و معرفی \en{RMSNorm} توسط ژانگ و سنریچ \cite{zhang2019root} که با حذف مرحله کسر میانگین، سربار حافظه و تاخیر محاسباتی را ۱۰ تا ۱۵ درصد بدون افت دقت کاهش داد.
+    \item \textbf{دوره سوم؛ تبلور و استانداردسازی سبک \model{LLaMA} (۲۰۲۳–۲۰۲۴):} همگرایی عمومی جامعه بازمتن بر پایه بسته استاندارد: \en{Pre-LN} مجهز به \en{RMSNorm}، فعال‌ساز \en{SwiGLU} \cite{shazeer2020glu}، کدگذاری چرخشی موقعیت (\en{RoPE}) و حذف کامل پارامترهای بایاس. در این برهه، سازوکارهای محافظتی نظیر \en{QK-Norm} \cite{henry2020query} برای مهار ناپایداری‌های درون‌توجهی ظاهر شدند.
+    \item \textbf{دوره چهارم؛ تنش‌های ساختاری، معماری‌های ترکیبی و مرزهای بدون نرمال‌سازی (۲۰۲۴–۲۰۲۶):} افشای پدیده‌های مخربی نظیر «نفرین عمق» (\en{Curse of Depth}) \cite{sun2025curse, gromov2025unreasonable} و فعال‌سازهای عظیم (\en{Massive Activations}) \cite{sun2024massive}. در این برهه، الگوهای ترکیبی عمودی و افقی نظیر \en{Mix-LN} \cite{li2025mixln}، \en{Peri-LN} \cite{kim2025periln}، \en{HybridNorm} \cite{zhuo2025hybridnorm}، \en{KEEL} \cite{chen2026keel} و \en{SiameseNorm} \cite{li2026siamesenorm} معرفی شدند و هم‌زمان جایگزینی کامل نرمال‌سازی با توابع اشباع نقطه‌ای مانند \en{DyT} \cite{zhu2025transformers} و \en{Derf} \cite{chen2026stronger} به اثبات رسید.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.5cm and 2cm,
+    era/.style={rectangle, draw=blue!70!black, fill=blue!8, thick, rounded corners, minimum width=3.2cm, minimum height=1cm, align=center, font=\bfseries},
+    event/.style={rectangle, draw=gray!70, fill=white, rounded corners, minimum width=3.4cm, text width=3.2cm, align=right, font=\footnotesize},
+    arrow/.style={-Latex, thick, blue!60!black}
+]
+    \node[era] (era1) {دوره اول (۲۰۱۷–۲۰۱۹)\\پایه‌گذاری و گذار};
+    \node[era, right=1.2cm of era1] (era2) {دوره دوم (۲۰۲۰–۲۰۲۲)\\مقیاس‌پذیری و کارایی};
+    \node[era, right=1.2cm of era2] (era3) {دوره سوم (۲۰۲۳–۲۰۲۴)\\استانداردسازی اجماعی};
+    \node[era, right=1.2cm of era3] (era4) {دوره چهارم (۲۰۲۴–۲۰۲۶)\\تنش ساختاری و پارادایم نو};
+
+    \draw[arrow] (era1) -- (era2);
+    \draw[arrow] (era2) -- (era3);
+    \draw[arrow] (era3) -- (era4);
+
+    \node[event, below=0.6cm of era1] (ev1) {$\bullet$ \en{Post-LN} (واسوانی)\\$\bullet$ ناپایداری گرادیان\\$\bullet$ ظهور \en{Pre-LN} در \model{GPT-2}};
+    \node[event, below=0.6cm of era2] (ev2) {$\bullet$ معرفی \en{RMSNorm}\\$\bullet$ مدل‌های \model{Gopher} و \model{Chinchilla}\\$\bullet$ بهینه‌سازی همگام‌سازی هسته};
+    \node[event, below=0.6cm of era3] (ev3) {$\bullet$ تثبیت استاندارد \model{LLaMA}\\$\bullet$ پیش‌نرمال‌سازی مطلق\\$\bullet$ توسعه \en{QK-Norm} درون‌توجهی};
+    \node[event, below=0.6cm of era4] (ev4) {$\bullet$ کشف نفرین عمق (\en{CoD})\\$\bullet$ معماری‌های \en{Peri/Mix/Siamese}\\$\bullet$ ترنسفورمر بدون نرمال‌سازی (\en{DyT/Derf})};
+
+    \draw[dashed, gray] (era1) -- (ev1);
+    \draw[dashed, gray] (era2) -- (ev2);
+    \draw[dashed, gray] (era3) -- (ev3);
+    \draw[dashed, gray] (era4) -- (ev4);
+\end{tikzpicture}%
+}
+\caption{گاه‌شمار تحول چهار دوره تاریخی لایه‌های نرمال‌سازی در مدل‌های زبانی بزرگ \cite{tan2025crystallization}.}
+\label{fig:normalization_timeline}
+\end{figure}
+
+\paragraph*{مبانی ریاضی، آمار چندبعدی و استخراج گام‌به‌گام ژاکوبی لایه‌های نرمال‌سازی}
+فرض کنید بردار ورودی یک توکن به صورت $x \in \mathbb{R}^d$ باشد. عملگر لایه‌نرمال کلاسیک (\en{LayerNorm}) \cite{ba2016layer} با پارامترهای تغییر مقیاس $\gamma \in \mathbb{R}^d$ و جابه‌جایی $\beta \in \mathbb{R}^d$ به صورت زیر فرمول‌بندی می‌شود:
+\begin{equation}
+    \text{LN}(x; \gamma, \beta) = \gamma \odot \hat{x} + \beta
+\end{equation}
+که در آن $\odot$ نشان‌دهنده ضرب مؤلفه‌ای (\en{Hadamard Product}) است و بردار نرمال‌شده $\hat{x}$ بر اساس میانگین $\mu$ و واریانس $\sigma^2$ تعریف می‌شود:
+\begin{equation}
+    \hat{x} = \frac{x - \mu\mathbf{1}}{\sqrt{\sigma^2 + \epsilon}}, \quad \mu = \frac{1}{d}\sum_{i=1}^d x_i, \quad \sigma^2 = \frac{1}{d}\sum_{i=1}^d (x_i - \mu)^2
+\end{equation}
+با تعریف ماتریس تصویر متعامد بر زیرفضای ارتوگونال به بردار یک‌ها ($P = I_d - \frac{1}{d}\mathbf{1}\mathbf{1}^\top \in \mathbb{R}^{d \times d}$)، بردار متمرکز به‌صورت $y = Px$ درآمده و $\sigma^2 = \frac{1}{d} y^\top y = \frac{1}{d} \|Px\|_2^2$ خواهد بود.
+
+در مقابل، \en{RMSNorm} \cite{zhang2019root} با فرضیه عدم نیاز به تصحیح میانگین به صورت زیر ساده می‌شود:
+\begin{equation}
+    \text{RN}(x; \gamma) = \gamma \odot \frac{x}{\text{RMS}(x)}, \quad \text{RMS}(x) = \sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2 + \epsilon} \approx \frac{\|x\|_2}{\sqrt{d}}
+\end{equation}
+
+جهت تحلیل پویایی پس‌انتشار گرادیان، ژاکوبی لایه‌نرمال ($\mathcal{J}_{\text{LN}} = \frac{\partial \text{LN}(x)}{\partial x}$) را به صورت تحلیلی استخراج می‌کنیم. با استفاده از قاعده زنجیره‌ای بر روی نگاشت $x \mapsto y = Px \mapsto \hat{x} = \frac{y}{\sqrt{\frac{1}{d}y^\top y + \epsilon}}$، مشتق جزئی نسبت به بردار $y$ برابر است با:
+\begin{equation}
+    \frac{\partial \hat{x}}{\partial y} = \frac{1}{\sqrt{\sigma^2 + \epsilon}} I_d - \frac{y}{2(\sigma^2 + \epsilon)^{3/2}} \left(\frac{2}{d}y^\top\right) = \frac{1}{\sigma_x} \left( I_d - \frac{yy^\top}{d\sigma_x^2} \right)
+\end{equation}
+با ضرب این عبارت در مشتق متمرکزسازی $\frac{\partial y}{\partial x} = P$ و ماتریس قطری مقیاس $\Gamma = \text{diag}(\gamma)$:
+\begin{equation}
+    \mathcal{J}_{\text{LN}}(x) = \frac{\Gamma}{\sigma_x} \left( I_d - \frac{1}{d}\mathbf{1}\mathbf{1}^\top - \frac{(x - \mu\mathbf{1})(x - \mu\mathbf{1})^\top}{d\sigma_x^2} \right)
+\end{equation}
+مشابهاً، ژاکوبی عملگر \en{RMSNorm} بدون متمرکزسازی برابر است با \cite{budzinskiy2026numerical, qi2025dnt}:
+\begin{equation}
+    \mathcal{J}_{\text{RN}}(x) = \frac{\Gamma}{\text{RMS}(x)} \left( I_d - \frac{xx^\top}{d \cdot \text{RMS}^2(x)} \right) = \frac{\sqrt{d}\Gamma}{\|x\|_2} \left( I_d - \frac{xx^\top}{\|x\|_2^2} \right)
+\end{equation}
+در فضاهای چندبعدی با ابعاد بالا ($d \gg 1$)، تحت توزیع‌های متقارن، مقادیر حاصل‌ضرب خارجی به سمت صفر همگرا شده و ژاکوبی به‌صورت زیر تخمین زده می‌شود \cite{li2025mixln}:
+\begin{equation}
+    \mathcal{J}_{\text{LN}}(x) \approx \frac{1}{\sigma_x} I_d, \quad \mathcal{J}_{\text{RN}}(x) \approx \frac{1}{\text{RMS}(x)} I_d
+\end{equation}
+
+\paragraph*{دیدگاه هندسه دیفرانسیل: تصویر روی بیضی‌گون و ابرکره}
+یک زاویه دید نوین، پیوند نرمال‌سازی با منیفولدهای ریمانی است \cite{burger2025meanfield, kan2026stability}:
+\begin{itemize}
+    \item \textbf{هندسه بیضی‌گون (\en{Ellipsoid Manifold}):} خروجی لایه‌نرمال $z = \text{LN}(x; \gamma, \beta)$ مقید است که بر روی پوسته یک بیضی‌گون کوواریانسی در $\mathbb{R}^d$ واقع شود \cite{kan2026stability}:
+    \begin{equation}
+        \mathcal{E} = \left\{ z \in \mathbb{R}^d : (z - \beta)^\top \Gamma^{-2} (z - \beta) = d \right\}
+    \end{equation}
+    این قید صلب هندسی ثابت می‌کند که خروجی لایه‌نرمال نمی‌تواند به بی‌نهایت میل کند و در یک مجموعه فشرده اقلیدسی محدود است.
+    \item \textbf{تصویر ریمانی بر ابرکره واحد (\en{Hypersphere Projection}):} در حالت گین یکسان ($\gamma = \mathbf{1}$)، عملگر \en{RMSNorm} دقیقاً معادل تصویر ریمانی $\Pi(x) = \frac{x}{\|x\|_2}$ بر ابرکره واحد $\mathbb{S}^{d-1}$ است \cite{burger2025meanfield}. عملگر ژاکوبی آن معادل ماتریس تصویر بر فضای مماس ابرکره در نقطه $x$ عمل می‌کند:
+    \begin{equation}
+        P_x^\perp = I_d - \frac{xx^\top}{\|x\|_2^2}, \quad \text{where } P_x^\perp z = z - \langle z, x \rangle x
+    \end{equation}
+\end{itemize}
+
+\paragraph*{تحلیل پایداری عددی و خطای پیشرو در محاسبات دقت ترکیبی (\en{Mixed-Precision}) \cite{budzinskiy2026numerical}}
+بودزینسکی و همکاران چارچوب نوینی برای بررسی خطای گردکردن محاسباتی در ممیز شناور بر پایه چهار سطح دقت: دقت کوانتیزاسیون ($u_q$)، دقت تجمیع ($u_a$)، دقت باقیمانده ($u_r$) و دقت توابع غیرخطی ($u_w$) بنا نهادند. یکی از دستاوردهای بنیادین این پژوهش، سنجش عدد حالت (\en{Condition Number}) در مواجهه با بردارهای دارای مقادیر پرت عظیم (\en{Massive Outliers}) به فرم $x = [1, \alpha, \dots, \alpha]^\top$ است که نوسانات پس‌زمینه با مقیاس $\alpha = \mathcal{O}(1/\sqrt{d})$ دارند.
+
+طبق این تحلیل، برای عملگر لایه‌نرمال استاندارد، به علت تفریق میانگین در مخرج و صورت، خطای گردکردن پیشرو متناسب با بعد فضا مقیاس می‌گیرد:
+\begin{equation}
+    |\text{fl}(\text{LN}(x)) - \text{LN}(x)| \lesssim \left(\sqrt{d} u_w + \gamma_{\text{MM}}(d, u_w)\right) \|\text{LN}(x)\|_\infty \mathbf{1}
+\end{equation}
+در حالی که برای \en{RMSNorm}، با حذف تفریق میانگین، خطای پیشرو فاقد وابستگی مخرب به $\sqrt{d}$ بوده و دارای پایداری عددی پیشرو نامشروط است:
+\begin{equation}
+    |\text{fl}(\text{RN}(x)) - \text{RN}(x)| \lesssim \gamma_{\text{MM}}(d, u_w) |\text{RN}(x)|
+\end{equation}
+این قضیه تبیین می‌کند که چرا مهاجرت به \en{RMSNorm} در مدل‌های زبانی امروزی برای جلوگیری از اشباع محاسباتی و سرریز عددی در فرمت‌های کم‌بیت (نظیر \en{FP16} و \en{FP8}) یک ضرورت ساختاری است.
+
+\paragraph*{دوگانه کلاسیک \en{Pre-LN} در برابر \en{Post-LN}: تحلیل انتشار گرادیان و واریانس}
+در ساختار \en{Post-LN}، لایه نرمال‌سازی پس از عملگر اتصال جهشی اعمال می‌شود:
+\begin{equation}
+    x_{l+1} = \text{LN}(x_l + \mathcal{F}_l(x_l))
+\end{equation}
+در این حالت، گرادیان تابع زیان نسبت به خروجی لایه اول از حاصل‌ضرب زنجیره‌ای ژاکوبی لایه‌ها به دست می‌آید:
+\begin{equation}
+    \frac{\partial x_L}{\partial x_1} = \prod_{l=1}^{L-1} \mathcal{J}_{\text{LN}_l}(z_l) \left( I_d + \frac{\partial \mathcal{F}_l(x_l)}{\partial x_l} \right), \quad z_l = x_l + \mathcal{F}_l(x_l)
+\end{equation}
+چون $\|z_l\|_2 > 1$ است، نرم طیفی ژاکوبی لایه‌نرمال به زیر یک افت می‌کند ($\|\mathcal{J}_{\text{LN}}\|_2 < 1$). این فاکتور انقباضی در طول $L$ لایه به صورت تصاعدی تجمع یافته و به زوال شدید گرادیان در لایه‌های آغازین منتهی می‌شود \cite{li2025mixln, chen2026keel}:
+\begin{equation}
+    \prod_{l=1}^L \frac{1}{\sigma_{z_l}} \approx \mathcal{O}\left( 2^{-L/2} \right) \to 0 \quad (\text{as } L \to \infty)
+\end{equation}
+
+در نقطه مقابل، در ساختار پیش-نرمال‌سازی (\en{Pre-LN}) \cite{radford2019language}:
+\begin{equation}
+    x_{l+1} = x_l + \mathcal{F}_l(\text{LN}(x_l))
+\end{equation}
+مشتق زنجیره‌ای لایه تفکیک شده و مسیر خطی آزاد ایجاد می‌کند:
+\begin{equation}
+    \frac{\partial x_{l+1}}{\partial x_l} = I_d + \frac{\partial \mathcal{F}_l(\text{LN}(x_l))}{\partial \text{LN}(x_l)} \mathcal{J}_{\text{LN}}(x_l)
+\end{equation}
+اگرچه این ساختار گرادیان را به لایه‌های اولیه می‌رساند، اما به علت افزودن مداوم واریانس خروجی زیرلایه‌ها به یک مسیر بدون نرمال‌سازی، واریانس وضعیت پنهان به صورت نمایی با عمق شبکه افزایش می‌یابد.
+
+\paragraph*{تقابل تعمیم در برابر به‌خاطرسپاری (\en{Memorization vs. Generalization}) \cite{singhal2025impact}}
+سینگال و کیم پیوند عمیقی میان مکان نرمال‌سازی و استعداد مدل در حفظ کردن داده‌های نویزدار کشف کردند:
+\begin{itemize}
+    \item در مدل‌های \en{Pre-LN}، پارامترهای یادگیرنده نرمال‌سازی نقشی حیاتی در یادگیری الگوهای اصیل و تعمیم دارند. حذف این پارامترها موجب فروپاشی شدید یادگیری و تشدید فاصله بیش‌برازش ($\Delta_{\text{overfit}}^{\text{Pre}}$) می‌گردد.
+    \item در مدل‌های \en{Post-LN}، لایه‌نرمال عامل اصلی به‌خاطرسپاری برچسب‌های کاذب است. حذف پارامترهای نرمال‌سازی در این معماری، قابلیت تعمیم را حفظ نموده و با سرکوب فرآیند حفظ کردن نویز، امکان بازیابی برچسب‌های صحیح (\en{True Label Recovery}) را فراهم می‌آورد.
+    \item تحلیل اندازه گرادیان نشان می‌دهد نسبت گرادیان یادگیری اصیل به گرادیان به‌خاطرسپاری نویز در \en{Pre-LN} به مراتب از \en{Post-LN} فراتر می‌رود:
+    \begin{equation}
+        \left. \frac{\|g_x^{\text{learn}}\|_2}{\|g_x^{\text{mem}}\|_2} \right|_{\text{Pre-LN}} \gg \left. \frac{\|g_x^{\text{learn}}\|_2}{\|g_x^{\text{mem}}\|_2} \right|_{\text{Post-LN}}
+    \end{equation}
+\end{itemize}
+
+\paragraph*{آسیب‌شناسی عمق در \en{Pre-LN}: پدیده نفرین عمق (\en{Curse of Depth}) \cite{sun2025curse}}
+سون و همکاران در اثباتی منسجم نشان دادند که چگونه Pre-LN باعث ناکارآمدی ساختاری لایه‌های عمیق می‌گردد.
+\begin{itemize}
+    \item \textbf{انباشت زیرنمایی تا نمایی واریانس:} برای ورودی لایه $l$-ام ($x_l$)، واریانس تجمعی از رابطه بازگشتی زیر تبعیت می‌کند:
+    \begin{equation}
+        \sigma_{x_l}^2 = \sigma_{x_1}^2 \, \Theta\left( \prod_{k=1}^{l-1} \left(1 + \frac{1}{\sigma_{x_k}}\right) \right) \implies \Theta(L) \le \sigma_{x_L}^2 \le \Theta(\exp(L))
+    \end{equation}
+    \item \textbf{تبدیل لایه‌های انتهایی به نگاشت همانی:} کران بالای ژاکوبی کل شبکه برابر است با:
+    \begin{equation}
+        \left\| \frac{\partial y_L}{\partial x_1} \right\|_2 \le \prod_{l=1}^{L-1} \left( 1 + \frac{A}{\sigma_{x_l}} + \frac{B}{\sigma_{x_l}^2} \right)
+    \end{equation}
+    هنگامی که $\sigma_{x_l}^2 \sim \exp(l)$، حاصل‌ضرب بی‌نهایت همگرا شده و کران گرادیان به یک مقدار ثابت متناهی $M$ می‌رسد. در نتیجه، برای لایه‌های عمیق:
+    \begin{equation}
+        \frac{\partial y_l}{\partial x_l} \to I_d \quad (\text{as } l \to \infty)
+    \end{equation}
+    لایه‌های عمیق عملاً نقشی در استخراج ویژگی‌های نو ایفا نکرده و فاصله زاویه‌ای خروجی نسبت به ورودی در آنها به صفر میل می‌کند که امکان هرس بدون جریمه آنها را تبیین می‌نماید.
+\end{itemize}
+
+\paragraph*{دینامیک زمان‌پیوسته توجه، مدلسازی میدان میانگین و نظریه خوشه‌بندی}
+با تعمیم لایه‌ها به زمان پیوسته $t \in [0, \infty)$، بردار جهت توکن‌ها روی ابرکره واحد ($\theta_j(t) \in \mathbb{S}^{d-1}$) و دامنه شعاعی آنها ($r_j(t) = \|x_j(t)\|_2$) از دستگاه معادلات دیفرانسیل زیر پیروی می‌کنند \cite{burger2025meanfield, karagodin2025normalization}:
+\begin{equation}
+    \dot{\theta}_j(t) = \frac{1}{s_j(t)} P_{\theta_j(t)}^\perp A_j^t(\Theta(t)), \quad \dot{r}_j(t) = \frac{\langle \theta_j(t), x_j'(t) \rangle}{\text{Scaling}}
+\end{equation}
+در این مدلسازی، لایه نرمال‌سازی مانند یک **عملگر تنظیم سرعت (\en{Speed Regulator})** عمل می‌کند:
+\begin{itemize}
+    \item در \en{Post-LN}، سرعت ثابت است ($s_j(t) = 1$) و سیستم معادل یک جریان گرادیانی پیوسته برای انرژی برهم‌کنشی $\mathcal{E}(\mu) = \frac{1}{2} \iint e^{x \cdot Dy} d\mu(x)d\mu(y)$ روی ابرکره است \cite{burger2025meanfield}. این امر به فروپاشی بازنمایی (\en{Representation Collapse}) و سقوط نمایی واریانس خوشه‌ها به تک‌نقطه دیراک با نرخ $\mathcal{O}(e^{-2t})$ منجر می‌شود.
+    \item در \en{Pre-LN} و \en{Peri-LN}، فاکتور تنظیم سرعت متناسب با شعاع $s_j(t) \sim r_j(t) \sim t$ افزایش یافته و نرخ خوشه‌بندی را به میرایی کندتر چندجمله‌ای $\mathcal{O}(t^{-2})$ تبدیل می‌کند. این کندسازی از قفل زودهنگام توکن‌ها جلوگیری نموده و از لایه‌های میانی به شکلی غنی بهره‌برداری می‌کند \cite{karagodin2025normalization}.
+\end{itemize}
+
+\paragraph*{نرمال‌سازی درون‌توجهی: تثبیت آنتروپی با \en{QK-Norm} و بسط به نُرم $\ell_p$}
+تثبیت ضرب داخلی ماتریس توجه از طریق نرمال‌سازی پرسش و کلید (\en{QK-Norm}) مانع از انفجار مقادیر لاجیت و تک‌قطبی شدن توزیع سافت‌مکس (\en{Attention Entropy Collapse}) می‌گردد \cite{henry2020query, tan2025crystallization}:
+\begin{equation}
+    \text{Attention}(Q, K, V) = \text{softmax}\left( \frac{\text{Norm}(Q) \text{Norm}(K)^\top}{\sqrt{d_k}} \right) V
+\end{equation}
+ژائو و همکاران در تحلیل تئوریک معماری \en{HybridNorm} \cite{zhuo2025hybridnorm} اثبات کردند که نرمال‌سازی هم‌زمان کوئری، کلید و مقدار (\en{QKV-Norm})، جفت‌شدگی گرادیان‌ها میان وزن‌ها را می‌شکند: در حالی که در حالت عادی گرادیان وزن‌های کوئری وابسته به ضرب نُرم‌های $\mathcal{O}(\|W_K\|_2 \|W_V\|_2 \|W_O\|_2)$ است، در حضور \en{QKV-Norm}، نُرم فروبنیوس گرادیان به $\mathcal{O}(\|W_O\|_2)$ کاهش می‌یابد که زنجیره بازخورد انفجاری را خنثی می‌سازد.
+علاوه بر این، لوپز-روبیو و همکاران \cite{lopezrubio2026enhanced} نشان دادند که بسط نرمال‌سازی کوئری و کلید به نُرم‌های غیر اقلیدسی $\ell_p$ ($p \ge 1$):
+\begin{equation}
+    \hat{q}_i^{(p)} = \frac{q_i}{\|q_i\|_p}, \quad \hat{k}_j^{(p)} = \frac{k_j}{\|k_j\|_p}, \quad \|v\|_p = \left( \sum_{h=1}^{d_k} |v_h|^p \right)^{1/p}
+\end{equation}
+با انتخاب $p > 2$ (نظیر $p=2.5$ و $p=3$)، سبب تمرکز هوشمندانه توجه بر روی شاخص‌ترین مؤلفه‌ها شده و عملکرد مدل‌های زبانی را بهبود می‌بخشد.
+
+\paragraph*{نوآوری‌های ساختاری پیشرفته (۲۰۲۵–۲۰۲۶)}
+برای فائق آمدن بر بن‌بست تقابل پایداری و ظرفیت، نسل نوینی از راهکارها پا به عرصه گذاشته‌اند:
+\begin{itemize}
+    \item \textbf{ترکیب عمقی \en{Mix-LN} \cite{li2025mixln}:} با اعمال Post-LN در لایه‌های ابتدایی ($\lfloor aL \rfloor$ با $a=0.25$) و Pre-LN در لایه‌های عمیق، گرادیان در تمام طول شبکه متعادل شده و توان بازنمایی لایه‌های انتهایی بازیابی می‌شود.
+    \item \textbf{مقیاس‌دهی لایه‌نرمال (\en{LayerNorm Scaling - LNS}) \cite{sun2025curse}:} ضرب خروجی لایه‌نرمال در فاکتور $1/\sqrt{\ell}$ در لایه $\ell$-ام، واریانس تجمعی را به $\mathcal{O}(L^{2-\epsilon})$ مهار کرده و بدون افزودن هیچ پارامتر آموزش‌پذیری، پدیده نفرین عمق را ریشه‌کن می‌سازد.
+    \item \textbf{احاطه محیطی زیرلایه‌ها (\en{Peri-LN}) \cite{kim2025periln}:} اعمال نرمال‌سازی در ابتدا و انتهای هر زیرلایه:
+    \begin{equation}
+        y_l = x_l + \text{LN}_{\text{out}}\left(\mathcal{F}\left(\text{LN}_{\text{in}}(x_l)\right)\right)
+    \end{equation}
+    این طراحی یک فاکتور خودتنظیم میرایی در مخرج گرادیان ایجاد کرده و حساسیت گرادیان را نسبت به بزرگی فعال‌سازها کاملاً بی‌اثر می‌سازد.
+    \item \textbf{تحلیل کنترل بهینه و مقیاس‌دهی باقیمانده \cite{kan2026stability}:} نشان داده شد که فرمول‌بندی بهینه‌سازی ترنسفورمر به عنوان یک مسئله کنترل بهینه پیوسته-گسسته، اثبات می‌کند که تابع همیلتونی در Pre-LN نامحدود ($\mathcal{H} = \infty$) بوده و سیستم بدوضع است، در حالی که در Peri-LN خوش‌وضع باقی می‌ماند. همچنین مقیاس‌دهی گام رزیدوال با $\Delta t = 0.1$ تضمین‌کننده پایداری تحلیلی گرادیان است.
+    \item \textbf{معماری \en{DNT} برای آموزش با \en{Momentum SGDW} \cite{qi2025dnt}:} با قرار دادن لایه \en{MidNorm} پیش از اتصال جهشی، بزرگترین مقدار تکین ماتریس ژاکوبی بلوک مقداری کاملاً قطعی و مستقل از مقیاس وزن‌ها پیدا می‌کند:
+    \begin{equation}
+        \sigma_1(W_1) \approx \frac{\sqrt{m}+\sqrt{n}}{\sqrt{mn} \cdot \sigma_x}
+    \end{equation}
+    این مهار واریانس، برای نخستین بار آموزش بدون نقص ترنسفورمر را با بهینه‌ساز پایه \en{mSGDW} معادل با \en{AdamW} امکان‌پذیر ساخت.
+    \item \textbf{معماری \en{KEEL}: شکستن سد عمق بیش از ۱۰۰۰ لایه \cite{chen2026keel}:} معماری \en{KEEL} ساختار Post-LN را از طریق اتصال بزرگراهی مقیاس‌دار احیا کرد:
+    \begin{equation}
+        x_{l+1} = \text{LN}\left( \alpha x_l + \mathcal{F}_l(\text{LN}(x_l)) \right)
+    \end{equation}
+    با انتخاب $\alpha = L$ (کل عمق شبکه)، حاصل‌ضرب فاکتورهای انقباضی ژاکوبی در حد بی‌نهایت به عدد ۱ همگرا می‌شود:
+    \begin{equation}
+        \lim_{L \to \infty} \left( \frac{\alpha}{\sqrt{\alpha^2 + 1}} \right)^L = \lim_{L \to \infty} \left( 1 + \frac{1}{L^2} \right)^{-L/2} = 1
+    \end{equation}
+    این معادله انقراض گرادیان در Post-LN را خنثی ساخته و آموزش موفق شبکه‌هایی با عمق ۱۰۲۴ لایه را محقق نمود.
+    \item \textbf{معماری دوجریانی \en{SiameseNorm} \cite{li2026siamesenorm}:} ایجاد دو جریان همگام جفت‌شده؛ یک جریان باقیمانده بدون نرمال‌سازی برای انتقال گرادیان آزاد ($Y$) و یک جریان مقیدسازی‌شده برای بازنمایی غنی لایه‌ها ($X$):
+    \begin{equation}
+        O_i = \mathcal{F}_i(X_i + \text{LN}_i^Y(Y_i)), \quad X_{i+1} = \text{LN}_i^X(X_i + O_i), \quad Y_{i+1} = Y_i + O_i
+    \end{equation}
+    این جداسازی ساختاری، بن‌بست سنتی میان بزرگراه گرادیان و انقباض فعال‌ساز را با هزینه محاسباتی ناچیز برطرف می‌سازد.
+\end{itemize}
+
+\paragraph*{پارادایم‌های پویا و شبکه‌های بدون نرمال‌سازی (\en{Normalization-Free})}
+\begin{itemize}
+    \item \textbf{توابع اشباع نقطه‌ای (\en{DyT}) \cite{zhu2025transformers}:} با کشف این واقعیت که لایه‌نرمال در عمل نگاشتی شبیه به تانژانت هذلولوی اجرا می‌کند، عملگر بدون آمارگیر $\text{DyT}(x) = \gamma \odot \tanh(\alpha x) + \beta$ معرفی شد که در آن پارامتر اسکالر یادگیرنده $\alpha$ معکوس انحراف معیار ورودی را دنبال می‌کند.
+    \item \textbf{توسعه به \en{Derf} بر پایه اصول چهارگانه \cite{chen2026stronger}:} چن و همکاران نشان دادند که تابع نقطه‌ای موفق باید واجد چهار ویژگی باشد: \textbf{تقارن حول صفر، کران‌داری، حساسیت مرکزی و یکنوایی}. آن‌ها با معرفی تابع خطای گاوسی رزیستورشده:
+    \begin{equation}
+        \text{Derf}(x) = \gamma \odot \text{erf}(\alpha x + s) + \beta, \quad \text{erf}(x) = \frac{2}{\sqrt{\pi}}\int_0^x e^{-t^2} dt
+    \end{equation}
+    ثابت کردند که این تابع عملکرد بهتری نسبت به \en{LayerNorm} استاندارد ارائه می‌دهد. تحلیل زیان در حالت ارزشیابی نشان داد که \en{Derf} زیان آموزش بالاتری نسبت به لایه‌نرمال دارد، اما به تعمیم‌پذیری به‌مراتب بالاتری روی داده‌های تست دست می‌یابد که نشانگر عملکرد آن به عنوان یک تنظیم‌کننده ضمنی قدرتمند است.
+    \item \textbf{نرمال‌سازی پویا با حفظ مقیاس ورودی (\en{SeeDNorm}) \cite{cai2026seednorm}:} جهت جبران نقص \en{RMSNorm} در حذف نُرم بردار ورودی، روش خودبازمقیاس‌کننده پویا ارائه شد:
+    \begin{equation}
+        \text{SeeDNorm}(x) = \left[ \sigma(x \cdot \beta^\top)\alpha + \gamma \right] \odot \frac{x}{\text{RMS}(x)}
+    \end{equation}
+    که در آن ضریب فزاینده به اندازه و راستای بردار ورودی حساس است و در نسخه چندسره، نوسانات ضرب در ابعاد بالا کنترل می‌شود.
+    \item \textbf{حذف نرمال‌سازی در استنتاج و شفافیت مدارهای تفسیری \cite{baroni2025transformers}:} بارونی و همکاران نشان دادند که می‌توان با تبدیل لایه‌نرمال به یک نگاشت خطی در فاز فاین‌تیونینگ (\en{FakeLN})، نرمال‌سازی را در مرحله استنتاج به طور کامل از مدل‌های سری GPT-2 حذف کرد. این اقدام خطای انتساب خطی مستقیم لاجیت (\en{DLA}) را به صفر رسانده و نشان داد نورون‌های اعتماد (\en{Confidence Neurons}) مستقیماً به غیرخطی بودن تقسیم در لایه‌نرمال وابسته‌اند.
+    \item \textbf{تیزسازی توجه در تعمیم طول (\en{Resharpening Attention}) \cite{zsamboki2026postnorm}:} در آزمون‌های الگوریتمی، پدیده رقیق‌شدگی توجه ناشی از مخرج $\frac{1}{s}$ در توالی‌های بسیار طولانی، توسط لایه \en{Post-Norm} از طریق مقیاس‌دهی مجدد دامنه بردارها خنثی شده و سبب تعمیم قدرتمند مدل به طول‌های بسیار بزرگتر از طول آموزش می‌گردد.
+    \item \textbf{یادگیری الگوریتمی روش توان در ترنسفورمرهای حلقوی \cite{wu2026looped}:} اثبات شد که یک ترنسفورمر خطی حلقوی با لایه‌نرمال، تحت آموزش با گرادیان نزولی دقیقاً به الگوریتم ریاضی روش توان (\en{Power Method}) برای تحلیل مولفه‌های اصلی میل می‌کند، در حالی که مدل بدون نرمال‌سازی به دلیل عدم توانایی در کنترل گام‌ها، هرگز نمی‌تواند این الگوریتم را به درستی فراگیرد.
+\end{itemize}
+
+\paragraph*{دیاگرام‌های ساختاری معماری‌های نوین ترنسفورمر}
+در شکل‌های زیر، ساختار جریان داده در معماری‌های کلیدی به تصویر کشیده شده است.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.8cm and 1.2cm,
+    block/.style={rectangle, draw=blue!80!black, fill=blue!10, rounded corners, minimum width=2.4cm, minimum height=0.7cm, align=center, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=orange!90!black, fill=orange!15, rounded corners, minimum width=2.4cm, minimum height=0.6cm, align=center, font=\footnotesize\bfseries},
+    add/.style={circle, draw=black, fill=gray!20, inner sep=1pt, minimum size=0.55cm, font=\small\bfseries},
+    arrow/.style={-Latex, thick}
+]
+    % --- Post-LN ---
+    \node (in_post) at (0, 0) {$x_l$};
+    \node[block, above=0.7cm of in_post] (f_post) {$\mathcal{F}$ (\en{Sublayer})};
+    \node[add, above=0.7cm of f_post] (add_post) {$+$};
+    \node[norm, above=0.7cm of add_post] (ln_post) {$\text{LN}$};
+    \node[above=0.6cm of ln_post] (out_post) {$x_{l+1}$};
+    
+    \draw[arrow] (in_post) -- (f_post);
+    \draw[arrow] (f_post) -- (add_post);
+    \draw[arrow] (add_post) -- (ln_post);
+    \draw[arrow] (ln_post) -- (out_post);
+    \draw[arrow] (in_post.north) to[out=180,in=180] (add_post.west);
+    \node[below=0.2cm of in_post, font=\bfseries] {(a) \en{Post-LN}};
+
+    % --- Pre-LN ---
+    \node (in_pre) at (4.5, 0) {$x_l$};
+    \node[norm, above=0.7cm of in_pre] (ln_pre) {$\text{LN}$};
+    \node[block, above=0.7cm of ln_pre] (f_pre) {$\mathcal{F}$ (\en{Sublayer})};
+    \node[add, above=0.7cm of f_pre] (add_pre) {$+$};
+    \node[above=0.6cm of add_pre] (out_pre) {$x_{l+1}$};
+
+    \draw[arrow] (in_pre) -- (ln_pre);
+    \draw[arrow] (ln_pre) -- (f_pre);
+    \draw[arrow] (f_pre) -- (add_pre);
+    \draw[arrow] (add_pre) -- (out_pre);
+    \draw[arrow] (in_pre.north) to[out=180,in=180] (add_pre.west);
+    \node[below=0.2cm of in_pre, font=\bfseries] {(b) \en{Pre-LN}};
+
+    % --- Peri-LN ---
+    \node (in_peri) at (9.0, 0) {$x_l$};
+    \node[norm, above=0.4cm of in_peri] (ln1_peri) {$\text{LN}_{\text{in}}$};
+    \node[block, above=0.5cm of ln1_peri] (f_peri) {$\mathcal{F}$ (\en{Sublayer})};
+    \node[norm, above=0.5cm of f_peri] (ln2_peri) {$\text{LN}_{\text{out}}$};
+    \node[add, above=0.5cm of ln2_peri] (add_peri) {$+$};
+    \node[above=0.5cm of add_peri] (out_peri) {$x_{l+1}$};
+
+    \draw[arrow] (in_peri) -- (ln1_peri);
+    \draw[arrow] (ln1_peri) -- (f_peri);
+    \draw[arrow] (f_peri) -- (ln2_peri);
+    \draw[arrow] (ln2_peri) -- (add_peri);
+    \draw[arrow] (add_peri) -- (out_peri);
+    \draw[arrow] (in_peri.north) to[out=180,in=180] (add_peri.west);
+    \node[below=0.2cm of in_peri, font=\bfseries] {(c) \en{Peri-LN}};
+
+    % --- KEEL ---
+    \node (in_keel) at (13.5, 0) {$x_l$};
+    \node[norm, above=0.4cm of in_keel] (ln1_keel) {$\text{LN}$};
+    \node[block, above=0.5cm of ln1_keel] (f_keel) {$\mathcal{F}$ (\en{Sublayer})};
+    \node[add, above=0.7cm of f_keel] (add_keel) {$+$};
+    \node[norm, above=0.6cm of add_keel] (ln2_keel) {$\text{LN}$};
+    \node[above=0.5cm of ln2_keel] (out_keel) {$x_{l+1}$};
+
+    \draw[arrow] (in_keel) -- (ln1_keel);
+    \draw[arrow] (ln1_keel) -- (f_keel);
+    \draw[arrow] (f_keel) -- (add_keel);
+    \draw[arrow] (add_keel) -- (ln2_keel);
+    \draw[arrow] (ln2_keel) -- (out_keel);
+    \draw[arrow] (in_keel.north) to[out=180,in=180] node[left, font=\footnotesize] {$\times \alpha$} (add_keel.west);
+    \node[below=0.2cm of in_keel, font=\bfseries] {(d) \en{KEEL}};
+\end{tikzpicture}%
+}
+\caption{مقایسه جریان سیگنال در ساختارهای کلاسیک و بهینه‌سازی‌شده ترنسفورمر.}
+\label{fig:transformer_blocks_comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.9cm and 1.5cm,
+    block/.style={rectangle, draw=blue!80!black, fill=blue!10, rounded corners, minimum width=2.6cm, minimum height=0.75cm, align=center, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=orange!90!black, fill=orange!15, rounded corners, minimum width=2.0cm, minimum height=0.6cm, align=center, font=\footnotesize\bfseries},
+    add/.style={circle, draw=black, fill=gray!20, inner sep=1pt, minimum size=0.55cm, font=\small\bfseries},
+    arrow/.style={-Latex, thick}
+]
+    % Inputs
+    \node (in_X) at (0, 0) {$X_l$ (\en{Post-Norm Stream})};
+    \node (in_Y) at (6.5, 0) {$Y_l$ (\en{Pre-Norm Highway})};
+
+    % Fusion and Shared Sublayer
+    \node[norm, above=0.8cm of in_Y] (ln_Y) {$\text{LN}_Y$};
+    \node[add, above=1.8cm of in_X] (add_mix) {$+$};
+    \node[block, above=0.8cm of add_mix] (shared_F) {$\mathcal{F}_l$ (\en{Shared Module})};
+
+    % Outputs
+    \node[add, above=1.2cm of shared_F] (add_X) {$+$};
+    \node[norm, above=0.7cm of add_X] (ln_X) {$\text{LN}_X$};
+    \node[above=0.6cm of ln_X] (out_X) {$X_{l+1}$};
+
+    \node[add, right=6.5cm of add_X] (add_Y) {$+$};
+    \node[above=1.9cm of add_Y] (out_Y) {$Y_{l+1}$};
+
+    % Connections
+    \draw[arrow] (in_Y) -- (ln_Y);
+    \draw[arrow] (ln_Y) |- (add_mix);
+    \draw[arrow] (in_X) -- (add_mix);
+    \draw[arrow] (add_mix) -- (shared_F);
+
+    \draw[arrow] (shared_F) -- node[right, font=\footnotesize] {$\times \frac{1}{\sqrt{l+1}}$} (add_X);
+    \draw[arrow] (shared_F) |- (add_Y);
+
+    \draw[arrow] (in_X.north) to[out=135,in=225] (add_X.west);
+    \draw[arrow] (in_Y.north) to[out=45,in=315] (add_Y.east);
+
+    \draw[arrow] (add_X) -- (ln_X);
+    \draw[arrow] (ln_X) -- (out_X);
+    \draw[arrow] (add_Y) -- (out_Y);
+\end{tikzpicture}%
+}
+\caption{معماری دوجریانی \en{SiameseNorm} \cite{li2026siamesenorm} با جداسازی بزرگراه خطی و جریان فشرده.}
+\label{fig:siamesenorm_architecture}
+\end{figure}
+
+\paragraph*{جدول مقایسه جامع و تاکسونومی پارادایم‌های نرمال‌سازی}
+جدول زیر خلاصه مقایسه‌ای از ویژگی‌های ریاضی، دینامیک گرادیان و پایداری روش‌های بررسی‌شده را نمایش می‌دهد:
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه تحلیلی و فنی پارادایم‌های نرمال‌سازی در بلاک‌های ترنسفورمر}
+\label{tab:norm_taxonomy}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{معماری / روش} & \textbf{موقعیت لایه} & \textbf{رشد واریانس حالت پنهان} & \textbf{پویایی گرادیان} & \textbf{بیشینه عمق تست‌شده} & \textbf{مصونیت از اوتلایر} & \textbf{مرجع اصلی} \\
+\midrule
+\en{Post-LN} & پس از اتصال جهشی & ثابت $\mathcal{O}(1)$ & زوال نمایی $\mathcal{O}(2^{-L/2})$ & $< 30$ لایه & خیر & \cite{vaswani2017attention} \\
+\en{Pre-LN} & ورودی زیرلایه‌ها & نمایی $\Theta(e^L)$ & پایدار در ابتدا، زوال در انتها & $\sim 100$ لایه & خیر (فعال‌ساز عظیم) & \cite{radford2019language} \\
+\en{Mix-LN} & ترتیبی ($25\%$ ابتدایی \en{Post}، مابقی \en{Pre}) & متعادل چندجمله‌ای & یکنواخت در تمام لایه‌ها & 7B (32 لایه) & متوسط & \cite{li2025mixln} \\
+\en{LayerNorm Scaling} & \en{Pre-LN} با ضریب $1/\sqrt{\ell}$ & چندجمله‌ای $\mathcal{O}(L^{2-\epsilon})$ & پیوسته با نرخ $\omega(1)$ & 7B (32 لایه) & بالا & \cite{sun2025curse} \\
+\en{Peri-LN} & قبل و بعد از تمام زیرلایه‌ها & خطی $\mathcal{O}(D)$ (واریانس $\mathcal{O}(D^2)$) & خودتنظیم با فاکتور $\|h\|/\|a\|$ & 3.2B / \model{Gemma-2/3} & عالی & \cite{kim2025periln} \\
+\en{HybridNorm} & \en{QKV-Norm} در توجه، \en{Post} در \en{FFN} & متناوب و کنترل‌شده & تفکیک کوپلینگ گرادیان & 1.2B متراکم و 15B MoE & بالا & \cite{zhuo2025hybridnorm} \\
+\en{DNT} & ترکیب \en{Input/Pre/QK/Mid-Norm} & قطعی با \en{MidNorm} & توزیع دم‌باریک (بدون دم سنگین) & 1.4B / آموزش با \en{mSGD} & عالی & \cite{qi2025dnt} \\
+\en{KEEL} & \en{Post-LN} بزرگراهی ($\alpha = L$) & مقید با گین واحد تجمعی & ضریب ژاکوبی $\lim_{L\to\infty} \prod = 1$ & \textbf{۱۰۲۴ لایه} & عالی & \cite{chen2026keel} \\
+\en{SiameseNorm} & دوجریانی موازی (\en{Pre} و \en{Post}) & تفکیک جریان آزاد و محصور & ماتریس گذار دوگانه متقارن & 1.3B متراکم و 15B MoE & عالی & \cite{li2026siamesenorm} \\
+\en{DyT} & بدون نرمال‌سازی ($\tanh(\alpha x)$) & محصور در بازه $[-1, 1]$ & مشتق بر پایه $\text{sech}^2(\alpha x)$ & \model{LLaMA-70B} & ذاتی & \cite{zhu2025transformers} \\
+\en{Derf} & بدون نرمال‌سازی ($\text{erf}(\alpha x + s)$) & محصور با اصول چهارگانه & هموار و تنظیم‌کننده ضمنی & مدل‌های زبانی و بینایی & ذاتی & \cite{chen2026stronger} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{جمع‌بندی و افق‌های فراروی پژوهش}
+تحولات رخ‌داده در حوزه نرمال‌سازی ترنسفورمرها نشان می‌دهد که پارادایم ساده‌انگارانه «Pre-LN به عنوان یک استاندارد نهایی» به پایان رسیده است. شواهد متقن ریاضی و شبیه‌سازی‌های زمان‌پیوسته حاکی از آن است که برای شکستن محدودیت‌های مقیاس عمق در نسل‌های آتی مدل‌های زبانی:
+\begin{enumerate}
+    \item تفکیک مسیر انتقال گرادیان از مسیر فشرده‌سازی بازنمایی (همان‌گونه که در \en{SiameseNorm} و \en{KEEL} محقق شده) نقشی بنیادین در آموزش شبکه‌های فراتر از هزار لایه دارد.
+    \item استفاده از توابع اشباع نقطه‌ای (\en{DyT} و \en{Derf}) مسیر جدیدی به سوی مدل‌های بدون نرمال‌سازی واقعی گشوده است که با حذف کامل نیاز به محاسبه آمارهای دسته‌ای و کانالی، گلوگاه همگام‌سازی حافظه را در شتاب‌دهنده‌های سخت‌افزاری حذف خواهد نمود.
+\end{enumerate}

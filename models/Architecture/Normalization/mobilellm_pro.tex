@@ -1,1 +1,65 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{مقدمه و معماری فشرده \en{MobileLLM-Pro}}
+مدل \model{MobileLLM-Pro} \cite{huber2025mobilellmpro} یک مدل زبانی ۱ میلیارد پارامتری بهینه‌سازی‌شده برای سخت‌افزارهای پردازشی روی دستگاه (\en{On-device}) با پنجره بافت متنی ۱۲۸ هزار توکن است. ساختار شبکه شامل ۳۰ لایه ترنسفورمر، بعد پنهان $d = 1280$، تعداد ۲۰ هد کوئری و ۴ جفت کلید-مقدار در سازوکار \en{GQA} است. طراحی سازوکارهای نرمال‌سازی در این مدل جهت حفظ بیشترین بهره‌وری اطلاعاتی در حجم محدود حافظه صورت پذیرفته است.
+
+\paragraph*{نرمال‌سازی در چیدمان اشتراک امبدینگ‌ها (\en{Embedding Sharing})}
+جهت کاهش اندازه مدل در مقیاس ۱ میلیارد پارامتر، ماتریس تعبیه ورودی و پروجکشن خروجی واژگان به اشتراک گذاشته شده‌اند (\en{Weight Tying}):
+\begin{equation}
+    W_{\text{unembed}} = W_{\text{embed}} \in \mathbb{R}^{V \times d}, \quad V = 202,048
+\end{equation}
+این اشتراک وزن باعث صرفه‌جویی ۲۶۰ میلیون پارامتر (~۲۵٪ کل پارامترهای مدل) می‌شود. برای پایدارسازی گرادیان خروجی و حفظ سازگاری آماری میان بردارهای پنهان لایه ۳۰ و بردار تعبیه، اعمال یک لایه \en{RMSNorm} پیش از تصویرسازی نهایی الزامی است:
+\begin{equation}
+    P(w_t) = \text{Softmax}\left( W_{\text{embed}} \cdot \text{RMSNorm}(h_L) \right)
+\end{equation}
+
+\paragraph*{نرمال‌سازی در ساختار ترکیبی توجه محلی-سراسری (\en{Local-Global Attention})}
+در این مدل، لایه‌های توجه با پنجره لغزان محلی ۵۱۲ توکنی و توجه سراسری با نسبت ۳ به ۱ ترکیب شده‌اند (به ازای هر سه لایه محلی، یک لایه توجه کامل سراسری). هر لایه به صورت مجزا پیش از اعمال خودتوجهی یا \en{SwiGLU FFN} (با ضریب انبساط ۴.۸ برابری) با \en{RMSNorm} نرمال می‌شود.
+
+\paragraph*{فرمولاسیون ریاضی نرمال‌سازی پویا در کوانتیزاسیون ۴ بیتی و ۸ بیتی (\en{QAT})}
+در فاز آموزش آگاه از کوانتیزاسیون (\en{QAT}) جهت استقرار بر روی \en{CPU} و شتاب‌دهنده‌های موبایلی (\en{Apple ANE} و \en{Qualcomm HTP}):
+\begin{itemize}
+    \item \textbf{نرمال‌سازی نامتقارن پویا به ازای هر توکن برای فعال‌سازی‌ها (\en{INT8}):}
+    \begin{equation}
+        \mathcal{Q}(x_{\text{in}}) = s_x \times \text{clip}\left( \left\lfloor \frac{x_{\text{in}} - z}{s_x} \right\rceil, 0, 255 \right) + z
+    \end{equation}
+    که در آن مقیاس $s_x$ و نقطه صفر $z$ بر مبنای توزیع آماری لحظه‌ای بردار ورودی نرمال‌سازی می‌شوند:
+    \begin{equation}
+        s_x = \frac{\max(x_{\text{in}}) - \min(x_{\text{in}})}{255}, \qquad z = \min(x_{\text{in}})
+    \end{equation}
+    \item \textbf{نرمال‌سازی متقارن با دامنه یادگیری‌پذیر در وزن‌ها (\en{INT4}):}
+    وزن‌های لایه‌ها به صورت متقارن در بازه $[-8, 7]$ نرمال و کوانتیزه می‌شوند:
+    \begin{equation}
+        \mathcal{Q}(W_g) = s_w \times \text{clip}\left( \left\lfloor \frac{W_g}{s_w} \right\rceil, -8, 7 \right), \qquad s_w = \frac{\max(-w_{\min}, w_{\max})}{7.5}
+    \end{equation}
+    که در آن مقادیر $w_{\min}$ و $w_{\max}$ در طول آموزش با الگوریتم پس‌انتشار به عنوان پارامترهای پیوسته نرمال‌سازی یاد گرفته می‌شوند.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, draw=blue!70, fill=blue!6, rounded corners=4pt, text centered, minimum height=0.9cm, font=\footnotesize\bfseries},
+    norm/.style={rectangle, draw=teal!70, fill=teal!10, rounded corners=4pt, text centered, minimum height=0.85cm, font=\footnotesize\bfseries},
+    arr/.style={-{Stealth[scale=1.0]}, thick, color=blue!60!black}
+]
+    \node (in) at (0, 4.5) [box, text width=6cm] {ورودی لایه $x_l \in \mathbb{R}^{1280}$};
+    \node (pre1) at (0, 3.3) [norm, text width=5cm] {Pre-RMSNorm ($\gamma \in \mathbb{R}^{1280}$)};
+    \node (attn) at (0, 2.0) [box, text width=6.5cm] {Local-Global Attention (تناوب ۳ به ۱)\\ ۵۱۲ توکن محلی / توجه سراسری کامل};
+    \node (res1) at (0, 0.8) [box, text width=4.5cm] {اتصال باقی‌مانده: $x_l + \text{Attn}(\dots)$};
+    \node (pre2) at (0, -0.4) [norm, text width=5cm] {Pre-RMSNorm ($\gamma \in \mathbb{R}^{1280}$)};
+    \node (ffn) at (0, -1.6) [box, text width=6.5cm] {SwiGLU FFN (انبساط بعد پنهان تا ۶۱۴۴)\\ با پشتیبانی از بازه‌های یادگیری‌پذیر QAT};
+    \node (out) at (0, -2.8) [box, text width=4.5cm] {خروجی لایه $x_{l+1} \in \mathbb{R}^{1280}$};
+
+    \draw [arr] (in) -- (pre1);
+    \draw [arr] (pre1) -- (attn);
+    \draw [arr] (attn) -- (res1);
+    \draw [arr] (res1) -- (pre2);
+    \draw [arr] (pre2) -- (ffn);
+    \draw [arr] (ffn) -- (out);
+    \draw [arr] (in.east) -- ++(1.4,0) |- (res1.east);
+    \draw [arr] (res1.west) -- ++(-1.4,0) |- (out.west);
+\end{tikzpicture}
+\caption{جریان پردازش و نقاط نرمال‌سازی در بلوک ترنسفورمر \model{MobileLLM-Pro}}
+\label{fig:mobilellm_pro_norm}
+\end{figure}
