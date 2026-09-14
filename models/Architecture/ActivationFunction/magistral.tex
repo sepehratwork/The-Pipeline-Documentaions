@@ -1,1 +1,42 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{لایه‌های پیش‌خور در مدل‌های استدلال‌گر خالص (\en{FFN in Pure Reasoning})}
+مدل‌های خانواده \model{Magistral} \cite{mistral2025magistral} (شامل \en{Magistral Small} بر پایه \en{Mistral Small 3} با ۲۴ میلیارد پارامتر و \en{Magistral Medium}) بدون استفاده از تقطیر داده‌های اولیه و صرفاً بر پایه یادگیری تقویتی تاییدپذیر (\en{RLVR}) آموزش دیده‌اند. لایه پیش‌خور در این مدل‌ها از ساختار استاندارد \en{SwiGLU} با فرمول‌بندی زیر پیروی می‌کند:
+\begin{equation}
+    \text{FFN}(x) = \Big( \text{Swish}(x W_{\text{gate}}) \odot (x W_{\text{up}}) \Big) W_{\text{down}}
+\end{equation}
+
+\paragraph*{پویایی وزن‌های \en{FFN} در طول بهینه‌سازی سیاست تقویت‌شده (\en{RL Dynamics \& PCA})}
+در گزارش فنی مدل \model{Magistral}، رفتار فعال‌سازی و چینش وزن‌های لایه‌های پیش‌خور در طول گام‌های یادگیری تقویتی از طریق تحلیل مؤلفه‌های اصلی (\en{PCA}) بر روی ماتریس وزن‌های چک‌پوینت‌ها ($X \in \mathbb{R}^{T \times W}$) تحلیل شده است. این بررسی‌ها نشان داد که گرادیان‌های ناشی از پاداش، بردارهای لایه پیش‌خور را در یک زیرفضای با بعد بسیار پایین (\en{Low-Dimensional Manifold}) هدایت می‌کنند. این جهت‌گیری باعث می‌شود فعال‌سازهای لایه \en{FFN} رفتار تنک‌تری پیدا کرده و ظرفیت پردازشی مدل را متناسب با افزایش طول گام‌های تفکر (\en{Thinking Traces}) به صورت بهینه تخصیص دهند.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.88\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.3cm and 2.0cm,
+    block/.style={rectangle, draw=cyan!80!black, fill=cyan!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!70!black, fill=red!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=cyan!90!black, line width=1.1pt}
+]
+    \node[data] (in) {بردار ورودی: $x \in \mathbb{R}^d$};
+    \node[block, below left=1.2cm and 0.6cm of in] (wg) {مسیر گیت: $W_{\text{gate}}$};
+    \node[block, below right=1.2cm and 0.6cm of in] (wu) {مسیر بالارو: $W_{\text{up}}$};
+    \node[block, below=1.1cm of wg] (sw) {$\text{Swish}(z) = z \cdot \sigma(z)$};
+    \node[op, below right=1.3cm and 1.1cm of sw] (had) {$\odot$};
+    \node[block, below=1.1cm of had] (wd) {طرح‌ریزی پایین‌رو: $W_{\text{down}}$};
+    \node[data, below=1.1cm of wd] (out) {خروجی لایه پیش‌خور استدلال‌گر};
+
+    \draw[arrow] (in) -| (wg);
+    \draw[arrow] (in) -| (wu);
+    \draw[arrow] (wg) -- (sw);
+    \draw[arrow] (sw) |- (had);
+    \draw[arrow] (wu) |- (had);
+    \draw[arrow] (had) -- (wd);
+    \draw[arrow] (wd) -- (out);
+\end{tikzpicture}%
+}
+\caption{ساختار لایه پیش‌خور \en{SwiGLU} بهینه‌سازی‌شده در مدل استدلال‌گر \model{Magistral}}
+\label{fig:magistral_ffn}
+\end{figure}

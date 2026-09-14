@@ -1,1 +1,49 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{پیکربندی ابعادی و ساختار متخصصان لایه پیش‌خور (\en{MoE FFN Architecture})}
+در مدل \model{GLM-5} \cite{glm2025glm5} با ۷۴۴ میلیارد پارامتر کل و ۴۰ میلیارد پارامتر فعال در هر گام، تبدیل‌های پیش‌خور در ساختاری ترکیبی از لایه‌های چگال و متخصصان تنک سازمان‌دهی شده است. بر اساس مشخصات معماری مدل:
+\begin{itemize}
+    \item بعد پنهان مدل ($d$): برابر با ۶۱۴۴ تثبیت شده است.
+    \item بعد میانی در ۳ لایه چگال اولیه ($d_{\text{dense\_ffn}}$): ۱۲۲۸۸ (نسبت انبساط ۲ برابر).
+    \item بعد میانی هر متخصص در لایه‌های تنک ($d_{\text{moe\_ffn}}$): برابر با ۲۰۴۸.
+    \item پیکربندی متخصصان: ۲۵۶ متخصص تفکیک‌شده به همراه ۱ متخصص اشتراکی، که در هر گام پردازش ۸ متخصص فعال می‌شوند.
+\end{itemize}
+
+\paragraph*{پایداری تابع فعال‌ساز در فرآیند کوانتایزیشن آگاه از آموزش (\en{INT4 QAT})}
+در متخصصان تنک \model{GLM-5}، تبدیل‌های پیش‌خور بر پایه فرمول‌بندی \en{SwiGLU} پیاده‌سازی شده‌اند. چالش بنیادین این لایه، ناپایداری ناشی از فشردگی وزن‌ها به دقت فوق‌پایین \en{INT4} (فرمت \en{W4A8}) به منظور امکان بارگذاری مدل در سرورهای منفرد است. تابع فعال‌ساز \en{Swish} به صورت ذاتی دارای ماهیت نامتقارن است:
+\begin{equation}
+    \min_{z \in \mathbb{R}} \text{Swish}(z) \approx -0.278465, \qquad \lim_{z \to \infty} \text{Swish}(z) = +\infty
+\end{equation}
+این عدم تقارن شدید به همراه وجود مقادیر دورافتاده در فعال‌سازهای ورودی، در تبدیل به بازه صحیح علامت‌دار $[-8, 7]$ خطای تقریب را تشدید می‌نماید. برای سرکوب این مقادیر پرت، مدل از تکنیک‌های کوانتایزیشن چرخشی نظیر \en{QuaRot} و کالیبراسیون مقیاس پویای \en{Flex\_AWQ\_SSZ} بهره می‌گیرد تا قبل از ضرب ماتریسی در مسیرهای گیت و بالارو، تانسور فعال‌سازی بازتوزیع و همسان‌سازی شود.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.4cm and 2.0cm,
+    block/.style={rectangle, draw=teal!80!black, fill=teal!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=orange!80!black, fill=orange!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=teal!90!black, line width=1.1pt}
+]
+    \node[data] (in) {ورودی لایه پیش‌خور: $x \in \mathbb{R}^{6144}$};
+    \node[block, below left=1.3cm and 0.5cm of in] (shared) {متخصص اشتراکی: $d_{\text{ffn}} = 2048$};
+    \node[block, below right=1.3cm and 0.5cm of in] (router) {مسیریاب: انتخاب \en{Top-8} از میان ۲۵۶ متخصص};
+    \node[block, below=1.2cm of shared] (swish_sh) {$\text{SwiGLU}(x W_{g,\text{sh}}, x W_{u,\text{sh}})$};
+    \node[block, below=1.2cm of router] (swish_moe) {$\sum_{i \in \text{Top-8}} g_i \cdot \text{SwiGLU}(x W_{g,i}, x W_{u,i})$};
+    \node[op, below right=1.3cm and 1.2cm of swish_sh] (sum) {$+$};
+    \node[data, below=1.1cm of sum] (out) {خروجی نهایی ترکیب‌شده};
+
+    \draw[arrow] (in) -| (shared);
+    \draw[arrow] (in) -| (router);
+    \draw[arrow] (shared) -- (swish_sh);
+    \draw[arrow] (router) -- (swish_moe);
+    \draw[arrow] (swish_sh) |- (sum);
+    \draw[arrow] (swish_moe) |- (sum);
+    \draw[arrow] (sum) -- (out);
+\end{tikzpicture}%
+}
+\caption{جریان داده در لایه پیش‌خور مدل \model{GLM-5} شامل متخصصان اشتراکی و روت‌شده با فعال‌ساز \en{SwiGLU}}
+\label{fig:glm_5_ffn}
+\end{figure}

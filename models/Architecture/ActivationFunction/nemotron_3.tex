@@ -1,1 +1,50 @@
-\item \textbf asd
+\item \model{Nemotron 3}
+
+\paragraph*{معماری نوین \en{LatentMoE} در ساختار هیبریدی (\en{Hybrid LatentMoE FFN})}
+در خانواده مدل‌های \model{Nemotron 3} \cite{nemotron2025v3}، لایه‌های پیش‌خور در یک پیکربندی ترکیبی از لایه‌های ترنسفورمر و حالت پنهان \en{Mamba-2} بر پایه مفهوم **\en{LatentMoE}** پیاده‌سازی شده‌اند. در یک سامانه \en{MoE} سنتی، حجم تبادلات ارتباطی \en{All-to-All} میان پردازنده‌ها متناسب با $K \times d$ است (که $K$ تعداد متخصصان فعال و $d$ بعد مدل است). برای شکستن این گلوگاه ارتباطی:
+\begin{enumerate}
+    \item بردار ویژگی ورودی با بعد $d$ ابتدا توسط ماتریس خطی کاهنده $W_{\text{lat\_down}} \in \mathbb{R}^{d \times \ell}$ به یک بعد پنهان بسیار کوچکتر با نسبت فشرده‌سازی $\frac{d}{\ell} \approx 4\times$ نگاشت می‌شود.
+    \item فعال‌سازهای \en{SwiGLU} و ضرب‌های ماتریسی متخصصان همگی درون این فضای نهفته فشرده $\ell$ اجرا می‌گردند.
+    \item بردار تجمیع‌شده نهایی توسط ماتریس افزاینده $W_{\text{lat\_up}} \in \mathbb{R}^{\ell \times d}$ به بعد اولیه بازگردانده می‌شود.
+\end{enumerate}
+با صرفه‌جویی حاصل در پهنای باند و حافظه، مدل قادر شده است تعداد کل متخصصان و متخصصان فعال را متناسب با ضریب کاهش بعد ($N' = N \cdot \frac{d}{\ell}$ و $K' = K \cdot \frac{d}{\ell}$) تا ۴ برابر منبسط سازد و ظرفیت نمایش غیرخطی را ارتقا دهد.
+
+\paragraph*{پایداری عددی در آموزش با دقت فوق‌پایین (\en{NVFP4 Training Dynamics})}
+مدل \model{Nemotron 3} نخستین مدلی است که پیش‌آموزش خود را در مقیاس وسیع با فرمت فوق‌فشرده \en{NVFP4} به انجام رسانده است. برای پیشگیری از واگرایی ناشی از اشباع تابع \en{Swish}:
+\begin{itemize}
+    \item ماتریس‌های طرح‌ریزی نهفته ($W_{\text{lat\_down}}$ و $W_{\text{lat\_up}}$) در دقت \en{BF16} تثبیت شدند.
+    \item در محاسبات درونی \en{SwiGLU}، مقیاس‌بندی میکروبلوکی ۱۶ عنصری با فاکتورهای مقیاس \en{E4M3} و فرمت مقادیر \en{E2M1} اعمال گردید.
+    \item تبدیلات تصادفی هادامارد (\en{Random Hadamard Transforms - RHT}) بر روی ورودی‌های گرادیان وزن لایه پیش‌خور اعمال شد تا از تشکیل مقادیر دورافتاده تیز در تانسورهای فعال‌سازی ممانعت به عمل آید.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.3cm and 2.0cm,
+    block/.style={rectangle, draw=green!60!black, fill=green!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!70!black, fill=red!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=green!70!black, line width=1.1pt}
+]
+    \node[data] (in) {بردار ویژگی ورودی: $x \in \mathbb{R}^d$};
+    \node[block, below left=1.2cm and 0.5cm of in] (shared) {متخصص اشتراکی در بعد اصلی: $d \to m \to d$};
+    \node[block, below right=1.2cm and 0.5cm of in] (lat_down) {طرح‌ریزی نهفته (\en{BF16}): $W_{\text{lat\_down}} : d \to \ell$};
+    \node[block, below=1.2cm of lat_down] (lat_moe) {اجرای \en{SwiGLU} در فضای فشرده نهفته $\ell$ با دقت \en{NVFP4}};
+    \node[block, below=1.2cm of lat_moe] (lat_up) {بازتاب به بعد اصلی (\en{BF16}): $W_{\text{lat\_up}} : \ell \to d$};
+    \node[op, below right=1.3cm and 1.2cm of shared] (sum) {$+$};
+    \node[data, below=1.1cm of sum] (out) {خروجی نهایی ترکیب‌شده};
+
+    \draw[arrow] (in) -| (shared);
+    \draw[arrow] (in) -| (lat_down);
+    \draw[arrow] (lat_down) -- (lat_moe);
+    \draw[arrow] (lat_moe) -- (lat_up);
+    \draw[arrow] (shared) |- (sum);
+    \draw[arrow] (lat_up) |- (sum);
+    \draw[arrow] (sum) -- (out);
+\end{tikzpicture}%
+}
+\caption{نمودار معماری لایه پیش‌خور \en{LatentMoE} همراه با پردازش فشرده در مدل \model{Nemotron 3}}
+\label{fig:nemotron_3_ffn}
+\end{figure}

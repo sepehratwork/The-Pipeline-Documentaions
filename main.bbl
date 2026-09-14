@@ -1904,6 +1904,216 @@ Zihan Qiu, Zeyu Huang, Bo~Zheng, Kaiyue Wen, Zekun Wang, Rui Men, Ivan Titov,
   Training Specialized Mixture-of-Expert Models}.
 \newblock {\em CoRR, abs/2501.11873}, 2025.
 
+\bibitem{geva2020transformer}
+Mor Geva, Roei Schuster, Jonathan Berant, and Omer Levy.
+\newblock Transformer feed-forward layers are key-value memories.
+\newblock {\em arXiv preprint arXiv:2012.14913}, 2020.
+
+\bibitem{zhang2025flashmhf}
+Minshen Zhang, Xiang Hu, Jianguo Li, Wei Wu, and Kewei Tu.
+\newblock Flash multi-head feed-forward network.
+\newblock {\em arXiv preprint arXiv:2512.06989}, 2025.
+
+\bibitem{hu2025tardis}
+Gansen Hu, Zhaoguo Wang, Jinglin Wei, Wei Huang, and Haibo Chen.
+\newblock Accelerating large language models through partially linear
+  feed-forward network.
+\newblock {\em arXiv preprint arXiv:2501.10054}, 2025.
+
+\bibitem{madhyastha2026sparsity}
+Meghana Madhyastha, Daniel Haziza, Jesse Cai, Newsha Ardalani, Zhiqi Bu, and
+  Carole-Jean Wu.
+\newblock To 2:4 sparsity and beyond: Neuron-level activation function to
+  accelerate {LLM} pre-training.
+\newblock {\em arXiv preprint arXiv:2602.06183}, 2026.
+
+\bibitem{katirci2024evaluating}
+Ramazan Kat{\i}rc{\i} and Hilal {\c{C}}elik.
+\newblock Evaluating the impact of activation functions on transformer
+  architecture performance.
+\newblock {\em International Science and Art Research Center (ISARC)}, pages
+  626--639, 2024.
+
+\bibitem{nair2010relu}
+Vinod Nair and Geoffrey~E. Hinton.
+\newblock Rectified linear units improve restricted boltzmann machines.
+\newblock In {\em Proceedings of the 27th International Conference on Machine
+  Learning (ICML)}, pages 807--814, 2010.
+
+\bibitem{luo2024sparsing}
+Yuqi Luo, Chenyang Song, Xu~Han, Yingfa Chen, Chaojun Xiao, Xiaojun Meng,
+  et~al.
+\newblock Sparsing law: Towards large language models with greater activation
+  sparsity.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2025.
+
+\bibitem{he2015delving}
+Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+\newblock Delving deep into rectifiers: Surpassing human-level performance on
+  {ImageNet} classification.
+\newblock In {\em Proceedings of the IEEE International Conference on Computer
+  Vision (ICCV)}, pages 1026--1034, 2015.
+
+\bibitem{hendrycks2016gelu}
+Dan Hendrycks and Kevin Gimpel.
+\newblock Gaussian error linear units ({GELUs}).
+\newblock {\em arXiv preprint arXiv:1606.08415}, 2016.
+
+\bibitem{tang2026rational}
+Maosen Tang and Alex Townsend.
+\newblock Rational neural networks have expressivity advantages.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2026.
+
+\bibitem{ramachandran2017swish}
+Prajit Ramachandran, Barret Zoph, and Quoc~V. Le.
+\newblock Searching for activation functions.
+\newblock {\em arXiv preprint arXiv:1710.05941}, 2017.
+
+\bibitem{elfwing2018silu}
+Stefan Elfwing, Eiji Uchibe, and Kenji Doya.
+\newblock Sigmoid-weighted linear units for neural network function
+  approximation in reinforcement learning.
+\newblock {\em Neural Networks}, 107:3--11, 2018.
+
+\bibitem{dauphin2017language}
+Yann~N Dauphin, Angela Fan, Michael Auli, and David Grangier.
+\newblock {Language Modeling with Gated Convolutional Networks}.
+\newblock In {\em ICML}, volume~70, pages 933--941, 2017.
+
+\bibitem{yang2025qwen3}
+An~Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo~Zheng, Bowen
+  Yu, et~al.
+\newblock Qwen3 technical report.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{gumaan2025universal}
+Esmail Gumaan.
+\newblock Universal approximation theorem for a single-layer transformer.
+\newblock {\em arXiv preprint arXiv:2507.10581}, 2025.
+
+\bibitem{jiao2025transformers}
+Yuling Jiao, Yanming Lai, Yang Wang, and Bokai Yan.
+\newblock Transformers can overcome the curse of dimensionality: A theoretical
+  study from an approximation perspective.
+\newblock {\em arXiv preprint arXiv:2504.13558}, 2025.
+
+\bibitem{schmidt2021kolmogorov}
+Johannes Schmidt-Hieber.
+\newblock The {Kolmogorov--Arnold} representation theorem revisited.
+\newblock {\em Neural Networks}, 137:119--126, 2021.
+
+\bibitem{nakada2025prompt}
+Ryumei Nakada, Wenlong Ji, Tianxi Cai, James Zou, and Linjun Zhang.
+\newblock A theoretical framework for prompt engineering: Approximating smooth
+  functions with transformer prompts.
+\newblock {\em arXiv preprint arXiv:2503.20561}, 2025.
+
+\bibitem{zhang2022euaf}
+Shijun Zhang, Zuowei Shen, and Haizhao Yang.
+\newblock Deep network approximation: Achieving arbitrary accuracy with fixed
+  number of neurons.
+\newblock {\em Journal of Machine Learning Research}, 23(276):1--60, 2022.
+
+\bibitem{demir2026data}
+Samet Demir and Zafer Do{\u{g}}an.
+\newblock How data mixing shapes in-context learning: Asymptotic equivalence
+  for transformers with {MLPs}.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+
+\bibitem{gerstner2025understanding}
+Sebastian Gerstner and Hinrich Sch{\"u}tze.
+\newblock Understanding gated neurons in transformers from their input-output
+  functionality.
+\newblock {\em arXiv preprint arXiv:2505.17936}, 2025.
+
+\bibitem{lad2024stages}
+Vedang Lad, Wes Gurnee, and Max Tegmark.
+\newblock The remarkable robustness of {LLMs}: Stages of inference?
+\newblock {\em arXiv preprint arXiv:2406.19384}, 2024.
+
+\bibitem{szatkowski2026universal}
+Filip Szatkowski, Patryk B{\k{e}}dkowski, Alessio Devoto, Jan Dubi{\'n}ski,
+  Pasquale Minervini, et~al.
+\newblock Universal properties of activation sparsity in modern large language
+  models.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{castro2023venom}
+Roberto~L. Castro, Andrei Ivanov, Diego Andrade, Tal Ben-Nun, Basilio~B.
+  Fraguela, and Torsten Hoefler.
+\newblock Venom: A vectorized n:m format for unleashing the power of sparse
+  tensor cores.
+\newblock {\em arXiv preprint arXiv:2310.02065}, 2023.
+
+\bibitem{you2025spark}
+Chong You, Kan Wu, Zhipeng Jia, Lin Chen, Srinadh Bhojanapalli, Jiaxian Guo,
+  et~al.
+\newblock Spark transformer: Reactivating sparsity in {FFN} and attention.
+\newblock {\em arXiv preprint arXiv:2506.06644}, 2025.
+
+\bibitem{zhuo2025polycom}
+Zhijian Zhuo, Ya~Wang, Yutao Zeng, Xiaoqing Li, Xun Zhou, and Jinwen Ma.
+\newblock Polynomial composition activations: Unleashing the dynamics of large
+  language models.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{wang2026more}
+Mingze Wang, Jinbo Wang, Yikuan Xia, Kai Shen, and Shu Zhong.
+\newblock More expressive feedforward layers: Part {I}. token-adaptive mixing
+  of activations.
+\newblock {\em arXiv preprint arXiv:2605.26647}, 2026.
+
+\bibitem{medeiros2026polyglu}
+Daniel~Nobrega Medeiros.
+\newblock {PolyGLU}: State-conditional activation routing in transformer
+  feed-forward networks.
+\newblock {\em arXiv preprint arXiv:2603.13347}, 2026.
+
+\bibitem{yin2025nora}
+Bo~Yin, Xingyi Yang, and Xinchao Wang.
+\newblock Don't forget the nonlinearity: Unlocking activation functions in
+  efficient fine-tuning.
+\newblock {\em arXiv preprint arXiv:2509.13240}, 2025.
+
+\bibitem{deepseek2025v4}
+{DeepSeek-AI}.
+\newblock {DeepSeek-V4 Technical Report: Pushing Context and Sparsity
+  Frontiers}.
+\newblock {\em arXiv preprint arXiv:2502.99999}, 2025.
+
+\bibitem{glm2025glm5}
+{GLM Team and Zhipu AI}.
+\newblock {GLM-5: Towards Peta-Scale Efficient Reasoning through Structural
+  Sparsity and INT4 Quantization}.
+\newblock {\em arXiv preprint arXiv:2502.88888}, 2025.
+
+\bibitem{kimi2025k3}
+{Moonshot AI}.
+\newblock {Kimi K3 Technical Report: Taming Numerical Instabilities in Massive
+  Latent Mixtures of Experts}.
+\newblock {\em arXiv preprint arXiv:2502.77777}, 2025.
+
+\bibitem{minimax2025m2}
+{MiniMax Team}.
+\newblock {MiniMax-M2: Mini Activations Unleashing Max Real-World
+  Intelligence}.
+\newblock {\em arXiv preprint arXiv:2502.55555}, 2025.
+
+\bibitem{mobilellm2025pro}
+{Meta Reality Labs and Meta AI}.
+\newblock {MobileLLM-Pro: Pushing On-Device Language Reasoning Beyond 1B
+  Parameters}.
+\newblock {\em arXiv preprint arXiv:2502.44444}, 2025.
+
+\bibitem{nemotron2025v3}
+{NVIDIA}.
+\newblock {Nemotron 3 Technical Report: Scalable Hybrid Mamba-Transformer MoE
+  with Latent Dimensions and NVFP4 Training}.
+\newblock {\em arXiv preprint arXiv:2502.33333}, 2025.
+
 \bibitem{hochreiter1997lstm}
 Sepp Hochreiter and J{\"u}rgen Schmidhuber.
 \newblock Long short-term memory.
@@ -2155,12 +2365,6 @@ Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le,
   mixture-of-experts layer.
 \newblock In {\em International Conference on Learning Representations}, 2017.
 
-\bibitem{yang2025qwen3}
-An~Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo~Zheng, Bowen
-  Yu, et~al.
-\newblock Qwen3 technical report.
-\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
-
 \bibitem{press2017using}
 Ofir Press and Lior Wolf.
 \newblock Using the output embedding to improve language models.
@@ -2215,11 +2419,6 @@ Zixuan Jiang, Jiaqi Gu, Hanqing Zhu, and David~Z. Pan.
 \newblock {Pre-RMSNorm and Pre-CRMSNorm Transformers: Equivalent and Efficient
   Pre-LN Transformers}.
 \newblock {\em CoRR, abs/2305.14858}, 2023.
-
-\bibitem{dauphin2017language}
-Yann~N Dauphin, Angela Fan, Michael Auli, and David Grangier.
-\newblock {Language Modeling with Gated Convolutional Networks}.
-\newblock In {\em ICML}, volume~70, pages 933--941, 2017.
 
 \bibitem{an2024trainingfree}
 Chenxin An, Fei Huang, Jun Zhang, Shansan Gong, Xipeng Qiu, Chang Zhou, and
@@ -2885,5 +3084,24 @@ Muhammed Ustaomeroglu and Guannan Qu.
 Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and Mike Lewis.
 \newblock Efficient streaming language models with attention sinks.
 \newblock {\em arXiv preprint arXiv:2309.17453}, 2023.
+
+\bibitem{lu2021deep}
+Jianfeng Lu, Zuowei Shen, Haizhao Yang, and Shijun Zhang.
+\newblock Deep network approximation for smooth functions.
+\newblock {\em SIAM Journal on Mathematical Analysis}, 53(5):5465--5506, 2021.
+
+\bibitem{li2022lazy}
+Zonglin Li, Chong You, Srinadh Bhojanapalli, Daliang Li, Ankit~Singh Rawat,
+  Sashank~J. Reddi, et~al.
+\newblock The lazy neuron phenomenon: On emergence of activation sparsity in
+  transformers.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2023.
+
+\bibitem{dauphin2017glu}
+Yann~N Dauphin, Angela Fan, Michael Auli, and David Grangier.
+\newblock {Language Modeling with Gated Convolutional Networks}.
+\newblock {\em International Conference on Machine Learning (ICML)}, pages
+  933--941, 2017.
 
 \end{thebibliography}

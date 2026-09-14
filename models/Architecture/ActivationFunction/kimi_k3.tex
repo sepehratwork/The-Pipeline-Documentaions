@@ -1,1 +1,93 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{ریشه‌یابی نظری شکست \en{SwiGLU} در معماری‌های نهفته (\en{LatentMoE Breakdown})}
+در مدل چندوجهی \model{Kimi K3} \cite{kimi2025k3} با ۲.۸ تریلیون پارامتر کل و ۱۰۴ میلیارد پارامتر فعال، لایه‌های پیش‌خور در چارچوب معماری نهفته (\en{LatentMoE}) بازطراحی شده‌اند. در این ساختار، بردار ورودی با بعد $d = 7168$ ابتدا از طریق نگاشت کاهنده $W^\downarrow \in \mathbb{R}^{d \times \ell}$ به فضای نهفته فشرده با بعد $\ell = 3584$ طرح‌ریزی شده، سپس توسط ۸۹۶ متخصص روت‌شده (۱۶ متخصص فعال در هر گام) پردازش می‌شود و در نهایت از طریق نگاشت افزاینده $W^\uparrow \in \mathbb{R}^{\ell \times d}$ بازگردانده می‌شود. 
+
+تحلیل‌های ریاضی \model{Kimi K3} نشان داد که ترکیب متوالی نگاشت کاهنده، عملگر هادامارد و نگاشت افزاینده، پایداری عددی \en{SwiGLU} را به شدت متزلزل می‌سازد. از آنجا که مؤلفه‌های ورودی به تابع \en{Swish} از لحاظ نظری نامحدودند ($\sup_{z \in \mathbb{R}} |z \sigma(z)| = \infty$)، مقادیر خروجی دچار انفجار چندبعدی گردیده و مقادیر فعال‌سازی از محدوده دینامیکی فرمت‌های \en{MXFP8} و \en{MXFP4} خارج می‌شوند. همچنین روش بریدن سخت دامنه (\en{Hard Clamping}) به دلیل صفر ساختن گرادیان موضعی:
+\begin{equation}
+    \frac{d}{dz}\text{clip}(z, -C, C) = 0, \quad \forall |z| > C
+\end{equation}
+موجب ایستایی یادگیری و توقف به‌روزرسانی پارامترها می‌گردد.
+
+\paragraph*{فرمول‌بندی و اثبات‌های ریاضی تابع فعال‌ساز نوین \en{SiTU-GLU}}
+برای حل بنیادین ناپایداری‌های یادشده، \model{Kimi K3} تابع فعال‌ساز نوین \en{SiTU-GLU} (\en{Sigmoid Tanh Unit GLU}) را معرفی نموده است. در این تابع، از عملگر تحدید تحلیلی نرم (\en{Soft-Capping}) بر پایه تانژانت هذلولوی بهره گرفته می‌شود:
+\begin{equation}
+    \text{SiTU-GLU}(x) = \left[ \beta_1 \tanh\left(\frac{W_g x}{\beta_1}\right) \odot \sigma(W_g x) \right] \odot \left[ \beta_2 \tanh\left(\frac{W_u x}{\beta_2}\right) \right]
+\end{equation}
+که در آن پارامترهای ساختاری بر روی $\beta_1 = 4$ برای شاخه گیت و $\beta_2 = 25$ برای شاخه بالارو تثبیت شده‌اند.
+
+\textbf{اثبات رفتار موضعی حول مبدا و هم‌ارزی با \en{SwiGLU}:} بسط تیلور تابع $\tanh(u)$ حول نقطه مبدا $u = 0$ عبارت است از:
+\begin{equation}
+    \tanh(u) = u - \frac{u^3}{3} + \frac{2u^5}{15} - \mathcal{O}(u^7)
+\end{equation}
+با قرار دادن $u = \frac{z}{\beta}$ در رابطه فوق خواهیم داشت:
+\begin{equation}
+    \beta \tanh\left(\frac{z}{\beta}\right) = \beta \left( \frac{z}{\beta} - \frac{z^3}{3\beta^3} + \mathcal{O}\left(\frac{z^5}{\beta^5}\right) \right) = z - \frac{z^3}{3\beta^2} + \mathcal{O}\left(\frac{z^5}{\beta^4}\right) = z + \mathcal{O}\left(\frac{z^3}{\beta^2}\right)
+\end{equation}
+بنابراین با میل کردن مقادیر به سمت صفر، رفتار شاخه گیت به طور تحلیلی منطبق بر سویش می‌شود:
+\begin{equation}
+    \lim_{z \to 0} \left[ \beta_1 \tanh\left(\frac{z}{\beta_1}\right) \sigma(z) \right] = z \sigma(z) = \text{Swish}(z)
+\end{equation}
+همچنین چنانچه کران‌های تحدید به بی‌نهایت میل نمایند، همگرایی نقطه‌ای به فرمول کلاسیک اثبات می‌شود:
+\begin{equation}
+    \lim_{\beta_1, \beta_2 \to \infty} \text{SiTU-GLU}(x) = \text{SwiGLU}(x)
+\end{equation}
+
+\textbf{اثبات کران‌داری مطلق خروجی تانسور (\en{Bounded Tensor Norm}):} با توجه به اینکه تابع تانژانت هذلولوی و تابع سیگموئید بر روی تمام محور اعداد حقیقی کران‌دار هستند ($|\tanh(u)| < 1$ و $0 < \sigma(u) < 1$):
+\begin{equation}
+    \left| \left[ \beta_1 \tanh\left(\frac{[W_g x]_k}{\beta_1}\right) \sigma([W_g x]_k) \right] \cdot \left[ \beta_2 \tanh\left(\frac{[W_u x]_k}{\beta_2}\right) \right] \right| < \beta_1 \times 1 \times \beta_2 \times 1 = \beta_1 \beta_2
+\end{equation}
+با جایگذاری پارامترهای مدل، کران مطلق فضای ویژگی حاصل می‌شود:
+\begin{equation}
+    \|\text{SiTU-GLU}(x)\|_\infty \le \beta_1 \beta_2 = 4 \times 25 = 100
+\end{equation}
+
+\textbf{پویایی پایدار مشتق و عدم محوشدگی گرادیان:} برخلاف عملگر بریدن سخت، مشتق تحدید تحلیلی نرم همواره مقداری اکیداً مثبت دارد:
+\begin{equation}
+    \frac{d}{dz}\left[ \beta \tanh\left(\frac{z}{\beta}\right) \right] = 1 - \tanh^2\left(\frac{z}{\beta}\right) = \text{sech}^2\left(\frac{z}{\beta}\right) > 0, \quad \forall z \in \mathbb{R}
+\end{equation}
+این ویژگی ضامن بقای مداوم جریان گرادیان در تمامی گام‌های آموزش بر روی ابررایانه‌ها است. علاوه بر این، در معماری \model{Kimi K3} یک لایه \en{RMSNorm} پیش از تصویر افزاینده $W^\uparrow$ افزوده شده است تا واریانس بین متخصصان پیش از بازگشت به بعد اصلی کاملاً نرمال شود.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.4cm and 2.4cm,
+    block/.style={rectangle, draw=purple!80!black, fill=purple!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!80!black, fill=red!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=purple!90!black, line width=1.1pt}
+]
+    \node[data] (in) {بردار نهفته ورودی: $z_{\text{lat}} \in \mathbb{R}^{3584}$};
+    \node[block, below left=1.2cm and 1.0cm of in] (wg) {طرح‌ریزی گیت: $W_g \in \mathbb{R}^{3584 \times d_{\text{exp}}}$};
+    \node[block, below right=1.2cm and 1.0cm of in] (wu) {طرح‌ریزی بالارو: $W_u \in \mathbb{R}^{3584 \times d_{\text{exp}}}$};
+    
+    \node[block, below left=1.2cm and -0.4cm of wg] (sig) {$\sigma(W_g z_{\text{lat}})$};
+    \node[block, below right=1.2cm and -0.4cm of wg] (tanh_g) {$4 \cdot \tanh\left(\frac{W_g z_{\text{lat}}}{4}\right)$};
+    \node[block, below=1.2cm of wu] (tanh_u) {$25 \cdot \tanh\left(\frac{W_u z_{\text{lat}}}{25}\right)$};
+    
+    \node[op, below=1.1cm of wg] (had_gate) {$\odot$};
+    \node[op, below right=1.5cm and 1.5cm of had_gate] (had_final) {$\odot$};
+    
+    \node[block, below=1.1cm of had_final] (norm) {پایدارساز: $\text{RMSNorm}(\cdot)$};
+    \node[block, below=1.1cm of norm] (wdown) {طرح‌ریزی پایین‌رو به فضای نهفته: $W_{\text{down}}$};
+    \node[data, below=1.1cm of wdown] (out) {خروجی مقید: $\|h\|_\infty \le 100$};
+
+    \draw[arrow] (in) -| (wg);
+    \draw[arrow] (in) -| (wu);
+    \draw[arrow] (wg) -- (sig);
+    \draw[arrow] (wg) -- (tanh_g);
+    \draw[arrow] (sig) |- (had_gate);
+    \draw[arrow] (tanh_g) |- (had_gate);
+    \draw[arrow] (wu) -- (tanh_u);
+    \draw[arrow] (had_gate) |- (had_final);
+    \draw[arrow] (tanh_u) |- (had_final);
+    \draw[arrow] (had_final) -- (norm);
+    \draw[arrow] (norm) -- (wdown);
+    \draw[arrow] (wdown) -- (out);
+\end{tikzpicture}%
+}
+\caption{معماری تحلیلی فعال‌ساز پایدار \en{SiTU-GLU} در لایه‌های پیش‌خور مدل \model{Kimi K3}}
+\label{fig:kimi_k3_situglu}
+\end{figure}

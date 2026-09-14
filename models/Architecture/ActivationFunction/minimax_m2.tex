@@ -1,1 +1,50 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{معماری لایه پیش‌خور با فعال‌سازی تنک و بهینه (\en{Sparse MoE FFN})}
+مدل \model{MiniMax-M2} \cite{minimax2025m2} بر پایه اصل بهینگی فعال‌سازی طراحی شده و با دارا بودن ۶۲ لایه، از مجموع ۲۲۹.۹ میلیارد پارامتر کل، تنها ۹.۸ میلیارد پارامتر را در هر توکن فعال می‌سازد. در این ساختار:
+\begin{itemize}
+    \item بعد پنهان مدل: $d = 3072$.
+    \item تعداد متخصصان در هر لایه پیش‌خور: ۲۵۶ متخصص فوق‌ریزدانه، که در هر گام محاسباتی دقیقاً ۸ متخصص گزینش می‌شوند.
+    \item فعال‌ساز هر متخصص: واحد گیت‌دار \en{SwiGLU} با ساختار سبک و بهینه‌سازی‌شده.
+\end{itemize}
+
+\paragraph*{مسیریابی سیگموئیدی مستقل و حذف رقابت اشباع‌کننده (\en{Sigmoid Gating})}
+نوآوری محوری در ارتباط با لایه‌های پیش‌خور \model{MiniMax-M2}، جایگزینی تابع \en{Softmax} با تابع \en{Sigmoid} و افزودن بایاس یادگیرنده ($b_i$) در سازوکار گیتینگ است:
+\begin{equation}
+    g_i(x) = \sigma(W_r x + b_i) = \frac{1}{1 + e^{-(W_r x + b_i)}}
+\end{equation}
+از دیدگاه تئوری اطلاعات، تابع \en{Softmax} به دلیل قید مجموع واحد ($\sum_i g_i = 1$) یک سامانه با مجموع صفر پدید می‌آورد که در آن افزایش تمایل به یک متخصص به سرکوب سایر متخصصان منجر می‌شود. استفاده از تابع سیگموئید این وابستگی رقابتی را حذف نموده و فعال‌سازی مستقل و اشباع‌نشده متخصصان لایه پیش‌خور را میسر می‌سازد. بایاس یادگیرنده $b_i$ بدون نیاز به توابع تلفات کمکی سنگین، تعادل توزیع ترافیک در لایه‌های پیش‌خور را تضمین می‌کند.
+
+\begin{figure}[htbp]
+\centering
+% تعریف رنگ نیلی (Indigo) در صورت عدم وجود در مقدمه
+\providecolor{indigo}{RGB}{75, 0, 130}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.4cm and 2.2cm,
+    block/.style={rectangle, draw=indigo!80!black, fill=indigo!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!70!black, fill=red!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=indigo!90!black, line width=1.1pt}
+]
+    \node[data] (in) {بردار ویژگی ورودی: $x \in \mathbb{R}^{3072}$};
+    \node[block, below left=1.2cm and 0.8cm of in] (gate) {گیتینگ مستقل: $g_i = \sigma(W_r x + b_i)$};
+    \node[block, below right=1.2cm and 0.8cm of in] (experts) {۲۵۶ متخصص ریزدانه \en{SwiGLU}};
+    \node[block, below=1.2cm of gate] (topk) {گزینش شاخص‌های \en{Top-8}};
+    \node[block, below=1.2cm of experts] (active_exp) {محاسبه موازی خروجی ۸ متخصص برگزیده};
+    \node[op, below right=1.3cm and 1.2cm of topk] (combine) {$\sum$};
+    \node[data, below=1.1cm of combine] (out) {خروجی ترکیب‌شده لایه پیش‌خور};
+
+    \draw[arrow] (in) -| (gate);
+    \draw[arrow] (in) -| (experts);
+    \draw[arrow] (gate) -- (topk);
+    \draw[arrow] (experts) -- (active_exp);
+    \draw[arrow] (topk) |- (combine);
+    \draw[arrow] (active_exp) |- (combine);
+    \draw[arrow] (combine) -- (out);
+\end{tikzpicture}%
+}
+\caption{سازوکار مسیریابی مستقل سیگموئیدی و لایه پیش‌خور متخصصان ریزدانه در \model{MiniMax-M2}}
+\label{fig:minimax_m2_ffn}
+\end{figure}

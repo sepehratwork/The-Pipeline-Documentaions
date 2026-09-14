@@ -1,1 +1,44 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{ساختار لایه پیش‌خور در مدل‌های چگال و تنک (\en{Dense \& MoE FFN Structure})}
+در مدل‌های سری \model{Qwen3} \cite{qwen2025qwen3}، لایه‌های پیش‌خور در هر دو نگارش متراکم (نظیر مدل‌های 8B و 32B) و نگارش‌های مبتنی بر متخصصان تنک (نظیر \en{Qwen3-235B-A22B}) بر پایه فعال‌ساز \en{SwiGLU} بهینه‌سازی شده‌اند:
+\begin{itemize}
+    \item در مدل \en{Qwen3-235B-A22B} لایه‌ها دارای ۱۲۸ متخصص تفکیک‌شده هستند که در هر گام محاسباتی ۸ متخصص برگزیده می‌شوند (مجموعاً ۲۲ میلیارد پارامتر فعال).
+    \item بر خلاف نسل‌های پیشین، متخصصان اشتراکی در لایه پیش‌خور این مدل حذف شده و تمامی ظرفیت غیرخطی به متخصصان روت‌شده تفویض شده است.
+    \item پیش‌نرمال‌سازی با \en{RMSNorm} پیش از ورود به شاخه‌های گیت و بالارو به طور استاندارد در تمامی مدل‌ها تعبیه شده است.
+\end{itemize}
+
+\paragraph*{ادغام یکپارچه حالت‌های فکور و متعارف (\en{Thinking Mode Fusion})}
+یکی از ویژگی‌های متمایز \model{Qwen3}، آموزش توأم حالت‌های استدلال طولانی (\en{Thinking}) و پاسخ‌دهی سریع (\en{Non-Thinking}) درون وزن‌های \en{FFN} مشترک است. به منظور جلوگیری از تداخل بازنمایی و تخریب گرادیان در لایه فعال‌ساز، تلفات توازن بار سراسری دسته (\en{Global-Batch Load Balancing Loss}) اعمال شده تا از همگرایی نامتقارن متخصصان لایه پیش‌خور جلوگیری شود.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.88\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.3cm and 2.0cm,
+    block/.style={rectangle, draw=blue!80!black, fill=blue!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!70!black, fill=red!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=blue!90!black, line width=1.1pt}
+]
+    \node[data] (in) {بردار ورودی به متخصص برگزیده: $x \in \mathbb{R}^d$};
+    \node[block, below left=1.2cm and 0.5cm of in] (wg) {طرح‌ریزی گیت: $W_{\text{gate}, i}$};
+    \node[block, below right=1.2cm and 0.5cm of in] (wu) {طرح‌ریزی بالارو: $W_{\text{up}, i}$};
+    \node[block, below=1.1cm of wg] (sw) {$\text{Swish}(z) = z \cdot \sigma(z)$};
+    \node[op, below right=1.3cm and 1.1cm of sw] (had) {$\odot$};
+    \node[block, below=1.1cm of had] (wd) {طرح‌ریزی پایین‌رو: $W_{\text{down}, i}$};
+    \node[data, below=1.1cm of wd] (out) {خروجی مقیاس‌شده متخصص};
+
+    \draw[arrow] (in) -| (wg);
+    \draw[arrow] (in) -| (wu);
+    \draw[arrow] (wg) -- (sw);
+    \draw[arrow] (sw) |- (had);
+    \draw[arrow] (wu) |- (had);
+    \draw[arrow] (had) -- (wd);
+    \draw[arrow] (wd) -- (out);
+\end{tikzpicture}%
+}
+\caption{پایپ‌لاین پردازش فعال‌ساز \en{SwiGLU} در متخصصان تفکیک‌شده مدل \model{Qwen3}}
+\label{fig:qwen_3_ffn}
+\end{figure}

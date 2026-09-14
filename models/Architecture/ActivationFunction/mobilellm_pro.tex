@@ -1,1 +1,55 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{طراحی ابعادی لایه پیش‌خور برای لبه شبکه (\en{On-Device FFN Scaling})}
+در مدل \model{MobileLLM-Pro} \cite{mobilellm2025pro} با مقیاس ۱ میلیارد پارامتر که جهت اجرا بر روی پردازنده‌ها (\en{CPU}) و واحدهای پردازش عصبی موبایل (\en{NPU}) طراحی شده است، معماری لایه پیش‌خور نقشی حیاتی در جبران ابعاد فشرده بردار نهفته ایفا می‌کند. ویژگی‌های ابعادی این مدل عبارتند از:
+\begin{itemize}
+    \item بعد پنهان مدل: $d = 1280$ در ۳۰ لایه ترنسفورمر.
+    \item بعد واسط لایه پیش‌خور: $d_{\text{ffn}} = 6144$.
+    \item نسبت انبساط لایه پیش‌خور (\en{Expansion Ratio}):
+    \begin{equation}
+        \text{Expansion Ratio} = \frac{d_{\text{ffn}}}{d} = \frac{6144}{1280} = 4.8\times
+    \end{equation}
+\end{itemize}
+این نسبت انبساط فوق‌العاده $4.8\times$ (در قیاس با مقادیر مرسوم ۲ الی ۳.۵ در مدل‌های بزرگ)، رتبه بازنمایی تانسورها را در فضای میانی منبسط ساخته و قدرت بیان غیرخطی مدل را در مقیاس‌های پارامتری پایین به حداکثر می‌رساند.
+
+\paragraph*{کوانتایزیشن آگاه از آموزش (\en{4-bit QAT}) و رفتار فعال‌ساز}
+جهت رفع افت شدید ناشی از کوانتایزیشن متعارف بر روی فعال‌ساز \en{Swish}، از رویکرد آموزش آگاه از کوانتایزیشن (\en{QAT}) ۴ بیتی استفاده شده است:
+\begin{itemize}
+    \item برای \en{CPU}: کوانتایزیشن نامتقارن پویا در سطح توکن (\en{Per-token dynamic INT8}) برای تانسورهای فعال‌سازی اعمال شده تا کران‌های نامتقارن \en{Swish} حفظ گردند:
+    \begin{equation}
+        Q(z) = s_z \cdot \text{clip}\left(\left\lfloor \frac{z - z_{\min}}{s_z} \right\rceil, 0, 255\right) + z_{\min}, \quad s_z = \frac{z_{\max} - z_{\min}}{255}
+    \end{equation}
+    \item برای \en{NPU}: از بازه‌های کوانتایزیشن یادگیرنده کانالی (\en{Learnable Quantization Ranges}) با به‌روزرسانی گرادیانی استفاده شده تا پایداری فعال‌ساز تضمین گردد.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.88\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.3cm and 2.2cm,
+    block/.style={rectangle, draw=violet!80!black, fill=violet!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!70!black, fill=red!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=violet!90!black, line width=1.1pt}
+]
+    \node[data] (in) {بردار ویژگی فشرده: $x \in \mathbb{R}^{1280}$};
+    \node[block, below left=1.2cm and 0.5cm of in] (wg) {طرح‌ریزی گیت: $1280 \to 6144$};
+    \node[block, below right=1.2cm and 0.5cm of in] (wu) {طرح‌ریزی بالارو: $1280 \to 6144$};
+    \node[block, below=1.1cm of wg] (sw) {فعال‌ساز \en{Swish} در فرمت \en{INT8}};
+    \node[op, below right=1.3cm and 1.1cm of sw] (had) {$\odot$};
+    \node[block, below=1.1cm of had] (wd) {طرح‌ریزی پایین‌رو: $6144 \to 1280$};
+    \node[data, below=1.1cm of wd] (out) {خروجی بازتاب‌یافته به فضای اولیه};
+
+    \draw[arrow] (in) -| (wg);
+    \draw[arrow] (in) -| (wu);
+    \draw[arrow] (wg) -- (sw);
+    \draw[arrow] (sw) |- (had);
+    \draw[arrow] (wu) |- (had);
+    \draw[arrow] (had) -- (wd);
+    \draw[arrow] (wd) -- (out);
+\end{tikzpicture}%
+}
+\caption{نمودار انبساط ابعادی $4.8\times$ لایه پیش‌خور در مدل بهینه‌سازی‌شده \model{MobileLLM-Pro}}
+\label{fig:mobilellm_pro_ffn}
+\end{figure}

@@ -1,1 +1,48 @@
-\item \textbf asd
+\item \model{OLMo 3}
+
+\paragraph*{پیکربندی باز و استانداردسازی لایه پیش‌خور (\en{Open FFN Foundations})}
+در مدل کاملاً شفاف و پژوهشی \model{OLMo 3} \cite{olmo2025olmo3} در هر دو مقیاس \en{7B} (۳۲ لایه، بعد پنهان ۴۰۹۶) و \en{32B} (۶۴ لایه، بعد پنهان ۵۱۲۰)، تبدیل‌های لایه پیش‌خور بر مبنای واحد \en{SwiGLU} سازمان‌دهی شده‌اند. جهت تضمین پایایی عددی در حین آموزش مداوم بر روی ۶ تریلیون توکن، در خروجی لایه‌ها تبدیل \en{RMSNorm} تعبیه شده است:
+\begin{equation}
+    \text{FFN}_{\text{OLMo}}(x) = \text{RMSNorm}\Big( \big(\text{Swish}(x W_{\text{gate}}) \odot (x W_{\text{up}})\big) W_{\text{down}} \Big)
+\end{equation}
+
+\paragraph*{مهار ناپایداری‌های عددی با \en{Z-Loss} و برش گرادیان (\en{Z-Loss \& Optimization})}
+برای جلوگیری از انحرافات لگاریتمی بزرگ که موجب واگرایی فعال‌سازهای \en{SwiGLU} می‌شوند، مدل \model{OLMo 3} تلفات \en{Z-Loss} را با ضریب جریمه $\tau = 10^{-5}$ اعمال می‌نماید:
+\begin{equation}
+    \mathcal{L}_z = \tau \log^2\left(\sum_{i} e^{z_i}\right)
+\end{equation}
+این عبارت تلفات مانع از رشد کنترل‌نشده پتانسیل خروجی لایه‌ها شده و کورتوزیس فعال‌سازی را مهار می‌سازد. همچنین اعمال سقف برش گرادیان (\en{Gradient Clipping}) در آستانه سخت‌گیرانه ۱.۰، پایداری بهینه‌ساز کسینوسی را در گذر از توزیع‌های متنی گوناگون تضمین نموده و از پدیده پخت بیش از حد (\en{Overcooking}) در لایه‌های میانی جلوگیری می‌کند.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.88\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.3cm and 2.0cm,
+    block/.style={rectangle, draw=gray!80!black, fill=gray!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!70!black, fill=red!10, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=gray!90!black, line width=1.1pt}
+]
+    \node[data] (in) {بردار ویژگی ورودی: $x \in \mathbb{R}^d$};
+    \node[block, below left=1.2cm and 0.5cm of in] (wg) {مسیر گیت: $W_{\text{gate}}$};
+    \node[block, below right=1.2cm and 0.5cm of in] (wu) {مسیر بالارو: $W_{\text{up}}$};
+    \node[block, below=1.1cm of wg] (sw) {$\text{Swish}(z) = z \cdot \sigma(z)$};
+    \node[op, below right=1.3cm and 1.1cm of sw] (had) {$\odot$};
+    \node[block, below=1.1cm of had] (wd) {طرح‌ریزی پایین‌رو: $W_{\text{down}}$};
+    \node[block, below=1.1cm of wd] (norm) {پایدارساز: $\text{RMSNorm}(\cdot)$};
+    \node[data, below=1.1cm of norm] (out) {خروجی تثبیت‌شده لایه پیش‌خور};
+
+    \draw[arrow] (in) -| (wg);
+    \draw[arrow] (in) -| (wu);
+    \draw[arrow] (wg) -- (sw);
+    \draw[arrow] (sw) |- (had);
+    \draw[arrow] (wu) |- (had);
+    \draw[arrow] (had) -- (wd);
+    \draw[arrow] (wd) -- (norm);
+    \draw[arrow] (norm) -- (out);
+\end{tikzpicture}%
+}
+\caption{نمودار محاسباتی لایه پیش‌خور تثبیت‌شده با \en{RMSNorm} در مدل کاملاً باز \model{OLMo 3}}
+\label{fig:olmo_3_ffn}
+\end{figure}

@@ -1,0 +1,244 @@
+\item \textbf{مرور جامع و سیر تحول توابع فعال‌ساز در شبکه‌های پیش‌خور (\en{Literature Review on FFN Activations})}
+
+\paragraph*{مقدمه و تقارن ساختاری \en{FFN} با مکانیزم توجه}
+در معماری استاندارد ترنسفورمر \cite{vaswani2017attention}، زیرلایه پیش‌خور (\en{Feed-Forward Network - FFN}) وظیفه پردازش غیرخطی و دگرگونی ابعاد ویژگی‌ها را برای هر توکن به‌صورت کاملاً مستقل بر عهده دارد. برخلاف لایه توجه چندسر (\en{MHA}) که پیوندهای متنی میان‌توکنی را برقرار می‌کند، لایه \en{FFN} نقش حافظه کلید-مقدار توزیع‌شده (\en{Key-Value Memory}) را ایفا می‌کند که الگوهای یادگرفته‌شده را به توزیع‌های خروجی پیوند می‌دهد \cite{geva2020transformer}. همان‌طور که در پژوهش‌های اخیر نشان داده شده است \cite{gerber2025attention, zhang2025flashmhf}، یک تقارن ساختاری بنیادین میان لایه توجه و \en{FFN} وجود دارد:
+\begin{equation}
+    \text{Attn}(Q, K, V) = \text{Softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V, \quad \text{FFN}(X) = \sigma(X W_1^\top) W_2
+\end{equation}
+که در آن عملگر توجه، حاصل‌ضرب نقطه‌ای توکن‌ها را با تابع رقابتی و سرتاسری \en{Softmax} مقیاس‌بندی می‌کند، در حالی که \en{FFN} با جایگزینی آن با یک فعال‌ساز غیرخطی نقطه‌ای $\sigma(\cdot)$، بر روی بردار ویژگی‌ها عمل می‌نماید. 
+
+از منظر تسهیم پارامترها و بودجه محاسباتی (\en{FLOPs})، اگر بعد پنهان مدل $d_{\text{model}}$ و بعد لایه میانی $d_{\text{ff}} = 4d_{\text{model}}$ باشد، لایه \en{MHA} استاندارد حاوی $4d_{\text{model}}^2$ پارامتر (با احتساب پروجکشن خروجی) و لایه \en{FFN} دو لایه‌ای کلاسیک حاوی $8d_{\text{model}}^2$ پارامتر است. این نسبت ۸ به ۴ (یا ۸ به ۳ بدون پروجکشن خروجی)، بیانگر این واقعیت است که لایه \en{FFN} بین \textbf{۶۷٪ تا ۸۰٪} از کل پارامترهای آموزش‌پذیر و توان محاسباتی ترنسفورمر را در بر می‌گیرد \cite{gerber2025attention, hu2025tardis, madhyastha2026sparsity}. قلب تپنده ظرفیت بازنمایی این حجم عظیم از پارامترها، تابع فعال‌ساز $\sigma(\cdot)$ است.
+
+\paragraph*{سیر تحول تاریخی و خانواده‌های فعال‌ساز}
+توسعه توابع فعال‌ساز در شبکه‌های پیش‌خور مدل‌های زبانی سه دوره پارادایمی را پشت سر گذاشته است \cite{katirci2024evaluating}:
+\begin{itemize}
+    \item \textbf{دوره توابع خطی تکه‌ای (\en{Piecewise-Linear}):} ترنسفورمر اولیه از واحد خطی اصلاح‌شده (\en{ReLU}) \cite{nair2010relu} بهره می‌برد:
+    \begin{equation}
+        \text{ReLU}(x) = \max(0, x)
+    \end{equation}
+    مزیت اصلی \en{ReLU} سادگی محاسباتی و صفر شدن مشتق در ناحیه منفی است که تنکی فعال‌سازی (\en{Activation Sparsity}) طبیعی بالای ۹۰٪ به همراه دارد \cite{luo2024sparsing, madhyastha2026sparsity}. با این حال، پدیده مرگ نورون‌ها (\en{Dying ReLU}) که ناشی از شیب صفر دائمی برای ورودی‌های منفی است، منجر به معرفی نسخه‌های \en{LeakyReLU} و \en{PReLU} با شیب کوچک آموزش‌پذیر $\alpha$ گردید \cite{he2015delving}.
+    
+    \item \textbf{دوره فعال‌ساز‌های غیرخطی هموار و احتمالاتي:} مدل‌هایی چون \en{BERT} و \en{GPT} به سمت توابع مشتق‌پذیر پیوسته حرکت کردند. مهم‌ترین آن‌ها واحد خطی خطای گاوسی (\en{GELU}) \cite{hendrycks2016gelu} است که احتمال گیت‌بندی تصادفی را مدل می‌کند:
+    \begin{equation}
+        \text{GELU}(x) = x \Phi(x) = x P(X \le x), \quad X \sim \mathcal{N}(0, 1)
+    \end{equation}
+    تقریب تحلیلی متداول آن از بسط تانژانت هایپربولیک ناشی می‌شود \cite{hendrycks2016gelu, tang2026rational}:
+    \begin{equation}
+        \text{GELU}(x) \approx \frac{1}{2}x \left[1 + \tanh\left(\sqrt{\frac{2}{\pi}}\left(x + 0.044715 x^3\right)\right)\right]
+    \end{equation}
+    هم‌زمان تابع \en{SiLU} (یا \en{Swish}) \cite{ramachandran2017swish, elfwing2018silu} با فرمول $\text{SiLU}(x) = x \cdot \text{sigmoid}(x)$ پیشنهاد شد. این توابع به دلیل داشتن انحنای ملایم و فرورفتگی کوچک در ناحیه منفی، بهینه‌سازی لایه‌های عمیق را پایدار می‌سازند \cite{katirci2024evaluating, tang2026rational}.
+
+    \item \textbf{دوره واحدهای خطی گیت‌شده (\en{GLU Variants}):} دافین و همکاران \cite{dauphin2017language} ساختار گیت‌بندی ضربی را معرفی کردند که توسط شازیر \cite{shazeer2020glu} به معماری‌های مدرن پیوند خورد. ساختار گیت‌شده (\en{Type-II FFN}) ورودی را به دو مسیر تفکیک می‌کند:
+    \begin{equation}
+        \text{SwiGLU}(x) = \left( \text{SiLU}(x W_{\text{gate}}) \odot (x W_{\text{up}}) \right) W_{\text{down}}
+    \end{equation}
+    در این فرمول، برای ورودی‌های مثبت بزرگ، تابع $\text{sigmoid}(x W_{\text{gate}}) \to 1$ میل کرده و در نتیجه $\text{SiLU}(z) \approx z$ می‌گردد؛ بنابراین رفتار خروجی به شکل تقریبی به یک ضرب درجه‌دوم محلی (\en{Quadratic Amplification}) تبدیل می‌شود \cite{jiang2026powlu}:
+    \begin{equation}
+        \text{SwiGLU}(x) \approx (x W_{\text{gate}}) \odot (x W_{\text{up}}) W_{\text{down}} \sim \mathcal{O}(x^2)
+    \end{equation}
+    این رفتار درجه‌دوم اگرچه تفکیک‌پذیری و ظرفیت بیان مدل‌های شاخصی چون \model{LLaMA} و \model{Qwen} را به شدت ارتقا داده است \cite{touvron2023llama, yang2025qwen3}، اما همان‌طور که جیانگ و همکاران \cite{jiang2026powlu} نشان داده‌اند، منجر به انفجار دامنه عددی، پرش‌های شیب (\en{Gradient Spikes}) و ناپایداری در آموزش با دقت پایین (\en{FP8/FP4}) می‌شود.
+\end{itemize}
+
+\paragraph*{مبانی ریاضیاتی و تئوری‌های تقریب عمومی}
+بررسی ظرفیت بیان FFNها در ادبیات ریاضیات یادگیری عمیق بر مبنای چهار چارچوب نظری قوی بنا شده است:
+\begin{itemize}
+    \item \textbf{تقریب عمومی ترنسفورمر تک‌لایه (\en{UAT for Single-Layer}):} جمان \cite{gumaan2025universal} اثبات می‌کند که یک ترنسفورمر تک‌لایه شامل یک لایه توجه به همراه یک \en{FFN}، یک تقریب‌زننده عمومی (\en{Universal Approximator}) برای هر تابع پیوسته $f: \mathcal{X} \to \mathbb{R}^{n \times d}$ روی دامنه فشرده است. اثبات بر پایه افراز دامنه فشرده به نواحی مجزای هاینه-کانتور ($R_i$)، جداسازی مرزها توسط قضایای هان-باناخ با پروجکشن‌های کلید-پرس‌وجو، و سپس فیلترینگ و انباشت مقادیر هدف به کمک \en{FFN} استوار است.
+    
+    \item \textbf{تقریب در فضاهای هلدر و سوبولف و حذف نفرین ابعاد (\en{KST}):} ژیائو و همکاران \cite{jiao2025transformers} با استفاده از قضیه بازنمایی کولموگروف-آرنولد (\en{KST}) \cite{schmidt2021kolmogorov}:
+    \begin{equation}
+        f(x_1, \dots, x_d) = g\left(3 \sum_{p=1}^d 3^{-p} \varphi(x_p)\right)
+    \end{equation}
+    نشان می‌دهند که ترنسفورمرها با ابداع تکنیک انتقال ستونی (\en{Column Translation Technique})، می‌توانند رفتارهای متفاوتی را برای هر ستون از ماتریس ورودی تنها با یک لایه \en{FFN} مشترک پیاده‌سازی کنند. این رویکرد اثبات می‌کند که ترنسفورمرهای با فعال‌ساز کف و رلو یا فعال‌ساز‌های گویای تحلیلی، بدون وابستگی نمایی به ابعاد، نفرین ابعاد (\en{Curse of Dimensionality}) را در تقریب توابع هلدر $H_Q^\beta$ درهم می‌شکنند.
+    
+    \item \textbf{تقریب توابع هموار با پرامپت و فعال‌ساز مقدماتی (\en{EUAF}):} ناکادا و همکاران \cite{nakada2025prompt} نرخ خطای تقریب توابع کلاس $C^\beta([0, 1]^p)$ را توسط ترنسفورمرها به صورت $\tilde{\mathcal{O}}(\epsilon^{-p/(2\beta)})$ استخراج کردند. آنان اثبات کردند که اگر فعال‌ساز لایه اول با تابع مقدماتی \en{EUAF} \cite{zhang2022euaf} جایگزین شود:
+    \begin{equation}
+        \sigma_{\text{EUAF}}(x) = |x - 2\lfloor(x+1)/2\rfloor|\,\mathbb{I}_{\{x \ge 0\}} + \frac{x}{1+|x|}\,\mathbb{I}_{\{x < 0\}}
+    \end{equation}
+    مدل قادر است تنها با طول پرامپت ثابت $T = 24d$ و عمق ثابت $L = 12$ به دقت دلخواه برای هر تابع پیوسته دست یابد.
+    
+    \item \textbf{جدایی نمایی در شبکه‌های عصبی نسبتی (\en{Rational NNs}):} تانگ و تاونسند \cite{tang2026rational} نشان دادند که شبکه‌های با فعال‌ساز گویای کسری $P(x)/Q(x)$ قادرند توابع هموار مانند \en{GELU} و \en{SiLU} را با اندازه فوق‌العاده کوچک $\mathcal{O}(\log^3 \log(1/\epsilon))$ تقریب بزنند؛ در حالی که تقریب معکوس توابع گویا توسط شبکه‌های هموار ذاتاً با کران پایین $\Omega(\log(1/\epsilon))$ مواجه است. علاوه بر این، آنان اثبات کردند که نرمال‌سازی لایه‌ای (\en{LayerNorm}) به دلیل ایجاد هم‌پوشانی پارامتری و تقویت حساسیت مشتق ضرایب مخرج، اثر منفی بر پایداری فعال‌ساز‌های گویای تطبیقی دارد.
+    
+    \item \textbf{هم‌ارزی مجانبی چندجمله‌ای تحت جهان‌شمولی گاوسی:} دمیر و دوگان \cite{demir2026data} اثبات نمودند که در رژیم مجانبی ابعاد-بالا، خروجی توجه به توزیع گاوسی همگرا شده و لایه \en{FFN} غیرخطی متعاقب یک گام گرادیان، به لحاظ خطای یادگیری درون‌کانتکستی (\en{ICL}) دقیقاً با یک مدل چندجمله‌ای درجه متناهی بر پایه بسط چندجمله‌ای‌های هرمیت (\en{Hermite Polynomials}) معادل می‌گردد:
+    \begin{equation}
+        \hat{\sigma}_p(x) = \sum_{i=0}^p \frac{c_i}{i!} H_i(x) + c_p^* z, \quad z \sim \mathcal{N}(0, 1)
+    \end{equation}
+\end{itemize}
+
+\paragraph*{هندسه نورون‌های گیت‌شده و مراحل سه‌گانه استنتاج}
+گرستنر و شوتزه \cite{gerstner2025understanding} با تحلیل زاویه کسینوسی میان بردارهای وزن ورودی خطی ($w_{\text{in}}$)، وزن گیت ($w_{\text{gate}}$) و وزن خروجی ($w_{\text{out}}$) در فعال‌ساز‌های گیت‌شده، رفتار نورون‌ها را به ۶ رده تحلیلی تفکیک کردند:
+\begin{enumerate}
+    \item \textbf{غنی‌سازی (\en{Enrichment}):} هم‌راستایی قوی $\cos(w_{\text{in}}, w_{\text{out}}) \approx 1$ و $\cos(w_{\text{gate}}, w_{\text{out}}) \approx 1$ که منجر به تقویت بردار مفهوم موجود در استریم باقیمانده می‌شود.
+    \item \textbf{تخلیه (\en{Depletion}):} ناهم‌راستایی معکوس $\cos(w_{\text{in}}, w_{\text{out}}) \approx -1$ که برای حذف و سرکوب ویژگی‌ها از جریان باقیمانده عمل می‌کند.
+    \item \textbf{غنی‌سازی و تخلیه شرطی (\en{Conditional}):} تعامد بردار گیت با خروجی ($\cos(w_{\text{gate}}, w_{\text{out}}) \approx 0$) که فعال‌سازی مشروط به حضور مفهومی مکمل را برقرار می‌سازد.
+    \item \textbf{تغییر نسبتی (\en{Proportional Change}):} خروجی در جهت $w_{\text{gate}}$ با ضریب متناسب با دامنه $w_{\text{in}}$.
+    \item \textbf{خروجی متعامد (\en{Orthogonal Output}):} تولید جهتی مستقل از ورودی‌ها.
+\end{enumerate}
+
+کشف کلیدی این پژوهش، پدیده \textbf{«بازبینی مضاعف» (\en{Double Checking})} است؛ وضعیتی که در آن با وجود تعامد $\cos(w_{\text{gate}}, w_{\text{in}}) \approx 0$، هر دو بردار بر یک مفهوم سمانتیک در ماتریس واژگان نگاشت می‌شوند. از منظر هندسی، اگر یک ورودی تک‌برداری کل نیم‌فضا ($x_1 > 0$) را فعال کند، سازوکار بازبینی مضاعف فعال‌سازی را به ربع اول ($x_1 > 0 \land x_2 > 0$) مقید کرده و سطح خطای آشکارسازی مفهوم را به شدت کاهش می‌دهد. در همین راستا، مشخص گردید که لایه‌های اولیه تا میانی مدل‌های زبانی تحت حاکمیت نورون‌های \textbf{غنی‌سازی شرطی} (جهت تقویت ویژگی) و لایه‌های انتهایی تحت تسلط نورون‌های \textbf{تخلیه} (جهت تیزسازی توزیع خروجی یا \en{Residual Sharpening}) هستند \cite{gerstner2025understanding, lad2024stages}.
+
+\paragraph*{پدیده‌شناسی و مدیریت تنکی فعال‌سازی (\en{Activation Sparsity})}
+با گذار از \en{ReLU} به \en{SwiGLU}، مقادیر خروجی به صفر دقیق نمی‌رسند، اما رفتار تنکی عملکردی (\en{Functional Sparsity}) حفظ می‌شود \cite{szatkowski2026universal}:
+\begin{itemize}
+    \item \textbf{متریک تنکی بحرانی (\en{Critical Sparsity}):} شاتکوفسکی و همکاران \cite{szatkowski2026universal} با معرفی روش \en{Top-$p$} بر مبنای سهم نرم $L_1$:
+    \begin{equation}
+        \text{top-}p(v) = m_p \odot v, \quad m_p = \arg\min_m \|m\|_0 \quad \text{s.t.} \quad \|m \odot v\|_1 \ge p \|v\|_1
+    \end{equation}
+    مفهوم تنکی بحرانی را به عنوان بیشترین میزان صفرسازی با افت کارایی کمتر از ۱٪ تعریف کردند. آنان نشان دادند که با افزایش مقیاس مدل، رتبه مؤثر نورون‌ها کاهش یافته و تحمل تنکی افزایش می‌یابد. این پدیده حتی در مدل‌های زبانی پخشی (\en{Diffusion LLMs}) مانند \en{LLaDA} با شدت بیشتری مشاهده می‌شود.
+    
+    \item \textbf{قوانین تنک‌سازی (\en{Sparsing Laws}):} لو و همکاران \cite{luo2024sparsing} با ارائه روش بهینه \en{CETT-PPL-1\%} بر پایه جستجوی دودویی خطای نسبی نرم $L_2$ برون‌داد لایه‌ها، کشف کردند که در مدل‌های \en{ReLU} نسبت فعال‌سازی با افزایش داده از قانون توانی کاهشی در فضای لگاریتمی پیروی می‌کند:
+    \begin{equation}
+        A_{\text{ReLU}}(D) = \exp(-c D^\alpha + b) + A_0
+    \end{equation}
+    در حالی که در \en{SiLU} این رابطه صعودی است. این امر نشان می‌دهد مدل‌های زبانی بزرگتر مبتنی بر \en{ReLU} با داده بیشتر، ذاتاً به سمت تنکی بالاتر (بیش از ۹۳٪) میل می‌کنند.
+
+    \item \textbf{شتاب‌بخشی سخت‌افزاری با قالب‌های \en{2:4} و \en{Venom}:} مدیاستا و همکاران \cite{madhyastha2026sparsity} با جایگزینی فعال‌ساز با $\text{ReLU}^2(x) = (\max(0, x))^2$ که تنکی بالای ۹۰٪ به همراه دارد، و استفاده از قالب نیمه‌ساختاریافته \en{Venom (V:N:M)} \cite{castro2023venom} و هرس نرم روی وزن‌ها، امکان تسریع ۱.۴ تا ۱.۷ برابری کل فرآیند آموزش را بر روی شتاب‌دهنده‌های مدرن اثبات کردند.
+    
+    \item \textbf{ترنسفورمر جرقه‌ای (\en{Spark Transformer}):} یو و همکاران \cite{you2025spark} معضل کندی عملگرهای سنتی \en{Top-$k$} ناشی از سورتینگ ($\mathcal{O}(d \log d)$) را با معرفی عملگر آماری خطی $\mathcal{O}(d)$ تحت عنوان \en{Statistical Top-$k$} برطرف ساختند:
+    \begin{equation}
+        \theta(x, k) = \text{mean}(x) + \text{std}(x) \cdot \Phi^{-1}\left(1 - \frac{k}{d}\right)
+    \end{equation}
+    \begin{equation}
+        \text{Soft-Threshold}(x, \theta) = \max(x - \theta \cdot \mathbf{1}, 0)
+    \end{equation}
+    این فرمولاسیون مشتق‌پذیر پیوسته (با تقریب هابر)، FFNهایی با تنها ۸٪ فعال‌سازی را بدون افت کیفی در مقیاس‌های بزرگ ممکن می‌سازد.
+\end{itemize}
+
+\paragraph*{معماری‌های مدرن و جهت‌گیری‌های نوین فعال‌ساز \en{FFN}}
+پیشرفته‌ترین نوآوری‌ها در بازطراحی توابع فعال‌ساز و محاسبات FFN عبارتند از:
+\begin{itemize}
+    \item \textbf{واحد خطی توانی (\en{PowLU}):} جیانگ و همکاران \cite{jiang2026powlu} برای حذف ناپایداری‌های عددی ناشی از تقویت توان دو \en{SwiGLU}، فعال‌ساز \en{PowLU} را با توان کسری کسری معرفی کردند:
+    \begin{equation}
+        \text{PowLU}(x) = \begin{cases} 
+            x \cdot x^{\frac{m}{\sqrt{x} + 1}} \cdot \text{sigmoid}(x) & x > 0 \\ 
+            x^2 \cdot \text{sigmoid}(x) & x \le 0 
+        \end{cases}, \quad 0 < m < 10
+    \end{equation}
+    این فرمولاسیون مشتق‌پذیر در صفر بوده و در ورودی‌های بسیار بزرگ رفتار خطی مجانبی $\mathcal{O}(x)$ از خود نشان می‌دهد که مانع از اشباع دامنه و بروز پرش گرادیان در آموزش‌های \en{FP8} در مقیاس‌های ۱۲۴B می‌گردد.
+
+    \item \textbf{ترکیب چندجمله‌ای فعال‌ساز‌ها (\en{PolyCom}):} ژو و همکاران \cite{zhuo2025polycom} با ارائه \en{PolyReLU} و \en{PolyNorm} ثابت کردند که این ترکیبات به نرخ بهینه تقریب در فضای سوبولف $\mathcal{O}(\epsilon^{-d/n})$ دست می‌یابند و سرعت همگرایی پیش‌آموزش مدل‌های چگال و متراکم را ارتقا می‌دهند:
+    \begin{equation}
+        \text{PolyNorm}(x) = \sum_{i=0}^r a_i \frac{x^i}{\|x^i\|_2}
+    \end{equation}
+
+    \item \textbf{آمیخته فعال‌ساز‌ها (\en{Mixture of Activations - MoA}):} وانگ و همکاران \cite{wang2026more} نشان دادند که تخصیص یک تابع فعال‌ساز ثابت برای تمام توکن‌ها محدودکننده است. آنان با ارائه \en{MoA}:
+    \begin{equation}
+        f_{\text{MoA}}(x) = W_2 \sum_{k=1}^{|\mathcal{K}|} \pi_k(x) \sigma_k(W_1 x), \quad \pi_k(x) = \phi(u_k^\top x)
+    \end{equation}
+    اثبات کردند که به ازای هر پهنای متناهی $m \ge 1$، سلسله‌مراتب صریح بیانی برقرار است:
+    \begin{equation}
+        \bigcup_{\sigma \in \mathcal{K}} \mathcal{F}_\sigma^{(m)} \subsetneq \mathcal{F}_{\text{LA}}^{(m)} \subsetneq \mathcal{F}_{\text{MoA}}^{(m)}
+    \end{equation}
+    دلیل این شکاف، ناتوانی ترکیب‌های خطی ثابت در ایجاد پرش‌های مشتق ناپیوسته غیرثابت در امتداد ابرصفحه‌های تکین است.
+
+    \item \textbf{مسیریابی عصبی-زیستی (\en{PolyGLU}):} مدئیروس \cite{medeiros2026polyglu} مسیریابی تطبیقی میان ۴ فعال‌ساز را با عملگر \en{Gumbel-Softmax} پیاده کرد. کشف شگفت‌انگیز این طرح، همگرایی خودبه‌خودی به سوی گزینش قطعی (آنتروپی $0.030\%$) و تخصصی‌شدن لایه‌ای بود: لایه‌های ابتدایی منحصراً به \en{GELU} و لایه‌های عمیق به تابع کران‌دار متقارن \en{Tanh} روی آوردند.
+
+    \item \textbf{انطباق کارای پارامتر در فضای فعال‌ساز (\en{NoRA}):} یین و همکاران \cite{yin2025nora} با رد پارادایم سنتی \en{LoRA}، نشان دادند که می‌توان وزن‌های شبکه را منجمد نگه داشت و تنها ضرایب صورت و مخرج توابع گویای FFN را به شکل کم‌رتبه تنظیم کرد:
+    \begin{equation}
+        \phi_g'(X) = \frac{(P_g + A_g^P B_g^P)(X)}{(Q_g + A_g^Q B_g^Q)(X)}
+    \end{equation}
+    این راهبرد تنها با تنظیم \textbf{۰.۰۲٪ تا ۰.۴٪} پارامترها، به دقتی فراتر از فاین‌تیون کامل دست یافت.
+
+    \item \textbf{تاشدگی ثابت‌ها (\en{TARDIS}) و \en{FFN} چندسر فلاش (\en{FlashMHF}):} 
+    هو و همکاران در \en{TARDIS} \cite{hu2025tardis} نشان دادند ۶۵٪ ورودی فعال‌ساز‌ها در ۲۰٪ دامنه متمرکز است. با تقریب خطی در این بازه، ماتریس‌های ضرب $W_1$ و $W_2$ در یک ماتریس متراکم ادغام شده و تا ۸۷.۵٪ پارامترها در زمان استنتاج ادغام و تاشده می‌شوند. 
+    از سویی دیگر، ژانگ و همکاران در \en{FlashMHF} \cite{zhang2025flashmhf} با بازطراحی \en{FFN} به شکل چندسر موازی و اجرای مستقیم محاسبات درون حافظه سریع \en{SRAM} (همانند \en{FlashAttention}) بدون ذخیره‌سازی فعال‌سازی‌های میانی در \en{HBM}، مصرف حافظه اوج را ۳ تا ۵ برابر کاهش دادند.
+\end{itemize}
+
+\paragraph*{دیاگرام مقایسه‌ای توپولوژی‌های \en{FFN} و نگاشت فعال‌ساز‌ها}
+در نمودار زیر، سیر تکامل ساختار لایه‌های پیش‌خور و نحوه قرارگیری و برهم‌کنش توابع فعال‌ساز از معماری کلاسیک تا رهیافت‌های پویا و تنک به تصویر کشیده شده است:
+
+\begin{center}
+\begin{latin}
+\begin{tikzpicture}[
+    scale=0.85, every node/.style={transform shape},
+    box/.style={rectangle, draw=blue!70!black, fill=blue!8, rounded corners=4pt, text centered, minimum height=0.75cm, font=\small\bfseries},
+    act/.style={rectangle, draw=orange!80!black, fill=orange!20, rounded corners=4pt, text centered, minimum height=0.75cm, font=\small\bfseries},
+    mult/.style={circle, draw=red!70!black, fill=red!15, minimum size=0.6cm, font=\small\bfseries},
+    line/.style={draw=black!70, -{Latex[length=2.5mm]}, line width=1pt},
+    grouplabel/.style={font=\bfseries\color{blue!80!black}}
+]
+
+    % --- Structure 1: Classical Type-I ---
+    \node[grouplabel] at (0, 3.8) {1. Classical FFN (Type-I)};
+    \node (x1) at (0, 3) {$x \in \mathbb{R}^{d}$};
+    \node[box, below=0.5cm of x1] (w1) {$W_1 \in \mathbb{R}^{d \times 4d}$};
+    \node[act, below=0.5cm of w1] (a1) {$\sigma(\cdot)$ \text{\footnotesize (ReLU / GELU)}};
+    \node[box, below=0.5cm of a1] (w2) {$W_2 \in \mathbb{R}^{4d \times d}$};
+    \node[below=0.5cm of w2] (out1) {$\text{Output}$};
+    \draw[line] (x1) -- (w1);
+    \draw[line] (w1) -- (a1);
+    \draw[line] (a1) -- (w2);
+    \draw[line] (w2) -- (out1);
+
+    % --- Structure 2: Gated SwiGLU (Type-II) ---
+    \node[grouplabel] at (5.2, 3.8) {2. Gated SwiGLU (Type-II)};
+    \node (x2) at (5.2, 3) {$x \in \mathbb{R}^{d}$};
+    \node[box] (wg) at (4.0, 2) {$W_{\text{gate}}$};
+    \node[box] (wu) at (6.4, 2) {$W_{\text{up}}$};
+    \node[act, below=0.5cm of wg] (silu) {SiLU};
+    \node[mult] (mul2) at (5.2, 0.4) {$\odot$};
+    \node[box, below=0.5cm of mul2] (wd) {$W_{\text{down}}$};
+    \node[below=0.5cm of wd] (out2) {$\text{Output}$};
+    \draw[line] (x2) -| (wg);
+    \draw[line] (x2) -| (wu);
+    \draw[line] (wg) -- (silu);
+    \draw[line] (silu) |- (mul2);
+    \draw[line] (wu) |- (mul2);
+    \draw[line] (mul2) -- (wd);
+    \draw[line] (wd) -- (out2);
+
+    % --- Structure 3: Mixture of Activations (MoA / PolyGLU) ---
+    \node[grouplabel] at (11.8, 3.8) {3. Adaptive MoA / PolyGLU};
+    \node (x3) at (11.8, 3) {$x \in \mathbb{R}^{d}$};
+    \node[box] (wg3) at (10.3, 2) {$W_{\text{gate}}$};
+    \node[box] (wu3) at (13.3, 2) {$W_{\text{up}}$};
+    \node[box, fill=purple!15, draw=purple!80!black] (route) at (10.3, 1.1) {\footnotesize Token Router $\pi(x)$};
+    \node[act, fill=green!15, draw=green!70!black] (moa) at (10.3, 0.1) {\footnotesize $\sum \pi_k \sigma_k(\cdot)$};
+    \node[mult] (mul3) at (11.8, -0.6) {$\odot$};
+    \node[box, below=0.4cm of mul3] (wd3) {$W_{\text{down}}$};
+    \node[below=0.4cm of wd3] (out3) {$\text{Output}$};
+    \draw[line] (x3) -| (wg3);
+    \draw[line] (x3) -| (wu3);
+    \draw[line] (wg3) -- (route);
+    \draw[line] (route) -- (moa);
+    \draw[line] (moa) |- (mul3);
+    \draw[line] (wu3) |- (mul3);
+    \draw[line] (mul3) -- (wd3);
+    \draw[line] (wd3) -- (out3);
+
+\end{tikzpicture}
+\end{latin}
+\end{center}
+
+\paragraph*{تحلیل و مقایسه جامع شاخصه‌های کلیدی توابع فعال‌ساز FFN}
+جدول زیر خلاصه مقایسه‌ای پیشرفته‌ترین نوآوری‌ها در زمینه فعال‌ساز‌های FFN را از دیدگاه مبانی ریاضیاتی، ساختار گیت‌بندی، میزان تنکی و ویژگی‌های سیستمی نشان می‌دهد:
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه تحلیلی توابع و ساختارهای فعال‌ساز در لایه‌های پیش‌خور (\en{FFN}) مدل‌های زبانی}
+\label{tab:activation_literature_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{مدل / فعال‌ساز} & \textbf{مرجع} & \textbf{فرمولاسیون غیرخطی} & \textbf{مبنای تئوریک ریاضی} & \textbf{نوع تنکی} & \textbf{پایداری و مقیاس‌پذیری} \\
+\midrule
+\en{ReLU} & \cite{nair2010relu} & $\max(0, x)$ & توابع خطی تکه‌ای & طبیعی ($>90\%$) & مستعد مرگ نورون‌ها؛ سریع \\
+\en{GELU} & \cite{hendrycks2016gelu} & $x \Phi(x)$ & فیلترینگ احتمالات گاوسی & ناچیز ($<5\%$) & بسیار پایدار؛ فقدان سرعت تنک \\
+\en{SwiGLU} & \cite{shazeer2020glu} & $\text{SiLU}(W_g x) \odot W_u x$ & گیت‌بندی ضربی دو شاخه & کم & رفتار درجه‌دوم؛ ناپایدار در \en{FP8} \\
+\en{PolyCom} & \cite{zhuo2025polycom} & $\sum a_i \text{ReLU}^i(x)$ یا \en{PolyNorm} & بهینگی تقریب در سوبولف $W^{n,\infty}$ & متوسط & سرعت همگرایی بالا؛ مهار با نرم \\
+\en{PowLU} & \cite{jiang2026powlu} & $x^{1+\frac{m}{\sqrt{x}+1}} \cdot \sigma(x)$ & کنترل نرخ رشد مجانبی خطی & کم & ضد جهش گرادیان؛ پایدار در ۱۲۴B \\
+\en{Spark FFN} & \cite{you2025spark} & $\text{Stat-Top-}k(W_1 x)$ & توزیع واریانسی و آستانه گاوسی & کنترل‌شده ($92\%$) & بدون سورتینگ؛ بهینه در شتاب‌دهنده \\
+\en{MoA} & \cite{wang2026more} & $\sum \pi_k(x) \sigma_k(W x)$ & تفکیک جهش مشتق در $W^{1,\infty}$ & پیوسته & ارتقای اکید ظرفیت بیان متناهی \\
+\en{PolyGLU} & \cite{medeiros2026polyglu} & مسیریابی گامبل میان ۴ فعال‌ساز & همگرایی آنتروپی خودبه‌خودی & تک‌گزینی قطعی & تخصص عمقی (\en{GELU $\to$ Tanh}) \\
+\en{NoRA} & \cite{yin2025nora} & کسر چندجمله‌ای کم‌رتبه & تقریب عام کسری پاده (\en{Padé}) & نامربوط & انطباق ۰.۴٪ پارامتر در فضای فعال‌ساز \\
+\en{FlashMHF} & \cite{zhang2025flashmhf} & زیرشبکه‌های موازی در \en{SRAM} & تقارن ساختاری با توجه چندسر & تنکی حافظه & کاهش ۵ برابری حافظه؛ حذف گلوگاه \en{HBM} \\
+\en{TARDIS} & \cite{hu2025tardis} & تقریب خطی در نواحی داغ & تاشدگی ثابت‌ها در جبر ماتریسی & تا ۸۰٪ محاسبات & ادغام ۸۷.۵٪ ماتریس با مسیر بازگشت \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{نتیجه‌گیری و چشم‌انداز آینده}
+شواهد تجربی و مبانی نظری نشان می‌دهند که فرض سنتی «یک تابع فعال‌ساز ثابت برای تمامی لایه‌ها، نورون‌ها و گام‌های زمانی» به پایان دوره خود رسیده است. مسیر توسعه FFNهای آینده حول سه محور بنیادین همگرا شده است:
+۱) \textbf{فعال‌سازی‌های تطبیقی وابسته به زمینه و عمق} (\en{Token-Adaptive \& Depth-Aware}) که در آن نوع غیرخطی بودن بسته به جایگاه لایه (اکتشافی در آغاز و فشرده‌ساز در انتها) تغییر می‌کند \cite{wang2026more, medeiros2026polyglu}.
+۲) \textbf{مهار رشد درجه‌دوم جهت آموزش با ممیز شناور پایین (\en{FP4/FP8})} از طریق فعال‌ساز‌های با انحنای تنظیم‌شده مانند \en{PowLU} \cite{jiang2026powlu}.
+۳) \textbf{هم‌طراحی الگوریتم-سخت‌افزار} جهت ترجمه مستقیم تنکی فعال‌سازی ریاضی به شتاب زمانی بدون تحمیل سربار سورتینگ یا ذخیره تانسورهای میانی روی حافظه سراسری، همان‌گونه که در \en{Spark Transformer} و \en{FlashMHF} محقق گردیده است \cite{you2025spark, zhang2025flashmhf}.

@@ -1,1 +1,76 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مبانی ریاضی و ساختار پیش‌خور با فعال‌ساز گیت‌دار (\en{SwiGLU Architecture})}
+در معماری لایه‌های پیش‌خور (\en{Feed-Forward Network - FFN}) مدل \model{DeepSeek-V4} \cite{deepseek2025v4}، تبدیل‌های غیرخطی در بستر لایه‌های متخصصان تنک (\en{DeepSeekMoE}) بر پایه واحد تفکیک‌پذیر گیت‌دار سویش (\en{SwiGLU}) \cite{shazeer2020glu} استوار است. برای بردار ویژگی ورودی $x \in \mathbb{R}^d$، نگاشت به فضای پنهان با بعد میانی $d_{\text{ffn}}$ و بازگشت به فضای اولیه از طریق دو مسیر موازی خطی شامل مسیر گیت (\en{Gate Path}) با وزن $W_{\text{gate}} \in \mathbb{R}^{d \times d_{\text{ffn}}}$ و مسیر بالارو (\en{Up Path}) با وزن $W_{\text{up}} \in \mathbb{R}^{d \times d_{\text{ffn}}}$ فرمول‌بندی می‌شود:
+\begin{equation}
+    \text{FFN}_{\text{SwiGLU}}(x) = \Big( \text{Swish}(x W_{\text{gate}}) \odot (x W_{\text{up}}) \Big) W_{\text{down}}
+\end{equation}
+که در آن $W_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d}$ ماتریس تصویر پایین‌رو و عملگر $\odot$ نشان‌دهنده ضرب هادامارد (\en{Hadamard Product} / ضرب عنصری) است. تابع \en{Swish} \cite{ramachandran2017swish} بر روی مؤلفه اسکالر $z$ بر پایه ضرب ورودی در تابع سیگموئید تعریف می‌شود:
+\begin{equation}
+    \text{Swish}(z) = z \cdot \sigma(z) = \frac{z}{1 + e^{-z}}
+\end{equation}
+
+\paragraph*{تحلیل دیفرانسیل، ژاکوبی و جریان پس‌انتشار (\en{Gradient Dynamics})}
+برای تحلیل ریاضی انتشار گرادیان، مشتق مرتبه اول تابع \en{Swish} با اعمال قاعده ضرب دیفرانسیل به صورت زیر استخراج می‌شود:
+\begin{equation}
+    \frac{d}{dz}\text{Swish}(z) = \sigma(z) + z \frac{d\sigma(z)}{dz} = \sigma(z) + z \sigma(z)(1 - \sigma(z)) = \sigma(z)\Big(1 + z(1 - \sigma(z))\Big)
+\end{equation}
+اگر تانسور میانی پیش از بازتاب پایین‌رو را به صورت $h = \text{Swish}(z_{\text{gate}}) \odot z_{\text{up}}$ تعریف نماییم که در آن $z_{\text{gate}} = x W_{\text{gate}}$ و $z_{\text{up}} = x W_{\text{up}}$، ژاکوبی خروجی نسبت به بردار ورودی $x$ بر مبنای بسط زنجیره‌ای چندمتغیره عبارت است از:
+\begin{equation}
+    \frac{\partial h}{\partial x} = \text{diag}(z_{\text{up}}) \cdot \text{diag}\left(\left.\frac{d\text{Swish}(z)}{dz}\right|_{z=z_{\text{gate}}}\right) W_{\text{gate}}^T + \text{diag}\big(\text{Swish}(z_{\text{gate}})\big) W_{\text{up}}^T
+\end{equation}
+این ساختار دو مسیره خطی-غیرخطی، از صفر شدن کامل ژاکوبی در نواحی منفی جلوگیری نموده و پدیده مرگ نورون‌ها را در مقیاس‌های عمیق از میان می‌برد.
+
+\paragraph*{پایداری عددی و سازوکار بریدن دامنه (\en{SwiGLU Clamping})}
+در آموزش مدل‌های عظیم در مقیاس تریلیون پارامتر و استفاده از محاسبات با دقت پایین (\en{FP8 / FP4})، هم‌راستایی آماری مؤلفه‌های بزرگ در $z_{\text{gate}}$ و $z_{\text{up}}$ منجر به رفتار مجانبی درجه دو موضعی می‌شود:
+\begin{equation}
+    z \to \infty \implies \text{Swish}(z) \approx z \implies \text{SwiGLU}(z_{\text{gate}}, z_{\text{up}}) \sim \mathcal{O}(z^2)
+\end{equation}
+رشد نامحدود واریانس منجر به بروز جهش‌های ناگهانی زیان (\en{Loss Spikes}) و سرریز در بیت‌های توان فرمت‌های کم‌بیت می‌گردد. در \model{DeepSeek-V4} جهت رفع این معضل، تکنیک بریدن مقادیر (\en{SwiGLU Clamping}) به صورت متقارن و نامتقارن اعمال شده است:
+\begin{equation}
+    \widetilde{z}_{\text{up}} = \text{clip}(z_{\text{up}}, -10, 10), \qquad \widetilde{z}_{\text{gate\_act}} = \min\big(\text{Swish}(z_{\text{gate}}), 10\big)
+\end{equation}
+این کران‌گذاری قطعی، نرم بی‌نهایت تانسور فعال‌سازی را به صورت صریح محدود می‌سازد:
+\begin{equation}
+    \|\widetilde{h}\|_\infty = \|\widetilde{z}_{\text{gate\_act}} \odot \widetilde{z}_{\text{up}}\|_\infty \le 10 \times 10 = 100
+\end{equation}
+محدود شدن خروجی به ۱۰۰، کورتوزیس (\en{Kurtosis}) توزیع چندبعدی فعال‌سازها را تثبیت کرده و از انحرافات توزیعی در لایه‌های پسین جلوگیری می‌کند.
+
+\paragraph*{بهینه‌سازی پسا‌محاسباتی و سخت‌افزاری (\en{Hardware Co-Design})}
+گزارش فنی \model{DeepSeek-V4} تصریح می‌کند که توابع نمایی و تقسیم در \en{Swish} سربار قابل‌توجهی در مرحله پس از ضرب ماتریسی (\en{Post-GEMM}) بر شتاب‌دهنده‌ها تحمیل می‌نمایند. برای نسل‌های آتی، جایگزینی \en{SwiGLU} با توابع فعال‌ساز سبک فاقد توابع غیرخطی متعالی پیشنهاد شده است که با حذف پارامترهای مسیر گیت، امکان افزایش بعد میانی $d_{\text{ffn}}$ را تحت بودجه پارامتری یکسان فراهم می‌آورد.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=stealth, thick,
+    node distance=1.4cm and 2.2cm,
+    block/.style={rectangle, draw=blue!70!black, fill=blue!6, rounded corners=4pt, text centered, minimum height=2.2em, inner sep=6pt, font=\small},
+    op/.style={circle, draw=red!70!black, fill=red!8, text centered, inner sep=3pt, font=\small\bfseries},
+    data/.style={rectangle, draw=gray!60, fill=gray!8, rounded corners=3pt, text centered, inner sep=5pt, font=\small},
+    arrow/.style={->, draw=blue!80!black, line width=1.1pt}
+]
+    \node[data] (input) {بردار ویژگی ورودی: $x \in \mathbb{R}^d$};
+    \node[block, below left=1.2cm and 0.8cm of input] (wgate) {مسیر گیت: $W_{\text{gate}} \in \mathbb{R}^{d \times d_{\text{ffn}}}$};
+    \node[block, below right=1.2cm and 0.8cm of input] (wup) {مسیر بالارو: $W_{\text{up}} \in \mathbb{R}^{d \times d_{\text{ffn}}}$};
+    \node[block, below=1.1cm of wgate] (swish) {فعال‌ساز: $\text{Swish}(z_{\text{gate}}) = z \cdot \sigma(z)$};
+    \node[block, below=1.1cm of swish] (clipgate) {تحدید گیت: $\min(\cdot, 10)$};
+    \node[block, below=2.4cm of wup] (clipup) {تحدید خطی: $\text{clip}(z_{\text{up}}, -10, 10)$};
+    \node[op, below right=1.4cm and 1.3cm of clipgate] (hadamard) {$\odot$};
+    \node[block, below=1.2cm of hadamard] (wdown) {طرح‌ریزی نهایی: $W_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d}$};
+    \node[data, below=1.1cm of wdown] (output) {خروجی پایدار لایه پیش‌خور};
+
+    \draw[arrow] (input) -| (wgate);
+    \draw[arrow] (input) -| (wup);
+    \draw[arrow] (wgate) -- node[left, font=\scriptsize] {$z_{\text{gate}}$} (swish);
+    \draw[arrow] (swish) -- (clipgate);
+    \draw[arrow] (wup) -- node[right, font=\scriptsize] {$z_{\text{up}}$} (clipup);
+    \draw[arrow] (clipgate) |- (hadamard);
+    \draw[arrow] (clipup) |- (hadamard);
+    \draw[arrow] (hadamard) -- (wdown);
+    \draw[arrow] (wdown) -- (output);
+\end{tikzpicture}%
+}
+\caption{نمودار محاسباتی فعال‌ساز \en{SwiGLU} همراه با سازوکار بریدن دامنه در \model{DeepSeek-V4}}
+\label{fig:deepseek_v4_ffn}
+\end{figure}

@@ -2,7 +2,7 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 15442 items from 5000.
+Reallocated field_info (elt_size=8) to 16201 items from 5000.
 Database file #1: references.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
 Warning--I didn't find a database entry for "nemotron_nano2_2025"
@@ -11,45 +11,45 @@ Warning--empty journal in geva2021transformer
 Warning--empty journal in geva2022transformer
 Warning--empty journal in ye2025transformer
 Warning--empty journal in ikeda2025layerwise
-You've used 479 entries,
+You've used 515 entries,
             1791 wiz_defined-function locations,
-            2262 strings with 90675 characters,
-and the built_in function-call counts, 105165 in all, are:
-= -- 7337
-> -- 8242
-< -- 73
-+ -- 2937
-- -- 2458
-* -- 6547
-:= -- 18410
-add.period$ -- 1431
-call.type$ -- 479
-change.case$ -- 478
+            2403 strings with 96692 characters,
+and the built_in function-call counts, 112391 in all, are:
+= -- 7905
+> -- 8668
+< -- 77
++ -- 3094
+- -- 2579
+* -- 6942
+:= -- 19632
+add.period$ -- 1539
+call.type$ -- 515
+change.case$ -- 514
 chr.to.int$ -- 0
-cite$ -- 484
-duplicate$ -- 4659
-empty$ -- 8913
-format.name$ -- 2458
-if$ -- 22603
+cite$ -- 520
+duplicate$ -- 5023
+empty$ -- 9598
+format.name$ -- 2579
+if$ -- 24195
 int.to.chr$ -- 0
-int.to.str$ -- 479
-missing$ -- 436
-newline$ -- 2392
-num.names$ -- 479
-pop$ -- 1855
+int.to.str$ -- 515
+missing$ -- 472
+newline$ -- 2572
+num.names$ -- 515
+pop$ -- 1985
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 2323
+skip$ -- 2490
 stack$ -- 0
-substring$ -- 2438
-swap$ -- 1149
-text.length$ -- 73
+substring$ -- 2662
+swap$ -- 1231
+text.length$ -- 77
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 5
-while$ -- 670
-width$ -- 482
-write$ -- 4874
+while$ -- 726
+width$ -- 518
+write$ -- 5242
 (There were 6 warnings)
