@@ -1,0 +1,278 @@
+\item \model{مرور جامع بر مبانی و سیر تکاملی الگوریتم‌های بهینه‌سازی مدل‌های زبانی (\en{Literature Review})}
+
+\paragraph*{مقدمه و صورت‌بندی مسئله در مدل‌های زبانی بزرگ}
+پیشرفت‌های چشمگیر در حوزه مدل‌های زبانی بزرگ (\en{Large Language Models - LLMs}) نیازمند حل مسائل بهینه‌سازی غیرمحدب در فضاهای با ابعاد نجومی (صدها میلیارد تا تریلیون‌ها پارامتر) بر روی پیکره‌های متنی چندهزار میلیارد توکنی است \cite{gan2026beyond}. اگرچه الگوریتم‌های مرتبه اول با مقیاس‌بندی مختصاتی مانند \en{Adam} \cite{kingma2015adam} و \en{AdamW} \cite{loshchilov2019decoupled} ستون فقرات آموزش مدرن را شکل داده‌اند، اما در مقیاس‌های کلان با محدودیت‌های سیستمی و ریاضیاتی عمیقی همچون دیوار حافظه (\en{Memory Wall}) ناشی از وضعیت‌های مرتبه دوم، ناپایداری در گام‌های بزرگ و ناهمگونی شدید گرادیانی و هسیانی در لایه‌های ترنسفورمر مواجه شده‌اند \cite{zhang2026evolution, tomihari2026understanding}. 
+
+هدف بهینه‌سازی در پیش‌آموزش خودرگرسیو، کمینه‌سازی ریسک تجربی روی پارامترهای $\theta \in \mathcal{X}$ (در فضای برداری یا هیلبرت متناهی‌البعد $\mathcal{X}$ مجهز به ضرب داخلی $\langle \cdot, \cdot \rangle$ و نُرم القایی $\|\cdot\|_2$) است:
+\begin{equation}
+    \min_{\theta \in \mathcal{X}} \left[ F(\theta) := f(\theta) + R(\theta) \right], \quad f(\theta) = \frac{1}{N} \sum_{i=1}^N \ell(f(x_i; \theta), y_i)
+\end{equation}
+که در آن $\ell$ تابع زیان هموار، و $R(\theta): \mathcal{X} \to \mathbb{R} \cup \{+\infty\}$ یک منظم‌ساز محدب، مناسب و بسته برای اعمال قیود هندسی یا افت وزن (\en{Weight Decay}) است \cite{kovalev2025understanding}.
+
+\paragraph*{سیستم دینامیکی گسسته یکپارچه (\en{Unified Discrete-Time Dynamical System})}
+به منظور برقراری انسجام ساختاری میان الگوریتم‌های متنوع، طبق طبقه‌بندی ژانگ و همکاران \cite{zhang2026evolution}، تمامی الگوریتم‌های بهینه‌سازی را می‌توان در قالب یک سیستم دینامیکی گسسته با چهار عملگر بنیادین فرمول‌بندی نمود:
+\begin{equation}
+    \begin{aligned}
+        \tilde{g}_t &= \mathcal{E}(f, \theta_t, \xi_t) && \text{(\en{Gradient Estimator Operator})} \\
+        \hat{g}_t &= \mathcal{T}_{\text{scenario}}(\tilde{g}_t) && \text{(\en{Scenario-Aware Transformation Operator})} \\
+        m_t &= \phi(m_{t-1}, \hat{g}_t) && \text{(\en{Momentum / Memory Accumulator})} \\
+        \theta_{t+1} &= \mathcal{P}_{\Theta} \left( \theta_t - \eta_t M_t^{-1} m_t - \eta_t \lambda \theta_t \right) && \text{(\en{Preconditioned Update \& Structural Projection})}
+    \end{aligned}
+\end{equation}
+که در آن $\xi_t$ متغیر تصادفی مینی‌بچ، $\eta_t$ نرخ یادگیری و $\lambda$ ضریب افت وزن است:
+\begin{itemize}
+    \item \textbf{عملگر تخمین گرادیان ($\mathcal{E}$):} نحوه استخراج اطلاعات گرادیان؛ در روش‌های مرتبه اول (\en{First-Order - FO}) همان گرادیان تصادفی نااریب $\mathbb{E}[\tilde{g}_t] = \nabla f(\theta_t)$ است و در روش‌های مرتبه صفر (\en{Zeroth-Order - ZO}) گرادیان بدون پس‌انتشار از طریق تفاضل متناهی متقارن دوسویه تصادفی برآورد می‌شود \cite{zhang2026evolution}:
+    \begin{equation}
+        \tilde{g}_t^{\text{ZO}} = \frac{1}{q} \sum_{i=1}^q \frac{f(\theta_t + \mu u_i) - f(\theta_t - \mu u_i)}{2\mu} u_i, \quad u_i \sim \mathcal{N}(0, I)
+    \end{equation}
+    \item \textbf{عملگر تبدیل سناریو ($\mathcal{T}_{\text{scenario}}$):} اعمال قیود توزیع‌شده یا حریم خصوصی تفاضلی، مانند برش نُرم و تزریق نوفه گوسی: $\mathcal{T}_{\text{DP}}(\tilde{g}_t) = \text{Clip}(\tilde{g}_t, C) + \mathcal{N}(0, \sigma^2 C^2 I)$ یا فشرده‌سازی کوانتیزه $\mathcal{C}(\tilde{g}_t)$ \cite{zhang2026evolution}.
+    \item \textbf{تجمع‌گر تکانه ($\phi$):} ردیابی تاریخچه جهت‌های نزول، از میانگین متحرک نمایی مرتبه اول گرفته تا تصحیح‌های پیش‌دستانه نستروف و نگاشت‌های برون‌یابی.
+    \item \textbf{پیش‌شرط‌ساز ($M_t$) و تصویر ساختاری ($\mathcal{P}_{\Theta}$):} ماتریس $M_t$ فضای پارامتر را برای جبران ناهمسانگردی تبدیل می‌کند (مانند ماتریس قطری ریشه دوم در \en{Adam}، تقریب کرونکر در \en{Shampoo}، یا تعامد ماتریسی در \en{Muon}) و $\mathcal{P}_\Theta$ به‌روزرسانی را به زیرفضاهای کم‌رتبه یا منیفلد ساختاری تصویر می‌کند.
+\end{itemize}
+
+\paragraph*{سیر تکاملی بهینه‌سازهای پایه تا AdamW}
+تکامل الگوریتم‌های گرادیانی در شکل‌گیری مدل‌های زبانی از مسیرهای زیر عبور کرده است:
+\begin{itemize}
+    \item \textbf{گرادیان تصادفی (\en{SGD}):} معرفی‌شده توسط رابینز و مونرو \cite{robbins1951stochastic}، که گرادیان را با مینی‌بچ تقریب می‌زند، اما در دره‌های عمیق با مقادیر ویژه نامتعادل هسیان دچار نوسانات شدید و توقف می‌شود.
+    \item \textbf{تکانه توپ سنگین (\en{Heavy-Ball}):} پولیاک \cite{polyak1964some} با افزودن لختی تاریخی $m_t = \beta m_{t-1} + g_t$، نوسانات متعامد را تعدیل کرد و سرعت همگرایی در امتداد شیب پیوسته را افزایش داد. نستروف \cite{nesterov1983method} با ارزیابی گرادیان در نقطه فرارفت $g_t(\theta_t + \gamma v_{t-1})$، جهش‌های ناشی از شتاب تکانه را پیش‌بینی و اصلاح نمود.
+    \item \textbf{انطباق مختصاتی واریانس (\en{AdaGrad} و \en{RMSprop}):} دوچی و همکاران \cite{duchi2011adaptive} با تجمع مجذور گرادیان‌ها در مخرج، نرخ یادگیری هر بعد را مستقل کردند، اما انباشت یکنواخت به مرگ زودرس نرخ یادگیری انجامید. \en{RMSprop} \cite{tieleman2012rmsprop} با جایگزینی میانگین متحرک نمایی مجذورات $v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2$ این مشکل را حل کرد.
+    \item \textbf{الگوریتم \en{Adam} و بحران منظم‌سازی وزن (\en{AdamW}):} کینگما و با \cite{kingma2015adam} با ترکیب گشتاورهای اول و دوم تصحیح‌شده، استاندارد صنعتی را بنا نهادند. با این حال، افزودن منظم‌ساز $L_2$ به صورت $\tilde{g}_t = g_t + \lambda \theta_t$ به دلیل مقیاس‌بندی با $\frac{1}{\sqrt{v_t}}$ باعث می‌شد پارامترهای با گرادیان‌های بزرگتر، افت وزن ضعیف‌تری دریافت کنند. لوشچیلوف و هوتر \cite{loshchilov2019decoupled} با ابداع \en{AdamW}، گام افت وزن را به صورت صریح از مقیاس‌بندی گرادیانی تفکیک کردند:
+    \begin{equation}
+        \theta_{t+1} = \theta_t - \eta_t \lambda \theta_t - \frac{\eta_t}{\sqrt{\hat{v}_t} + \epsilon} \odot \hat{m}_t
+    \end{equation}
+    این تفکیک ساده، برابری شدت جریمه در تمامی ابعاد شبکه را احیا کرد و به استاندارد بی‌رقیب تبدیل شد.
+\end{itemize}
+
+\paragraph*{چرایی برتری Adam بر SGD در ترنسفورمرها: ناهمگونی گرادیان و هسیان}
+یک پرسش نظری بنیادین همواره این بوده است که چرا \en{SGD} حتی در شرایط بدون نویز مینی‌بچ (\en{Full-batch}) قادر به آموزش بهینه ترنسفورمرها نیست \cite{kunstner2023noise}. تومی‌هاری و ساتو \cite{tomihari2026understanding} با تعریف مفهوم \textbf{ناهمگونی گرادیان (\en{Gradient Heterogeneity})} و اثبات کران‌های تحلیلی پیچیدگی تکرار، پرده از این معما برداشتند.
+
+اگر پارامترهای مدل به $B$ بلوک ماتریسی $[\theta]_b \in \mathbb{R}^{P_b}$ افراز شوند ($\sum_b P_b = P$)، دو سنجه پیچیدگی هسیان تعریف می‌گردد \cite{tomihari2026understanding}:
+\begin{align}
+    \Lambda_G &:= \sup_{\theta \in \mathcal{R}_{\text{FT}}} \sum_{b=1}^B \frac{\|[ \nabla \mathcal{L}(\theta) ]_b\|_2^2}{\|\nabla \mathcal{L}(\theta)\|_2^2} \|[\nabla^2 \mathcal{L}(\theta)]_b\|_2 \quad \text{(\en{Gradient-Weighted Complexity})} \\
+    \Lambda_P &:= \sup_{\theta \in \mathcal{R}_{\text{FT}}} \sum_{b=1}^B \frac{P_b}{P} \|[\nabla^2 \mathcal{L}(\theta)]_b\|_2 \quad \text{(\en{Parameter-Weighted Complexity})}
+\end{align}
+
+به دلیل ساختار مدولار لایه‌ها، بسط تیلور در نزدیکی مینیمم $\theta^*$ نشان می‌دهد:
+\begin{equation}
+    \|[\nabla \mathcal{L}(\theta)]_b\|_2 \approx \|[\nabla^2 \mathcal{L}(\theta^*)]_b (\theta - \theta^*)_b\|_2 \le \|[\nabla^2 \mathcal{L}(\theta^*)]_b\|_2 \|\delta \theta_b\|_2
+\end{equation}
+این نامساوی همبستگی مثبت مستقیمی بین نُرم هسیان و نُرم گرادیان برقرار می‌سازد؛ در نتیجه بلوک‌های با مقادیر ویژه بزرگ، گرادیان‌های بسیار بزرگتری تولید کرده و باعث می‌شوند $\Lambda_G \gg \Lambda_P$.
+
+\paragraph*{کران‌های تحلیلی پیچیدگی تکرار (\en{Iteration Complexity})}
+تحت فرضیه پیوستگی لیپشیتز هسیان با ثابت $\rho_H$ و تحدید خطای خارج از بلوک‌های قطری هسیان با $\delta_D < \frac{1}{3}\min(\Lambda_G, \Lambda_P)$، تومی‌هاری و ساتو \cite{tomihari2026understanding} نشان دادند تعداد تکرارهای لازم برای رسیدن به دقت گرادیانی $\varepsilon$ به صورت زیر مقید می‌شود:
+\begin{itemize}
+    \item \textbf{برای بهینه‌سازی گرادیان‌محور (\en{SGD}):}
+    \begin{equation}
+        \mathcal{T}_\varepsilon \left( \{\theta_t^{\text{Grad}}\}, \mathcal{L}, \|\cdot\|_2 \right) \le \frac{6(\mathcal{L}(\theta_0) - \mathcal{L}_*)}{P \varepsilon^2 \zeta_0} \cdot \mathbf{\Lambda_G}
+    \end{equation}
+    \item \textbf{برای بهینه‌سازی علامت‌محور (\en{SignSGD / Adam}):}
+    \begin{equation}
+        \mathcal{T}_\varepsilon \left( \{\theta_t^{\text{Sign}}\}, \mathcal{L}, \|\cdot\|_1 \right) \le \frac{6(\mathcal{L}(\theta_0) - \mathcal{L}_*)}{P \varepsilon^2 \zeta_0} \cdot \mathbf{\Lambda_P}
+    \end{equation}
+\end{itemize}
+از آنجا که در ترنسفورمرها $\Lambda_G$ چندین مرتبه بزرگی از $\Lambda_P$ فراتر می‌رود، \en{SGD} با سد همگرایی شدیدی مواجه است، در حالی که \en{Adam} به عنوان شیب نزول تحت نُرم $\ell_\infty$ این ناهمگونی را تعدیل می‌کند.
+
+\paragraph*{ریشه‌های ساختاری: ژاکوبی لایه‌نرمال‌سازی و ماتریس توجه}
+بررسی ژاکوبی لایه‌نرمال‌سازی خاستگاه اصلی این ناهمگونی را مشخص می‌سازد. برای ورودی $X \in \mathbb{R}^{n \times d}$ با تعریف $\tilde{X}_{i,:} = X_{i,:}(I_d - \frac{1}{d}\mathbf{1}\mathbf{1}^\top)$، ژاکوبی به فرم تحلیلی زیر حاصل می‌شود \cite{tomihari2026understanding}:
+\begin{equation}
+    J_{\text{LN}}(X) = \text{blockdiag}\left(\{L_i(X)\}_{i=1}^n\right), \quad L_i(X) = \frac{\sqrt{d}}{\|\tilde{X}_{i,:}\|_2} \left( I_d - \frac{\tilde{X}_{i,:}\tilde{X}_{i,:}^\top}{\|\tilde{X}_{i,:}\|_2^2} \right) \left( I_d - \frac{\mathbf{1}\mathbf{1}^\top}{d} \right)
+\end{equation}
+در ساختار \en{Post-LN}، ژاکوبی کل لایه به فرم $J_{\text{Post-LN}} = J_{\text{LN}} (J_{\text{FFN}} + I) J_{\text{LN}} (J_{\text{ATT}} + I)$ است که اثر $J_{\text{LN}}$ به صورت ضربی اعمال شده و با نوسان واریانس در لایه‌های متوالی، واگرایی مقادیر ویژه و ضریب جینی ناهمگونی گرادیان تا بالای $0.94$ تشدید می‌شود. در ساختار \en{Pre-LN}، ژاکوبی به فرم جمعی $J_{\text{Pre-LN}} = (J_{\text{FFN}}J_{\text{LN}} + I)(J_{\text{ATT}}J_{\text{LN}} + I)$ است که مسیر مستقیم همانی مانع از فروپاشی تراز گرادیان می‌گردد.
+
+علاوه بر این، در سازوکار توجه $P = \text{softmax}\left(\frac{X W_Q W_K^\top X^\top}{\sqrt{d_k}}\right)$، کران نُرم فروبنیوس گرادیان ماتریس ارزش ($U_V$) و ماتریس پرسش ($U_Q$) ارضا می‌کنند:
+\begin{equation}
+    \left\|\frac{\partial \text{SA}(X)}{\partial W_V}\right\|_F \le \sqrt{d_v} \|P\|_F \|X\|_F =: U_V, \quad \left\|\frac{\partial \text{SA}(X)}{\partial W_Q}\right\|_F \le \mathcal{O}\left(\left\|\frac{\partial P}{\partial M}\right\|_F\right) =: U_Q
+\end{equation}
+طبق گزاره تحلیلی تومی‌هاری و ساتو \cite{tomihari2026understanding}، زمانی که ماتریس‌های توجه به حالت تک‌داغ (\en{One-Hot Attention}) میل می‌کنند (تمرکز شدید روی توکن‌های خاص در مدل‌های زبانی)، $U_V$ به‌طور یکتا بیشینه و $U_Q$ به‌طور یکتا کمینه می‌شود:
+\begin{equation}
+    \arg\max_P U_V = \arg\min_P U_Q = \mathcal{P}_{\text{one-hot}}
+\end{equation}
+این عدم تقارن ذاتی، ناهمگونی درون‌لایه‌ای را تشدید کرده و بهینه‌سازی بدون انطباق مقیاس را غیرممکن می‌سازد.
+
+\paragraph*{پیش‌شرط‌سازی کرونکر و الگوریتم SOAP}
+جهت عبور از محدودیت تقریب قطری بدون تحمیل حافظه مرتبه دوم، الگوریتم \en{Shampoo} \cite{gupta2018shampoo} ماتریس هسیان را با حاصل‌ضرب کرونکر کوواریانس ردیف‌ها و ستون‌ها تقریب می‌زند: $H \approx L \otimes R$ که در آن:
+\begin{equation}
+    L_t = \beta_2 L_{t-1} + (1-\beta_2) G_t G_t^\top \in \mathbb{R}^{m \times m}, \quad R_t = \beta_2 R_{t-1} + (1-\beta_2) G_t^\top G_t \in \mathbb{R}^{n \times n}
+\end{equation}
+ویاس و همکاران در الگوریتم \en{SOAP} \cite{vyas2025soap} اثبات کردند که نسخه بهینه \en{Shampoo} با توان $1/2$ از لحاظ ریاضی دقیقاً معادل با اجرای الگوریتم \en{Adafactor} در پایه بردار ویژه حاصل از پیش‌شرط‌سازهای چپ و راست ($Q_L, Q_R$) است:
+\begin{equation}
+    L = Q_L \Lambda_L Q_L^\top, \quad R = Q_R \Lambda_R Q_R^\top, \quad G'_t = Q_L^\top G_t Q_R
+\end{equation}
+آن‌ها نشان دادند اگر گرادیان به فضای ویژه دوران یابد، همبستگی‌های متقاطع قطری شده و مقادیر واریانس دقیقاً بر مقادیر ویژه منطبق می‌شوند:
+\begin{equation}
+    A_i = e_i^\top \mathbb{E}[G'_B \odot G'_B] \mathbf{1}_m = \mathbb{E}[u_i^\top G_B G_B^\top u_i] = \lambda_i, \quad C_j = \mu_j
+\end{equation}
+بر پایه این اصل، \en{SOAP} به جای \en{Adafactor}، الگوریتم کامل \en{AdamW} را درون فضای دوران‌یافته اجرا می‌کند. محاسبات سنگین استخراج بردار ویژه تنها هر $f$ گام یکبار (مثلاً $f=10$) از طریق یک گام \en{Power Iteration} و تجزیه \en{QR} انجام می‌شود و در گام‌های میانی گشتاور دوم به سرعت به‌روز می‌گردد. این رویکرد اندازه دسته بحرانی (\en{Critical Batch Size}) را به طور چشمگیری ارتقا داده و زمان آموزش را بیش از ۳۵٪ کاهش می‌دهد \cite{vyas2025soap}.
+
+\paragraph*{بهینه‌سازی بر منیفلد متعامد: مبانی نظری Muon و Scion}
+بهینه‌ساز \en{Muon} \cite{jordan2024muon} با اعمال متعامدسازی ماتریسی بر روی تکانه گرادیان، تحولی نوین در لایه‌های پنهان مدل‌های زبانی ایجاد نمود. پتیک و همکاران در الگوریتم \model{Scion} \cite{pethick2025training} نشان دادند که این رفتار را می‌توان از طریق **عملگرهای کمینه‌سازی خطی مقید به نُرم (\en{Norm-Constrained LMOs})** در قالب فرانک-ولف تصادفی نامقید (\en{uSCG}) فرمول‌بندی کرد:
+\begin{equation}
+    \text{lmo}(s) := \arg\min_{\|x\| \le \rho} \langle s, x \rangle, \quad x_{k+1} = x_k + \gamma_k \text{lmo}(d_k)
+\end{equation}
+که در آن $d_k = (1-\alpha_k)d_{k-1} + \alpha_k \nabla f(x_k, \xi_k)$ میانگین متحرک گرادیان است. به دلیل ناورایی مقیاسی LMO، الگوریتم از ثابت لیپشیتز گرادیان بی‌نیاز است.
+
+برای محاسبه سریع تعامد ماتریسی بدون تجزیه صریح مقادیر منفرد (\en{SVD})، تکرار نیوتن-شولتز مرتبه پنجم مورد استفاده قرار می‌گیرد \cite{liu2025muon}:
+\begin{equation}
+    X_0 = \frac{M_t}{\|M_t\|_F}, \quad X_k = a X_{k-1} + b (X_{k-1}X_{k-1}^\top)X_{k-1} + c (X_{k-1}X_{k-1}^\top)^2 X_{k-1}
+\end{equation}
+با ضرایب بهینه $a = 3.4445, b = -4.7750, c = 2.0315$ که طی ۵ تکرار ماتریس را متعامد می‌سازند.
+
+کوالف \cite{kovalev2025understanding} اثبات کرد که \en{Muon} یک روش ناحیه اعتماد (\en{Trust-Region}) با قید نُرم عملگری است:
+\begin{equation}
+    x_{k+1} = \arg\min_{x \in \mathcal{X}} [\langle m_{k+1}, x \rangle + R(x)] \quad \text{s.t.} \quad \|x - (1-\beta)x_k\|_{\text{op}} \le \eta
+\end{equation}
+وی نشان داد علت برتری قطعی \en{Muon} بر الگوریتم‌های رقیب نظیر \en{Orthogonal-SGDM} \cite{tuddenham2022orthogonalising} در این است که تجمیع گرادیان‌های نویزی در تکانه قبل از اعمال عملگر غیرخطی، واریانس خطای تصادفی را بر اساس اثر برآیند کاهش می‌دهد:
+\begin{equation}
+    \mathbb{E}\left\|\sum_{i=0}^k \alpha(1-\alpha)^{k-i}(g(x_i) - \nabla f(x_i))\right\|_2^2 \le \frac{\alpha \sigma^2}{2-\alpha}
+\end{equation}
+در حالی که در \en{Orthogonal-SGDM} متعامدسازی پیش از تکانه، اریب غیرخطی به داده‌ها تزریق کرده و خاصیت حذف نویز را از بین می‌برد. همچنین کوالف برای نخستین بار نرخ‌های بهینه $\mathcal{O}(1/\varepsilon^4)$ در حالت غیرمحدب، $\mathcal{O}(1/\varepsilon^3)$ در حالت ستاره-محدب (\en{Star-Convex}) با افت وزن، و $\mathcal{O}(1/\varepsilon^{3.5})$ با افزودن گام برون‌یابی تحت هسیان لیپشیتز را برای خانواده \en{Muon} اثبات نمود \cite{kovalev2025understanding}.
+
+\paragraph*{یکپارچه‌سازی فرانک-ولف تصادفی و نویز دم‌سنگین (\en{Heavy-Tailed Noise})}
+اسفیراکی و وانگ \cite{sfyraki2026lions} اثبات کردند که بهینه‌سازهای \en{Lion} و \en{Muon} با افت وزن، حالت‌های خاصی از فرانک-ولف تصادفی (\en{SFW}) هستند:
+\begin{itemize}
+    \item \en{Lion} معادل با SFW بر روی گوی نُرم $\ell_\infty$ با شعاع $1/\lambda$ است.
+    \item \en{Muon} با افت وزن معادل با SFW بر روی گوی نُرم طیفی ماتریسی $\|A\|_2 \le 1/\lambda$ است.
+\end{itemize}
+آن‌ها نشان دادند شکاف فرانک-ولف $\mathcal{G}(x) := \max_{v \in \mathcal{C}} \langle v - x, -\nabla F(x) \rangle = \frac{1}{\lambda}\|\nabla F(x)\|_* + \langle x, \nabla F(x) \rangle$ دقیقاً بیانگر شرط احراز نقاط \en{KKT} بر روی قیود نُرم است \cite{sfyraki2026lions}.
+
+برای مهار توزیع‌های دم‌سنگین گرادیان با کران گشتاور $p$-ام ($\mathbb{E}[\|\nabla f(x, \xi) - \nabla F(x)\|^p] \le \sigma^p$ برای $p \in (1, 2]$)، نسخه‌های نوین زیر معرفی شدند \cite{sfyraki2026lions}:
+\begin{itemize}
+    \item \textbf{\en{LION+} و \en{MUON+}:} ادغام برش تطبیقی گرادیان با آستانه $M$:
+    \begin{equation}
+        \bar{g}_t = \left(1 \wedge \frac{M}{\|\nabla f(x_t; \Xi_t)\|}\right)\nabla f(x_t; \Xi_t) \implies \frac{1}{T}\sum_{t=1}^T \mathcal{G}(x_t) = \mathcal{O}\left(\log(T/\delta) T^{\frac{1-p}{3p-2}}\right)
+    \end{equation}
+    \item \textbf{\en{LION++} و \en{MUON++}:} ترکیب برش گرادیان با کاهش واریانس \en{STORM}، که نرخ همگرایی را به $\mathcal{O}\left(\log(T/\delta) T^{\frac{1-p}{2p-1}}\right)$ ارتقا داده و در رژیم واریانس محدود ($p=2$) با مینی‌بچ اندازه ۱ به نرخ بهینه $\mathcal{O}(1/\varepsilon^3)$ می‌رسد.
+\end{itemize}
+
+\paragraph*{حل چالش مقیاس در ابعاد نجومی: مدل Moonlight و تصحیح RMS}
+تیم \en{Moonshot AI} در پروژه مدل ۱۶ میلیارد پارامتری \model{Moonlight} \cite{liu2025muon}، مانع اصلی عدم مقیاس‌پذیری \en{Muon} به مدل‌های بزرگ زبانی را کشف و حل کردند. 
+
+\begin{quote}
+\textbf{لم تحلیلی مقیاس RMS (لیو و همکاران \cite{liu2025muon} - \en{Lemma 1}):}
+برای ماتریس وزن با ابعاد $[A, B]$، مقدار میانگین جذر مربعات (\en{RMS}) به‌روزرسانی متعامد $O = UV^\top$ با رتبه $r = \min(A, B)$ برابر است با:
+\begin{equation}
+    \text{RMS}(O) = \sqrt{\frac{1}{AB}\|UV^\top\|_F^2} = \sqrt{\frac{\text{Tr}(V U^\top U V^\top)}{AB}} = \sqrt{\frac{r}{AB}} = \frac{1}{\sqrt{\max(A, B)}}
+\end{equation}
+\end{quote}
+این ویژگی ریاضی سبب می‌شد در ماتریس‌های عریض نظیر \en{MLP} با ابعاد $[H, 4H]$، گام‌ها بیش از حد کوچک شده و در سر‌های کوچک \en{GQA/MLA} گام‌ها به شدت منفجر شوند. راهکار مهندسی \model{Moonlight}، مقیاس‌بندی اصلاح‌شده نرخ یادگیری بود:
+\begin{equation}
+    W_t = W_{t-1} - \eta_t \left( 0.2 \cdot O_t \cdot \sqrt{\max(A, B)} + \lambda W_{t-1} \right)
+\end{equation}
+این اصلاح اجازه داد تا \en{Muon} با همان هایپرپارامترهای \en{AdamW} کار کند و مصرف کل محاسبات پیش‌آموزش را به نصف ($0.519\times \text{ FLOPs}$) برساند \cite{liu2025muon}.
+
+\paragraph*{قوانین مقیاس‌پذیری تابعی و استخراج تحلیلی WSD}
+لی و همکاران \cite{li2026optimal} بر پایه چارچوب \en{Functional Scaling Laws (FSL)}، دینامیک پیوسته اتلاف زیان ناشی از برنامه‌ریزی نرخ یادگیری $\eta(z)$ در زمان ذاتی $t(z) = \int_0^z \eta(u) du$ را صورت‌بندی کردند:
+\begin{equation}
+    \mathcal{F}[t] = (1 + t(N))^{-s} + \int_0^N \mathcal{K}(t(N) - t(z)) (t'(z))^2 dz, \quad \mathcal{K}(t) = (1 + t)^{-(2 - 1/\beta)}
+\end{equation}
+که در آن $s$ شاخص یادگیری سیگنال و $\beta$ شاخص اتلاف نویز مدل است. با حل این مسئله تغییراتی از طریق نامساوی کوشی-شوارتز و فرمولاسیون KKT:
+\begin{itemize}
+    \item \textbf{رژیم وظیفه آسان ($s \ge 1 - 1/\beta$):} نمایه بهینه نرخ یادگیری از ابتدا تا انتها افت توانی دارد:
+    \begin{equation}
+        \eta^*(z) = \eta_{\text{peak}} \left( 1 - \frac{z}{N} \right)^{2\beta - 1}
+    \end{equation}
+    \item \textbf{رژیم وظیفه دشوار ($s < 1 - 1/\beta$):} به دلیل کندی یادگیری سیگنال، نرخ یادگیری بی‌قید از حد پایداری فراتر می‌رود. با فعال شدن قید پایداری، برنامه بهینه‌سازی به ساختار \en{Warmup-Stable-Decay (WSD)} تغییر فاز می‌دهد که در آن نرخ یادگیری برای بخش عمده آموزش روی سقف پایداری ثابت مانده و فاز افت نهایی تنها کسر ناچیزی از افق را اشغال می‌کند:
+    \begin{equation}
+        r_N^* = \frac{N - N_1}{N} \asymp N^{-\frac{(1 - 1/\beta) - s}{2 - 1/\beta}} = o_N(1)
+    \end{equation}
+\end{itemize}
+همچنین این پژوهش نشان داد که تثبیت شکل نزول (نظیر نزول کسینوسی با توان $\gamma = 2$) موجب پدیده **اشباع ظرفیت (\en{Capacity Saturation})** با توان مؤثر $\alpha = \min\{\beta, \gamma+1\}$ می‌شود و برای مدل‌های با ظرفیت بالا زیربهینه است \cite{li2026optimal}.
+
+\paragraph*{قانون مقیاس‌پذیری با توان مشترک و ضرایب راندمان بهینه‌سازها}
+ولکووا و همکاران \cite{volkova2026towards} اثبات کردند که برازش مجزای فرم چینچیلا برای بهینه‌سازهای مختلف از نظر عددی نامتعادل و همبسته است. آن‌ها فرمولاسیون تعمیم‌یافته زیر را با توان‌های مشترک $(\alpha, \beta)$ و ضرایب راندمان پارامتری ($\rho_N$) و داده‌ای ($\rho_D$) ارائه دادند:
+\begin{equation}
+    L = \frac{A}{(N \cdot \rho_N)^\alpha} + \frac{B}{(D \cdot \rho_D)^\beta} + E \quad \text{یا} \quad L = \frac{A}{(N \cdot \rho_N)^\alpha} + \frac{B}{(C \cdot \rho_C)^\beta} + E
+\end{equation}
+یافته‌های تجربی بر روی خانواده‌های \model{OLMo} و \model{LLaMA} نشان داد در حالی که تمام بهینه‌سازها راندمان پارامتری مشابهی با AdamW دارند ($\rho_N \approx 1$)، بهینه‌سازهای مدرن راندمان داده و محاسبات را به شدت افزایش می‌دهند:
+\begin{equation}
+    \rho_D^{\text{SOAP}} \approx 1.75 - 2.57, \quad \rho_D^{\text{Muon}} \approx 1.41 - 2.08, \quad \rho_D^{\text{Scion}} \approx 1.73 - 1.99
+\end{equation}
+تحلیل نظری روی مدل درجه دوم در فضای هیلبرت نشان داد که این ساختار مستقیماً از تفکیک خطای تقریب (ناشی از برش بعد مدل $d$) و خطای بهینه‌سازی (ناشی از گام‌های زمانی $k$) با ابعاد طیفی $\omega = 1 + \frac{\beta - 1}{\alpha}$ سرچشمه می‌گیرد \cite{volkova2026towards}.
+
+\paragraph*{نمودار مفهومی و تبارشناسی الگوریتم‌های بهینه‌سازی مدل‌های زبانی}
+شکل \ref{fig:opt_evolution_diagram} نگاشت پیوندها و سیر تکامل تحلیلی پارادایم‌های بهینه‌سازی بررسی‌شده را به نمایش می‌گذارد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.88, transform shape,
+    box/.style={rectangle, rounded corners=4pt, draw=blue!70!black, fill=blue!5, thick, minimum width=2.4cm, minimum height=0.9cm, align=center, font=\footnotesize\bfseries},
+    adam_box/.style={rectangle, rounded corners=4pt, draw=orange!80!black, fill=orange!10, thick, minimum width=2.4cm, minimum height=0.9cm, align=center, font=\footnotesize\bfseries},
+    geom_box/.style={rectangle, rounded corners=4pt, draw=teal!80!black, fill=teal!10, thick, minimum width=2.4cm, minimum height=0.9cm, align=center, font=\footnotesize\bfseries},
+    sfw_box/.style={rectangle, rounded corners=4pt, draw=purple!80!black, fill=purple!10, thick, minimum width=2.6cm, minimum height=0.9cm, align=center, font=\footnotesize\bfseries},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=blue!60!black}
+]
+
+% Top Layer
+\node[box] (sgd) at (0, 7.5) {\en{SGD / SGDM}\\\scriptsize \cite{robbins1951stochastic, polyak1964some}};
+\node[adam_box] (adam) at (-4.2, 5.8) {\en{Adam / AdamW}\\\scriptsize \cite{kingma2015adam, loshchilov2019decoupled}};
+\node[box] (sign) at (-0.5, 5.8) {\en{SignSGD}\\\scriptsize \cite{bernstein2018signsgd}};
+\node[geom_box] (shampoo) at (4.0, 5.8) {\en{Shampoo}\\\scriptsize \cite{gupta2018shampoo}};
+
+% Middle Layer
+\node[adam_box] (lion) at (-2.2, 4.0) {\en{Lion}\\\scriptsize \cite{chen2024symbolic}};
+\node[geom_box] (muon) at (1.8, 4.0) {\en{Muon}\\\scriptsize \cite{jordan2024muon}};
+\node[geom_box] (soap) at (5.5, 4.0) {\en{SOAP}\\\scriptsize \cite{vyas2025soap}};
+
+% Unification Layer
+\node[sfw_box] (sfw) at (0, 2.0) {\textbf{چارچوب فرانک-ولف تصادفی (\en{SFW}) و \en{LMO}}\\\scriptsize \cite{pethick2025training, sfyraki2026lions, kovalev2025understanding}};
+
+% Bottom Enhancements
+\node[box] (heavy) at (-3.8, 0.2) {\textbf{مهار نویز دم‌سنگین}\\\scriptsize \en{LION++ / MUON++}\\\scriptsize \cite{sfyraki2026lions}};
+\node[box] (scale) at (0, 0.2) {\textbf{مقیاس‌پذیری تریلیونی}\\\scriptsize \en{Moonlight} (تصحیح \en{RMS})\\\scriptsize \cite{liu2025muon}};
+\node[box] (sched) at (3.8, 0.2) {\textbf{قوانین مقیاس‌پذیری}\\\scriptsize \en{FSL \& WSD Schedules}\\\scriptsize \cite{li2026optimal, volkova2026towards}};
+
+% Connections
+\draw[arrow] (sgd) -- node[left, font=\tiny] {انطباق واریانس} (adam);
+\draw[arrow] (sgd) -- node[right, font=\tiny] {شیب نزول $\ell_\infty$} (sign);
+\draw[arrow] (sgd) -- node[above, font=\tiny] {پیش‌شرط کرونکر} (shampoo);
+\draw[arrow] (sign) -- (lion);
+\draw[arrow] (adam) -- (lion);
+\draw[arrow] (shampoo) -- node[right, font=\tiny] {تعامد ماتریسی} (muon);
+\draw[arrow] (shampoo) -- node[right, font=\tiny] {پایه ویژه کرونکر} (soap);
+\draw[arrow] (adam) -- (soap);
+
+\draw[arrow, dashed, purple!70!black] (lion) -- (sfw);
+\draw[arrow, dashed, purple!70!black] (muon) -- (sfw);
+
+\draw[arrow] (sfw) -- (heavy);
+\draw[arrow] (sfw) -- (scale);
+\draw[arrow] (sfw) -- (sched);
+
+\end{tikzpicture}
+\caption{تبارشناسی و ساختار یکپارچه‌سازی الگوریتم‌های نوین بهینه‌سازی مدل‌های زبانی}
+\label{fig:opt_evolution_diagram}
+\end{figure}
+
+\paragraph*{جدول مقایسه‌ای جامع الگوریتم‌های بهینه‌سازی}
+در جدول \ref{tab:llm_optimizers_comparison}، شاخصه‌های ریاضیاتی، مرتبه محاسباتی، نیازمندی‌های حافظه و ویژگی‌های مقیاس‌پذیری الگوریتم‌های بهینه‌سازی مدل‌های زبانی مقایسه شده است.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه سیستماتیک الگوریتم‌های بهینه‌سازی مدل‌های زبانی از منظر تئوری و مقیاس‌پذیری}
+\label{tab:llm_optimizers_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{الگوریتم} & \textbf{پارادایم ریاضی} & \textbf{نُرم مبنا / مانیفلد} & \textbf{وضعیت حافظه کمکی} & \textbf{پیچیدگی گام} & \textbf{نرخ همگرایی تصادفی} & \textbf{راندمان داده (\en{$\rho_D$})} \\
+\midrule
+\textbf{\en{SGD / SGDM}} \cite{robbins1951stochastic, polyak1964some} & مرتبه اول کلاسیک & اقلیدسی ($\ell_2$) & $0 \text{ یا } mn$ & $\mathcal{O}(mn)$ & $\mathcal{O}(1/\sqrt{T})$ & مرجع ($1.00$) \\
+\textbf{\en{AdamW}} \cite{loshchilov2019decoupled} & تطبیقی مختصاتی & تفکیک‌شده ($\ell_\infty$) & $2mn$ & $\mathcal{O}(mn)$ & $\mathcal{O}(1/\varepsilon^4)$ & مرجع ($1.00$) \\
+\textbf{\en{Lion}} \cite{chen2024symbolic, sfyraki2026lions} & علامت‌محور / \en{SFW} & گوی نُرم $\ell_\infty$ & $mn$ & $\mathcal{O}(mn)$ & $\mathcal{O}(1/\varepsilon^4)$ & $\approx 1.2 - 1.4$ \\
+\textbf{\en{Shampoo}} \cite{gupta2018shampoo} & شبه‌مرتبه دوم تانسوری & کرونکر ($L \otimes R$) & $m^2+n^2+2mn$ & $\mathcal{O}(m^3+n^3)$ & $\mathcal{O}(1/\varepsilon^3)$ (محدب) & $1.16 - 1.55$ \\
+\textbf{\en{SOAP}} \cite{vyas2025soap} & پیش‌شرط‌ساز پایه ویژه & ویژه کرونکر & $2m^2+2n^2+3mn$ & $\mathcal{O}(m^3+n^3)$ & $\mathcal{O}(1/\varepsilon^4)$ & $\mathbf{1.75 - 2.57}$ \\
+\textbf{\en{Muon}} \cite{jordan2024muon, kovalev2025understanding} & ناحیه اعتماد طیفی & نُرم طیفی ماتریسی & $mn$ & $\mathcal{O}(5mn\min(m,n))$ & $\mathcal{O}(1/\varepsilon^3)$ (ستاره‌محدب) & $1.41 - 2.08$ \\
+\textbf{\en{Scion}} \cite{pethick2025training} & فرانک-ولف نامقید & نُرم‌های عملگری لایه‌ای & $mn$ (\en{fp16}) & سبک متناسب با لایه & $\mathcal{O}(T^{-1/4})$ & $1.73 - 1.99$ \\
+\textbf{\en{MUON++}} \cite{sfyraki2026lions} & \en{SFW} نویز دم‌سنگین & نُرم طیفی مقید & $2mn$ & $\mathcal{O}(5mn\min(m,n))$ & $\mathcal{O}(T^{\frac{1-p}{2p-1}})$ & ارتقایافته در نویز بالا \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{جمع‌بندی و افق‌های پژوهشی آینده}
+شواهد تحلیلی و تجربی مستخرج از ادبیات معاصر نشان می‌دهد که بهینه‌سازی مدل‌های زبانی بزرگ از رویکردهای تک‌بعدی گرادیان نزولی به سمت چارچوب‌های چندوجهی آگاه از ساختار هندسی و مقیاس فیزیکی سخت‌افزار حرکت کرده است \cite{gan2026beyond, zhang2026evolution}. مهم‌ترین چالش‌ها و روندهای پیش‌رو عبارتند از:
+\begin{itemize}
+    \item \textbf{هم‌طراحی الگوریتم و سخت‌افزار (\en{Hardware-Algorithm Co-Design}):} ادغام تکرار نیوتن-شولتز و پیش‌شرط‌سازی پایه‌های ویژه با محاسبات دقت پایین (\en{FP8} و \en{FP4}) بدون آسیب به تعامد طیفی.
+    \item \textbf{بهینه‌سازهای بدون حالت (\en{Stateless Optimizers}):} حذف بافرهای گشتاور با تکیه بر اطلاعات آماری آنی گرادیان جهت رساندن حافظه آموزش به مرز حافظه استنتاج \cite{zhang2026evolution}.
+    \item \textbf{انتقال صفر-شات ابرپارامترها (\en{$\mu$P Transfer}):} توسعه بهینه‌سازهای ناورای مقیاس نظیر \en{Scion} که تنظیم نرخ یادگیری روی مدل‌های کوچک پروکسی را مستقیماً برای مدل‌های صدها میلیاردی تضمین می‌نمایند \cite{pethick2025training}.
+\end{itemize}

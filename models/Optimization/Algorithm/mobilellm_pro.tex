@@ -1,1 +1,52 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{مقدمه و راهبردهای بهینه‌سازی مدل \model{MobileLLM-Pro}}
+مدل \model{MobileLLM-Pro} یک مدل زبانی ۱ میلیارد پارامتری کارآمد با قابلیت پشتیبانی از طول بافت ۱۲۸ هزار توکن است که جهت استقرار بر روی پردازنده‌ها و شتاب‌دهنده‌های ادوات همراه طراحی شده است \cite{huber2025mobilellmpro}. مراحل آموزش این مدل، یادگیری بهینه در مقیاس کوچک را هدف قرار داده است.
+
+\paragraph*{تقطیر موقعیتی پنهان (\en{Implicit Positional Distillation})}
+توسعه بافت به ۱۲۸K در مدل‌های کوچک با روش‌های سنتی معمولاً منجر به افت شدید در توانایی‌های زبانی عمومی می‌شود. در این رویکرد، بدون مواجه کردن مستقیم مدل دانش‌آموز با متون طولانی و پرهیز از تغییر توزیع، دانش موقعیتی از لاجیت‌های مدل معلم با بافت بلند (\en{Llama 4-Scout}) منتقل می‌گردد. در تعبیه‌های دوار (\en{RoPE}):
+\begin{equation}
+    \begin{bmatrix} x'_i \\ x'_{i+1} \end{bmatrix} = \begin{bmatrix} \cos(p \theta_i) & -\sin(p \theta_i) \\ \sin(p \theta_i) & \cos(p \theta_i) \end{bmatrix} \begin{bmatrix} x_i \\ x_{i+1} \end{bmatrix}
+\end{equation}
+توزیع احتمال خروجی معلم $\pi_{\text{teacher}}$ حاوی اطلاعات موقعیتی ساختاریافته در تمامی زوایای قطبی است. مدل دانش‌آموز از طریق کمینه‌سازی اتلاف واگرایی کولبک-لایبلر مستقیم بر روی لاجیت‌ها:
+\begin{equation}
+    \mathcal{L}_{\text{KD}}(\theta) = D_{\text{KL}}(\pi_{\text{teacher}} \parallel \pi_\theta) = \sum_{v \in \mathcal{V}} \pi_{\text{teacher}}(v \mid x) \log \frac{\pi_{\text{teacher}}(v \mid x)}{\pi_\theta(v \mid x)}
+\end{equation}
+روابط فاصله‌ای دوربرد را بدون تغییر توزیع داده فرا می‌گیرد.
+
+\paragraph*{ادغام متخصصان در مرحله پایانی (\en{Specialist Model Merging})}
+در فاز خنک‌سازی پیش‌آموزش، مدل به چند شاخه مستقل برای یادگیری تخصص‌های گوناگون منشعب می‌شود و پس از آموزش با نرخ یادگیری نزولی، مدل نهایی از طریق میانگین‌گیری وزنی پارامترها حاصل می‌گردد:
+\begin{equation}
+    M = \sum_{b=1}^n w_b \theta_b \quad \text{s.t.} \quad \sum_{b=1}^n w_b = 1.0
+\end{equation}
+از آنجا که تغییرات در یک فضای وزنی متمرکز انجام می‌گیرد، ادغام نهایی عملکردی فراتر از تک‌تک متخصصان مجزا ارائه می‌دهد.
+
+\paragraph*{آموزش آگاه از کوانتیزاسیون ۴ بیتی با بازه یادگیری‌پذیر (\en{Learnable Range QAT})}
+در کوانتیزاسیون متقارن \en{INT4}، نگاشت پارامترها به صورت زیر تعریف می‌شود:
+\begin{equation}
+    Q(W) = s_w \cdot \text{clip}\left( \left\lfloor \frac{W}{s_w} \right\rceil, -8, 7 \right), \quad s_w = \frac{\max(-w_{\min}, w_{\max})}{7.5}
+\end{equation}
+که در آن $w_{\min}$ و $w_{\max}$ پارامترهای یادگیری‌پذیری هستند که مستقیماً با گرادیان خطای تقطیر از مدل ممیز شناور به‌روزرسانی می‌شوند:
+\begin{equation}
+    \frac{\partial Q(W)}{\partial W} \approx \mathbb{I}\left(-8 \le \frac{W}{s_w} \le 7\right)
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.5cm,
+    stage/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4.8cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (s1) [stage] {\textbf{فاز ۱: اکتساب زبان}\\آموزش ۱.۴T توکن با تقطیر لاجیت\\تعیین توزیع داده‌ها با \en{SDM}};
+    \node (s2) [stage, below=of s1] {\textbf{فاز ۲: انبساط بافت}\\تقطیر موقعیتی پنهان (\en{RoPE})\\انتقال زاویه‌ای بدون تغییر توزیع};
+    \node (s3) [stage, below=of s2] {\textbf{فاز ۳: ادغام متخصصان}\\آموزش موازی متخصصان دامنه‌ها\\تلفیق پارامتریک غیریکنواخت};
+    \node (s4) [stage, below=of s3] {\textbf{فاز ۴: کوانتیزاسیون \en{QAT}}\\بهینه‌سازی بازه کوانتیزاسیون با \en{STE}\\تقطیر از مدل ممیز شناور};
+    
+    \draw [arrow] (s1) -- (s2);
+    \draw [arrow] (s2) -- (s3);
+    \draw [arrow] (s3) -- (s4);
+\end{tikzpicture}
+\caption{برنامه ۴ مرحله‌ای بهینه‌سازی پیش‌آموزش و انطباق در \model{MobileLLM-Pro}}
+\label{fig:mobilellm_opt_flow}
+\end{figure}

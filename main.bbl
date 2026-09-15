@@ -2625,6 +2625,139 @@ Wei Chu, Xiaohan Xie, Jiaming Yu, Jilong Wang, Amar Phanishayee, et~al.
 \newblock In {\em Proceedings of the 52nd Annual International Symposium on
   Computer Architecture (ISCA)}, pages 1703--1716, 2025.
 
+\bibitem{gan2026beyond}
+Zeyu Gan, Ruifeng Ren, Wei Yao, Xiaolin Hu, Gengze Xu, Chen Qian, Huayi Tang,
+  Zixuan Gong, Xinhao Yao, Pengwei Tang, Zhenxing Dou, and Yong Liu.
+\newblock Beyond the black box: A survey on the theory and mechanism of large
+  language models.
+\newblock {\em arXiv preprint arXiv:2601.02907}, 2026.
+
+\bibitem{kingma2015adam}
+Diederik~P. Kingma and Jimmy Ba.
+\newblock Adam: A method for stochastic optimization.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2015.
+
+\bibitem{loshchilov2019decoupled}
+Ilya Loshchilov and Frank Hutter.
+\newblock Decoupled weight decay regularization.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2019.
+
+\bibitem{zhang2026evolution}
+Tong Zhang, Jiangning Zhang, Zhucun Xue, Juntao Jiang, Yicheng Xu, Chengming
+  Xu, Teng Hu, Xingyu Xie, Xiaobin Hu, Yabiao Wang, Yong Liu, and Shuicheng
+  Yan.
+\newblock Evolution of optimization methods: Algorithms, scenarios, and
+  evaluations.
+\newblock {\em arXiv preprint arXiv:2604.12968}, 2026.
+
+\bibitem{tomihari2026understanding}
+Akiyoshi Tomihari and Issei Sato.
+\newblock Understanding why adam outperforms sgd: Gradient heterogeneity in
+  transformers.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{kovalev2025understanding}
+Dmitry Kovalev.
+\newblock Understanding gradient orthogonalization for deep learning via
+  non-euclidean trust-region optimization.
+\newblock {\em arXiv preprint arXiv:2503.12645}, 2025.
+
+\bibitem{robbins1951stochastic}
+Herbert Robbins and Sutton Monro.
+\newblock A stochastic approximation method.
+\newblock {\em The Annals of Mathematical Statistics}, 22(3):400--407, 1951.
+
+\bibitem{polyak1964some}
+Boris~T. Polyak.
+\newblock Some methods of speeding up the convergence of iteration methods.
+\newblock {\em USSR Computational Mathematics and Mathematical Physics},
+  4(5):1--17, 1964.
+
+\bibitem{nesterov1983method}
+Yurii Nesterov.
+\newblock A method for unconstrained convex minimization problem with the rate
+  of convergence $o(1/k^2)$.
+\newblock {\em Doklady AN SSSR}, 269:543--547, 1983.
+
+\bibitem{duchi2011adaptive}
+John Duchi, Elad Hazan, and Yoram Singer.
+\newblock Adaptive subgradient methods for online learning and stochastic
+  optimization.
+\newblock {\em Journal of Machine Learning Research}, 12:2121--2159, 2011.
+
+\bibitem{gupta2018shampoo}
+Vineet Gupta, Tomer Koren, and Yoram Singer.
+\newblock Shampoo: Preconditioned stochastic tensor optimization.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  1842--1850, 2018.
+
+\bibitem{vyas2025soap}
+Nikhil Vyas, Depen Morwani, Rosie Zhao, Mujin Kwun, Itai Shapira, David
+  Brandfonbrener, Lucas Janson, and Sham Kakade.
+\newblock Soap: Improving and stabilizing shampoo using adam.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{pethick2025training}
+Thomas Pethick, Wanyun Xie, Kimon Antonakopoulos, Zhenyu Zhu, Antonio
+  Silveti-Falls, and Volkan Cevher.
+\newblock Training deep learning models with norm-constrained lmos.
+\newblock {\em International Conference on Machine Learning (ICML)}, 2025.
+
+\bibitem{tuddenham2022orthogonalising}
+Mark Tuddenham, Adam Pr{\"u}gel-Bennett, and Jonathon Hare.
+\newblock Orthogonalising gradients to speed up neural network optimisation.
+\newblock {\em arXiv preprint arXiv:2202.07052}, 2022.
+
+\bibitem{sfyraki2026lions}
+Maria-Eleni Sfyraki and Jun-Kun Wang.
+\newblock Lions and muons: Optimization via stochastic frank-wolfe under
+  heavy-tailed noise.
+\newblock {\em International Conference on Machine Learning (ICML)}, 2026.
+
+\bibitem{li2026optimal}
+Binghui Li, Zilin Wang, Fengling Chen, Shiyang Zhao, Ruiheng Zheng, and Lei Wu.
+\newblock Optimal learning-rate schedules under functional scaling laws: Power
+  decay and warmup-stable-decay.
+\newblock {\em arXiv preprint arXiv:2602.06797}, 2026.
+
+\bibitem{volkova2026towards}
+Alexandra Volkova, Mher Safaryan, Christoph~H. Lampert, and Dan Alistarh.
+\newblock Towards robust scaling laws for optimizers.
+\newblock {\em arXiv preprint arXiv:2602.07712}, 2026.
+
+\bibitem{bernstein2018signsgd}
+Jeremy Bernstein, Yu-Xiang Wang, Kamyar Azizzadenesheli, and Anima Anandkumar.
+\newblock signsgd: Compressed optimisation for non-convex problems.
+\newblock {\em International Conference on Machine Learning (ICML)}, pages
+  560--569, 2018.
+
+\bibitem{chen2024symbolic}
+Xiangning Chen, Chen Liang, Da~Huang, Esteban Real, Kaiyuan Wang, Hieu Pham,
+  Xuanyi Dong, Thang Luong, Cho-Jui Hsieh, Yifeng Lu, and Quoc~V. Le.
+\newblock Symbolic discovery of optimization algorithms.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  36, 2024.
+
+\bibitem{zhao2025small}
+X.~Zhao, Y.~Liu, K.~Xu, J.~Guo, Z.~Wang, Y.~Sun, et~al.
+\newblock {Small Leak Can Sink a Great Ship--Boost RL Training on MoE with
+  IcePop!}
+\newblock 2025.
+
+\bibitem{su2026moe}
+Jianlin Su.
+\newblock {Travels in MoE: 6. Promoting Load Balance via Optimal Assignment}.
+\newblock 2026.
+
+\bibitem{chen2025olmix}
+M.~F. Chen, T.~Murray, D.~Heineman, M.~Jordan, et~al.
+\newblock {Olmix: Efficient Mixture Recomputation for Evolving LM Datasets}.
+\newblock 2025.
+
 \bibitem{li2025farseer}
 Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
   Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
@@ -3290,5 +3423,24 @@ Ruibin Xiong, Yunchang Yang, Di~He, Kai Zheng, Shuxin Zheng, Chen Xing,
 \newblock On layer normalization in the transformer architecture.
 \newblock In {\em International Conference on Machine Learning (ICML)}, pages
   10524--10533, 2020.
+
+\bibitem{shazeer2018adafactor}
+Noam Shazeer and Mitchell Stern.
+\newblock Adafactor: Adaptive learning rates with sublinear memory cost.
+\newblock {\em International Conference on Machine Learning (ICML)}, pages
+  4596--4604, 2018.
+
+\bibitem{yang2021tuning}
+Greg Yang and Edward~J. Hu.
+\newblock Tensor programs iv: Feature learning in infinite-width neural
+  networks.
+\newblock {\em International Conference on Machine Learning (ICML)}, pages
+  11727--11737, 2021.
+
+\bibitem{zhang2024why}
+Yushun Zhang, Congliang Chen, Tian Ding, Ziniu Li, Ruoyu Sun, and Zhi-Quan Luo.
+\newblock Why transformers need adam: A hessian perspective.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  37, 2024.
 
 \end{thebibliography}

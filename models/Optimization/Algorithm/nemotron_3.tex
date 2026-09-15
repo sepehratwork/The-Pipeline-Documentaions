@@ -1,1 +1,50 @@
-\item \textbf asd
+\item \model{Nemotron 3}
+
+\paragraph*{معماری هیبرید و بهینه‌سازی در خانواده \model{Nemotron 3}}
+خانواده مدل‌های \model{Nemotron 3} شامل نسخه‌های \en{Nano}، \en{Super} و \en{Ultra} بر پایه تلفیقی از لایه‌های بازگشتی \en{Mamba-2}، توجه متناوب ترنسفورمر و شبکه‌های متخصصان \en{MoE} ساخته شده‌اند \cite{nvidia2025nemotron3}. این معماری بهینه‌سازی حافظه \en{KV Cache} را تا سطح زیادی محقق می‌سازد.
+
+\paragraph*{بهینه‌سازی ظرفیت متخصصان با \en{LatentMoE}}
+در ساختار \en{LatentMoE}، بردار ورودی $x \in \mathbb{R}^d$ پیش از ارسال به متخصصان به یک فضای فشرده $\ell \ll d$ نگاشت می‌شود:
+\begin{equation}
+    z = x W_{\text{down}}, \quad W_{\text{down}} \in \mathbb{R}^{d \times \ell}
+\end{equation}
+سپس متخصصان با ابعاد کاهش‌یافته در این فضا عمل کرده و خروجی تجمیع‌شده به فضای اصلی بازگردانده می‌شود:
+\begin{equation}
+    y = \left( \sum_{i \in \text{Top-}K'} p_i \cdot \text{FFN}_i^{\text{latent}}(z) \right) W_{\text{up}}, \quad W_{\text{up}} \in \mathbb{R}^{\ell \times d}
+\end{equation}
+صرفه‌جویی در پهنای باند با ضریب $d/\ell$ (معمولاً ۴ برابر)، زمینه را برای افزایش تعداد کل متخصصان به $N' = N \cdot (d/\ell)$ و تعداد متخصصان فعال به $K' = K \cdot (d/\ell)$ بدون تغییر زمان اجرا فراهم می‌کند.
+
+\paragraph*{پیش‌آموزش نیتیو در فرمت عددی \en{NVFP4}}
+در آموزش مدل‌های بزرگ این خانواده بر روی معماری پردازشی بلک‌ول (\en{Blackwell}):
+\begin{itemize}
+    \item کلیه ضرب‌های ماتریسی در فازهای پیش‌رو، گرادیان فعال‌سازی و گرادیان وزن در فرمت \en{NVFP4} (عناصر \en{E2M1} و مقیاس‌های میکروبلوک ۱۶ عنصری \en{E4M3}) انجام می‌شوند.
+    \item برای مهار مقادیر فرین، پیش از ضرب گرادیان از تبدیل تصادفی هادامارد (\en{RHT}) استفاده می‌شود:
+    \begin{equation}
+        \tilde{X} = X H, \quad H_k = \frac{1}{\sqrt{2}} \begin{bmatrix} H_{k-1} & H_{k-1} \\ H_{k-1} & -H_{k-1} \end{bmatrix}
+    \end{equation}
+    \item لایه‌های بحرانی نظیر لایه‌های تصویر خروجی \en{Mamba} در فرمت \en{MXFP8} و لایه‌های توجه در فرمت \en{BF16} حفظ می‌گردند.
+\end{itemize}
+
+\paragraph*{یادگیری تقویتی چندمحیطه هم‌زمان و بودجه استنتاج}
+بر خلاف رویکردهای مرحله‌ای که منجر به فراموشی فاجعه‌بار می‌شوند، تمام محیط‌های پاداش (ریاضی، کد، جستجو و ابزار) به صورت هم‌زمان با الگوریتم \en{GRPO} مجهز به ماسک اهمیت آموزش داده می‌شوند. همچنین رفتار استدلال مدل به گونه‌ای بهینه‌سازی شده که با درج نشانه پایانی \verb|</think>| در هر نقطه از بودجه محاسباتی، فوراً به سمت تولید پاسخ هدایت شود.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    block/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4.8cm, line width=1pt},
+    opt/.style={draw=teal!70!black, fill=teal!10, rounded corners, align=center, font=\small, text width=4.8cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (in) [block] {ورودی ترنسفورمر $x \in \mathbb{R}^d$};
+    \node (down) [opt, below=of in] {کاهش بعد خطی به فضای نهفته\\$z = x W_{\text{down}} \in \mathbb{R}^\ell$};
+    \node (moe) [block, below=of down] {تخصیص متخصصان مقیاس‌یافته\\$K' = K(d/\ell), \quad N' = N(d/\ell)$};
+    \node (up) [opt, below=of moe] {بازنگاشت به فضای اصلی\\$y = u W_{\text{up}} \in \mathbb{R}^d$};
+    
+    \draw [arrow] (in) -- (down);
+    \draw [arrow] (down) -- (moe);
+    \draw [arrow] (moe) -- (up);
+\end{tikzpicture}
+\caption{پایپ‌لاین کاهش بعد و تخصیص متخصصان در \en{LatentMoE} مدل \model{Nemotron 3}}
+\label{fig:nemotron3_latent_moe}
+\end{figure}

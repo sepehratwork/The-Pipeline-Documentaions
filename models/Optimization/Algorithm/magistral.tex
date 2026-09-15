@@ -1,1 +1,72 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{چارچوب یادگیری تقویتی خالص (\en{Pure RLVR}) در مدل \model{Magistral}}
+مدل‌های \model{Magistral Medium} و \model{Magistral Small} (با ۲۴ میلیارد پارامتر) از شرکت \en{Mistral AI} رویکردی نوآورانه در آموزش استدلال عمیق از نقطه صفر بدون نیاز به تقطیر ردپای فکری مدل‌های پیشین یا آموزش سرد (\en{Cold-Start}) ارائه داده‌اند \cite{mistral2025magistral}.
+
+\paragraph*{اصلاحات ساختاری در الگوریتم \en{GRPO}}
+الگوریتم پایه‌ای مورد استفاده \en{GRPO} \cite{shao2024deepseekmath} است که اصلاحات زیر بر روی آن صورت پذیرفته است:
+\begin{itemize}
+    \item \textbf{حذف جریمه واگرایی \en{KL}:} ضریب $\beta$ مربوط به جریمه واگرایی کولبک-لایبلر با مدل مرجع صفر در نظر گرفته شد ($\beta = 0$). شواهد تجربی نشان داد که حضور این جریمه جلوی گسترش زنجیره طولانی تفکر و کشف راهکارهای بدیع استدلالی را مسدود می‌کند.
+    \item \textbf{نرمال‌سازی اتلاف بر حسب طول کل دسته:} به منظور جلوگیری از سوگیری طولی ناشی از تفاوت طول پاسخ‌ها درون یک گروه، مجموع اتلاف‌ها بر طول کل توکن‌های دسته تقسیم می‌شود:
+    \begin{equation}
+        \text{Normalizer} = \sum_{i=1}^G |o_i|
+    \end{equation}
+    \item \textbf{نرمال‌سازی مزیت در سطح مینی‌بچ:} مزیت هر پاسخ ابتدا با کسر میانگین درون‌گروهی $A_i = r_i - \mu_{\text{group}}$ به دست آمده و سپس در سطح کل مینی‌بچ مقیاس‌بندی می‌شود:
+    \begin{equation}
+        \hat{A}_{i,t}^{\text{norm}} = \frac{A_i - \bar{A}_{\text{minibatch}}}{\sigma_{\text{minibatch}}}
+    \end{equation}
+    \item \textbf{بسط ناحیه اطمینان با راهبرد \en{Clip-Higher}:} جهت جلوگیری از پدیده فروپاشی آنتروپی (\en{Entropy Collapse})، کران بالای بازه برش توسعه یافت \cite{yu2025dapo}:
+    \begin{equation}
+        \varepsilon_{\text{low}} = 0.2, \quad \varepsilon_{\text{high}} \in [0.26, 0.28]
+    \end{equation}
+    این آزادی عمل به توکن‌های کم‌احتمال اجازه می‌دهد تا وزن‌های گرادیانی مناسبی دریافت کرده و مسیرهای استدلال نوظهور تقویت شوند.
+    \item \textbf{حذف گروه‌های فاقد واریانس:} گروه‌هایی که تمامی خروجی‌های آن‌ها دارای پاداش یکسان (کاملاً غلط یا کاملاً درست) باشند، به دلیل تولید گرادیان صفر و ایجاد نویز آماری، از محاسبات حذف می‌شوند.
+\end{itemize}
+معادله نهایی بهینه‌سازی خط‌مشی به صورت زیر است:
+\begin{equation}
+\begin{split}
+    \mathcal{J}_{\text{Magistral}}(\theta) = \mathbb{E}_{q, \{o_i\} \sim \pi_{\theta_{\text{old}}}} \Bigg[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \min\Bigg( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})} \hat{A}_{i,t}^{\text{norm}}, \\
+    \text{clip}\left( \frac{\pi_\theta}{\pi_{\theta_{\text{old}}}}, 1 - \varepsilon_{\text{low}}, 1 + \varepsilon_{\text{high}} \right) \hat{A}_{i,t}^{\text{norm}} \Bigg) \Bigg]
+\end{split}
+\end{equation}
+
+\paragraph*{شکل‌دهی پاداش و پایداری زبانی}
+\begin{itemize}
+    \item \textbf{جریمه طول نرم (\en{Soft Length Penalty}):} برای آگاهی مدل از مرز طول بافت مجاز بدون وارد کردن شوک به گرادیان:
+    \begin{equation}
+        R_{\text{length}}(y) = \begin{cases} 
+            0, & |y| \le l_{\max} - l_{\text{cache}} \\ 
+            -0.1 \cdot \frac{|y| - l_{\max} + l_{\text{cache}}}{l_{\text{cache}}}, & l_{\max} - l_{\text{cache}} < |y| \le l_{\max} \\ 
+            -0.1, & |y| > l_{\max} 
+        \end{cases}
+    \end{equation}
+    \item \textbf{پاداش انسجام زبان با \en{fastText}:} برای مهار کدسوئیچینگ و پرهیز از ترکیب ناخواسته زبان‌ها در حین استدلال، یک طبقه‌بند زبانی متن ورودی، زنجیره تفکر و پاسخ نهایی را بررسی می‌کند؛ در صورت تطابق زبانی پاداش $0.1$ اعطا می‌شود.
+\end{itemize}
+
+\paragraph*{معماری آموزش ناهمگام و به‌روزرسانی در حین پرواز (\en{Inflight Updates})}
+در زیرساخت توزیع‌شده، مولدها به طور پیوسته مشغول نمونه‌برداری هستند. مربیان پارامترها را به‌روزرسانی کرده و وزن‌های تازه را از طریق کانال \en{NCCL} در کمتر از ۵ ثانیه به مولدها می‌فرستند. توالی‌های در حال تولید متوقف نمی‌شوند و با همان حافظه \en{KV Cache} قبلی تولید خود را به اتمام می‌رسانند که شتاب تولید را به طور چشمگیری افزایش می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.5cm,
+    proc/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4cm, line width=1pt},
+    eval/.style={draw=teal!70!black, fill=teal!10, rounded corners, align=center, font=\small, text width=4cm, line width=1pt},
+    train/.style={draw=orange!80!black, fill=orange!10, rounded corners, align=center, font=\small, text width=4cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (gen) [proc] {مولدهای ناهمگام (\en{Generators})\\تولید پیوسته توالی‌های استدلال};
+    \node (ver) [eval, right=of gen] {ارزیاب‌ها (\en{Verifiers})\\محاسبه صحت نمادین و آزمون کد};
+    \node (shape) [eval, below=of ver] {شکل‌دهی پاداش\\جریمه طول نرم\\کنترل تطابق زبانی \en{fastText}};
+    \node (batch) [train, below=of gen] {چینش دسته‌های بهینه\\حذف دسته‌های با واریانس صفر\\کاهش ۱۹٪ پدینگ با الگوریتم حریصانه};
+    \node (step) [train, below=of batch] {گام بهینه‌سازی \en{GRPO}\\نرمال‌سازی مینی‌بچ و \en{Clip-Higher}};
+    
+    \draw [arrow] (gen) -- (ver);
+    \draw [arrow] (ver) -- (shape);
+    \draw [arrow] (shape) -- (batch);
+    \draw [arrow] (batch) -- (step);
+    \draw [arrow] (step.west) to [out=180, in=180] node[left, font=\scriptsize] {انتقال سریع وزن با \en{NCCL} ($<5\text{s}$)} (gen.west);
+\end{tikzpicture}
+\caption{پایپ‌لاین بهینه‌سازی ناهمگام مدل \model{Magistral}}
+\label{fig:magistral_opt_flow}
+\end{figure}

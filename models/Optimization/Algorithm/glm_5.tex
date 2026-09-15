@@ -1,1 +1,73 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{چارچوب کلی بهینه‌سازی مدل \model{GLM-5}}
+مدل \model{GLM-5} با مقیاس ۷۴۴ میلیارد پارامتر کل (۴۰ میلیارد پارامتر فعال در هر توکن) بر پایه ساختار متخصصان \en{MoE} و معماری توجه تنک \en{DSA} توسعه یافته است \cite{zeng2026glm5}. راهبردهای بهینه‌سازی این مدل، همگرایی پایدار در پیش‌آموزش و کارایی محاسباتی بالا در فاز پس‌آموزش عاملیتی را هدف قرار داده‌اند.
+
+\paragraph*{الگوریتم بهینه‌ساز \en{Muon Split}}
+استفاده مستقیم از تعامد ماتریسی سراسری در لایه‌های \en{Multi-Head Latent Attention (MLA)} موجب افت کارایی نسبت به \en{GQA} می‌شد. در \model{GLM-5}، تکنیک \en{Muon Split} معرفی گردید که در آن ماتریس‌های تصویر بالارو ($W_U^Q, W_U^K, W_U^V$) به تفکیک سرهای توجه افراز می‌شوند:
+\begin{equation}
+    W_U = \begin{bmatrix} W_{U, 1} \\ W_{U, 2} \\ \vdots \\ W_{U, H} \end{bmatrix}
+\end{equation}
+سپس الگوریتم تعامد نیوتن-شولتز به صورت مجزا بر روی هر زیرماتریس سر توجه اعمال می‌گردد:
+\begin{equation}
+    M_0^{(h)} = \frac{G^{(h)}}{\|G^{(h)}\|_F}, \quad M_{k}^{(h)} = \frac{3}{2} M_{k-1}^{(h)} - \frac{1}{2} M_{k-1}^{(h)} (M_{k-1}^{(h)})^T M_{k-1}^{(h)}
+\end{equation}
+این جداسازی ماتریسی امکان می‌دهد وزن‌های هر سر توجه با مقیاس ویژه گرادیانی خود به‌روزرسانی شوند. بدین ترتیب پایداری مقیاس لاجیت‌های توجه در طول پیش‌آموزش حفظ شده و نیاز به برش دستی لاجیت (\en{Logit Clipping}) منتفی می‌گردد.
+
+\paragraph*{بهینه‌سازی استدلال با الگوریتم \en{IcePop-GRPO}}
+در فاز یادگیری تقویتی استدلال، بهینه‌سازی بر پایه نسخه بسط‌یافته \en{GRPO} \cite{shao2024deepseekmath} و تکنیک \en{IcePop} \cite{zhao2025small} انجام می‌گیرد. به منظور شتاب‌بخشی به همگرایی، جریمه واگرایی \en{KL} حذف شده و ناهمگونی توزیع داده استنتاجی با توزیع آموزش اصلاح می‌شود:
+\begin{equation}
+\begin{split}
+    \mathcal{L}_{\text{Reason}}(\theta) = -\mathbb{E}_{x, \{y_i\} \sim \pi_{\theta_{\text{old}}}^{\text{infer}}} \Bigg[ \frac{1}{G} \sum_{i=1}^G \frac{1}{|y_i|} \sum_{t=1}^{|y_i|} \text{pop}\left(\rho_{i,t}, \frac{1}{\beta}, \beta\right) \\
+    \cdot \min\left(r_{i,t}\hat{A}_{i,t}, \, \text{clip}(r_{i,t}, 1 - \epsilon_{\text{low}}, 1 + \epsilon_{\text{high}})\hat{A}_{i,t}\right) \Bigg]
+\end{split}
+\end{equation}
+که در آن نسبت عدم تطابق $\rho_{i,t}$ و عملگر سرکوب $\text{pop}$ عبارتند از:
+\begin{equation}
+    \rho_{i,t} = \frac{\pi_{\theta_{\text{old}}}^{\text{train}}(y_{i,t} \mid x, y_{i,<t})}{\pi_{\theta_{\text{old}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}, \quad \text{pop}(\rho, a, b) = \begin{cases} \rho, & a \le \rho \le b \\ 0, & \text{otherwise} \end{cases}
+\end{equation}
+مقادیر تنظیمی به کار رفته عبارتند از: $\beta = 2$، $\epsilon_{\text{low}} = 0.2$، $\epsilon_{\text{high}} = 0.28$، با اندازه گروه $G = 32$.
+
+\paragraph*{یادگیری تقویتی عاملیتی ناهمگام با نمونه‌برداری اهمیت دوطرفه}
+در تسک‌های بلندمدت عاملیتی، رول‌اوت‌های موازی نامتقارن موجب ناهمگامی زمانی می‌شوند. برای حذف وابستگی به بازخوانی مداوم توزیع‌های گذشته، نسبت نمونه‌برداری مستقیماً با لاجیت‌های تولید ثبت‌شده در زمان رول‌اوت تقریب زده می‌شود:
+\begin{equation}
+    r_t(\theta) = \exp\left(\log \pi_\theta(a_t \mid s_t) - \log \pi_{\text{rollout}}(a_t \mid s_t)\right)
+\end{equation}
+سپس ناحیه اطمینان دوطرفه سخت روی گرادیان‌ها اعمال می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{Agent}}(\theta) = \mathbb{E}_t \left[ f(r_t(\theta); \epsilon_\ell, \epsilon_h) \hat{A}_t \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right]
+\end{equation}
+\begin{equation}
+    f(x; \epsilon_\ell, \epsilon_h) = \begin{cases} x, & 1 - \epsilon_\ell < x < 1 + \epsilon_h \\ 0, & \text{otherwise} \end{cases}
+\end{equation}
+توالی‌هایی که با نسخه وزن بیش از حد قدیمی تولید شده‌اند ($w' - w_0 > \tau$) یا ناشی از سقوط تصادفی محیط سندباکس هستند، پیش از تشکیل دسته از فرایند بهینه‌سازی حذف می‌شوند.
+
+\paragraph*{تقطیر درون‌خط‌مشی میان‌مرحله‌ای (\en{Cross-Stage Distillation})}
+جهت بازیابی توانایی‌های عمومی پس از تخصص‌یافتگی عاملیتی، مزیت در تابع اتلاف جای خود را به انحراف لگاریتمی نسبت به مدل‌های معلم می‌دهد:
+\begin{equation}
+    \hat{A}_{i,t} = \text{sg}\left[ \log \frac{\pi_{\theta_{\text{teacher}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}{\pi_\theta^{\text{train}}(y_{i,t} \mid x, y_{i,<t})} \right]
+\end{equation}
+در این مرحله اندازه گروه به ۱ کاهش و اندازه دسته به ۱۰۲۴ افزایش می‌یابد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    block/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    gate/.style={draw=teal!70!black, fill=teal!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    loss/.style={draw=orange!80!black, fill=orange!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (rollout) [block] {موتور رول‌اوت ناهمگام\\ثبت توکن‌ها با درگاه \en{TITO}\\لاگ‌برداری از $\log \pi_{\text{rollout}}$};
+    \node (filter) [gate, below=of rollout] {فیلتر ایستایی و خطای محیط\\حذف در صورت $w' - w_0 > \tau$\\حذف خطاهای ناشی از سقوط سندباکس};
+    \node (clip) [loss, below=of filter] {برش اهمیت دوطرفه مستقیم\\$f(r_t; \epsilon_\ell, \epsilon_h) \in [1-\epsilon_\ell, 1+\epsilon_h]$\\توقف گرادیان در خارج از بازه};
+    \node (trainer) [block, below=of clip] {به‌روزرسانی پارامترها با \en{Muon Split}\\همگام‌سازی دوره‌ای با موتور استنتاج};
+    
+    \draw [arrow] (rollout) -- (filter);
+    \draw [arrow] (filter) -- (clip);
+    \draw [arrow] (clip) -- (trainer);
+    \draw [arrow] (trainer.west) to [out=180, in=180] node[left, font=\scriptsize] {ارسال وزن‌های جدید} (rollout.west);
+\end{tikzpicture}
+\caption{پایپ‌لاین یادگیری تقویتی عاملیتی ناهمگام در \model{GLM-5}}
+\label{fig:glm5_opt_flow}
+\end{figure}

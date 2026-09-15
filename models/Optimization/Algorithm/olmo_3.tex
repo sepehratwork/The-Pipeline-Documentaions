@@ -1,1 +1,59 @@
-\item \textbf asd
+\item \model{Olmo 3}
+
+\paragraph*{مقدمه و راهبردهای بهینه‌سازی باز در مدل \model{Olmo 3}}
+مدل‌های \model{Olmo 3} در مقیاس‌های ۷ و ۳۲ میلیارد پارامتر با انتشار کامل تمامی چک‌پوینت‌های میانی، جریان داده‌ها و کدهای آموزشی توسعه یافته‌اند \cite{olmo2025olmo3}. فرایند بهینه‌سازی این مدل در تمامی مراحل پیش‌آموزش، ارتقای بافت و یادگیری تقویتی دارای نوآوری‌های تحلیلی برجسته‌ای است.
+
+\paragraph*{بهینه‌سازی توزیع داده‌ها با منحنی‌های توانی-نمایی (\en{Olmix})}
+برای تعیین ترکیب بهینه داده‌ها در پیش‌آموزش، از روش \en{Olmix} مبتنی بر آموزش گروهی مدل‌های کوچک ۳۰ میلیون پارامتری و برازش رگرسیون به نرخ بیت بر بایت (\en{BPB}) استفاده شده است \cite{chen2025olmix}. سپس به‌جای فیلتر مسطح داده، از تابع نمونه‌برداری پیوسته توانی-نمایی استفاده می‌شود:
+\begin{equation}
+    f_{p, \lambda}(x) = \begin{cases} 
+        0, & x < a \\ 
+        C(x - a)^p e^{\lambda(x - a)}, & x \ge a 
+    \end{cases}
+\end{equation}
+که در آن $x \in [0, 1]$ صدک کیفیت، $a = 0.40$ آستانه حذف داده‌های ضعیف و ضرایب $C, p, \lambda$ با حل عددی قیود زیر استخراج می‌شوند:
+\begin{equation}
+    \int_0^1 f_{p, \lambda}(x) \, dx = \frac{Z}{X}, \quad \frac{1}{b} \int_{1-b}^1 f_{p, \lambda}(x) \, dx \le M \quad (M = 7)
+\end{equation}
+
+\paragraph*{بهینه‌سازی ترجیحات با نظریه یادگیری دلتا (\en{Delta Learning DPO})}
+بر اساس فرضیه یادگیری دلتا \cite{geng2025delta}، زمانی که آموزش بر مبنای تقلید به اشباع می‌رسد، کیفیت بهینه‌سازی به بزرگی فاصله کیفی میان پاسخ منتخب ($y_c$) و مردود ($y_r$) وابسته است. از این رو در \model{Dolci Think DPO}، پاسخ‌های برگزیده از مدلی بسیار قوی (\en{Qwen3-32B}) و پاسخ‌های مردود از مدلی ضعیف (\en{Qwen3-0.6B}) استخراج می‌شوند. تابع اتلاف \en{DPO} به صورت نرمال‌شده بر حسب طول توالی اعمال می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x, y_c, y_r)} \left[ \log \sigma \left( \frac{\beta}{|y_c|} \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} - \frac{\beta}{|y_r|} \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)} \right) \right]
+\end{equation}
+برای مهار گزاف‌گویی و تورم طولی، اختلاف طول پاسخ‌های منتخب و مردود به $|y_c| - |y_r| \le 100$ توکن محدود می‌شود.
+
+\paragraph*{الگوریتم یادگیری تقویتی \en{OlmoRL}}
+در فاز نهایی پس‌آموزش، الگوریتم \en{OlmoRL} با ایجاد اصلاحات زیر بر روی \en{GRPO} پیاده‌سازی شده است:
+\begin{itemize}
+    \item \textbf{نمونه‌برداری اهمیت برش‌خورده (\en{Truncated Importance Sampling}):} اصلاح خطای لاگ‌احتمال ارسالی از موتور استنتاج با ضریب $\min(\frac{\pi_\theta}{\pi_{\text{vllm}}}, \rho)$ با سقف $\rho = 2.0$.
+    \item \textbf{حذف نرمال‌سازی انحراف معیار:} برای جلوگیری از تغییر مقیاس غیرواقعی مسائل سخت و آسان، مزیت بدون تقسیم بر انحراف معیار و صرفاً به صورت کسر میانگین گروهی $A_{i,t} = r(x, y_i) - \bar{r}_{\text{group}}$ تعیین می‌شود.
+    \item \textbf{نمونه‌برداری فعال (\en{Active Sampling}):} پر کردن مداوم دسته‌های آموزشی با توالی‌های دارای مزیت غیرصفر به صورت پویا.
+    \item \textbf{به‌روزرسانی حین پرواز (\en{Inflight Updates}):} همگام‌سازی وزن‌ها بدون توقف چرخه تولید و بدون بازنشانی \en{KV Cache} در \en{vLLM}.
+\end{itemize}
+تابع اتلاف \en{OlmoRL} به صورت زیر است:
+\begin{equation}
+\begin{split}
+    \mathcal{J}_{\text{OlmoRL}}(\theta) = \frac{1}{\sum_{i=1}^G |y_i|} \sum_{i=1}^G \sum_{t=1}^{|y_i|} \min\left( \frac{\pi(y_{i,t} \mid x, y_{i,<t}; \theta_{\text{old}})}{\pi_{\text{vllm}}(y_{i,t} \mid x, y_{i,<t}; \theta_{\text{old}})}, \rho \right) \\
+    \cdot \min\left(r_{i,t} A_{i,t}, \, \text{clip}(r_{i,t}, 1 - \varepsilon_{\text{low}}, 1 + \varepsilon_{\text{high}}) A_{i,t}\right)
+\end{split}
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    stage/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4.8cm, line width=1pt},
+    opt/.style={draw=teal!70!black, fill=teal!10, rounded corners, align=center, font=\small, text width=4.8cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (sft) [stage] {\textbf{آموزش نظارت‌شده \en{SFT}}\\ردپای تفکر عمیق با شتاب ۸ برابری در \en{OLMo-core}};
+    \node (dpo) [opt, below=of sft] {\textbf{بهینه‌سازی ترجیحات \en{Delta DPO}}\\بیشینه‌سازی شکاف کیفی ($32\text{B} \succ 0.6\text{B}$)\\مهار گزاف‌گویی با جریمه طولی};
+    \node (rl) [stage, below=of dpo] {\textbf{الگوریتم تقویتی \en{OlmoRL}}\\نمونه‌برداری فعال + به‌روزرسانی حین پرواز\\مزیت نامقید به انحراف معیار};
+    
+    \draw [arrow] (sft) -- (dpo);
+    \draw [arrow] (dpo) -- (rl);
+\end{tikzpicture}
+\caption{پایپ‌لاین ۳ مرحله‌ای بهینه‌سازی پس‌آموزش در مدل \model{Olmo 3 Think}}
+\label{fig:olmo3_opt_flow}
+\end{figure}

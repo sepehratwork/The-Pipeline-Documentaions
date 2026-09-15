@@ -1,1 +1,72 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{مقدمه و نوآوری‌های بهینه‌سازی در \model{Kimi K3}}
+مدل \model{Kimi K3} یک مدل چندوجهی متکی بر معماری ترکیبی با ۲.۸ تریلیون پارامتر کل و ۱۰۴ میلیارد پارامتر فعال در هر توکن است \cite{kimi2026k3}. مقیاس‌دهی بهینه در این سطح به کارگیری نوآوری‌های ریاضی در توازن بار متخصصان، توابع فعال‌سازی کران‌دار، و بهینه‌سازی چندمرحله‌ای خط‌مشی را ایجاب کرده است.
+
+\paragraph*{استخراج تحلیلی توازن بار کوانتایل (\en{Quantile Balancing - QB})}
+برای رهایی از زیان‌های کمکی (\en{Auxiliary Loss}) که تخصیص ظرفیت متخصصان را دچار افت می‌کنند، مسئله توازن بار در قالب یک مسئله بهینه‌سازی تخصیص خطی با محدودیت‌های دوطرفه فرمول‌بندی شده است \cite{kimi2026k3, su2026moe}:
+\begin{equation}
+    \max_{x_{i,j} \in \{0, 1\}} \sum_{i=1}^m \sum_{j=1}^n x_{i,j} s_{i,j} \quad \text{s.t.} \quad \sum_{j=1}^n x_{i,j} = k, \quad \sum_{i=1}^m x_{i,j} = \frac{mk}{n}
+\end{equation}
+با آزادسازی خطی $x_{i,j} \in [0, 1]$ و تشکیل تابع لاگرانژین با ضرایب دوگان $\alpha_i$ و $\beta_j$:
+\begin{equation}
+    \mathcal{L}(x, \alpha, \beta) = \sum_{i,j} x_{i,j} s_{i,j} - \sum_{i} \alpha_i \left(\sum_j x_{i,j} - k\right) - \sum_j \beta_j \left(\sum_i x_{i,j} - \frac{mk}{n}\right)
+\end{equation}
+با اعمال دوگان لاگرانژ، مسئله دوگان محدب زیر حاصل می‌گردد:
+\begin{equation}
+    \min_{\alpha, \beta} \mathcal{D}(\alpha, \beta) = \sum_{i=1}^m \sum_{j=1}^n \max(0, s_{i,j} - \alpha_i - \beta_j) + k \sum_{i=1}^m \alpha_i + \frac{mk}{n} \sum_{j=1}^n \beta_j
+\end{equation}
+کمینه‌سازی دقیق مختصاتی نسبت به $\beta_j$ نشان می‌دهد که پاسخ بهینه متناظر با کوانتایل حاشیه‌ها است:
+\begin{equation}
+    \hat{b}_j^{(t+1)} \leftarrow -\text{quantile}_{1 - k/n} \left(s_{:, j} - \alpha^{(t)}\right), \quad b^{(t+1)} \leftarrow \hat{b}^{(t+1)} - \text{mean}\left(\hat{b}^{(t+1)}\right) \mathbf{1}
+\end{equation}
+که در آن $\alpha_i^{(t)}$ آستانه ورودی توکن $i$ به جمع $k$ متخصص برتر است. برای مقیاس‌پذیری ارتباطی، این کوانتایل از طریق یک هیستوگرام سراسری فشرده بر مبنای یک ارتباط \en{All-Reduce} محاسبه می‌شود.
+
+\paragraph*{فعال‌ساز کران‌دار \en{SiTU-GLU}}
+به منظور جلوگیری از واگرایی عددی و حفظ پایداری در کوانتیزاسیون لایه‌های \en{MoE}، تابع فعال‌سازی \en{SiTU-GLU} معرفی شده است:
+\begin{equation}
+    \text{SiTU-GLU}(x) = \left[ \beta_1 \tanh\left(\frac{W_g x}{\beta_1}\right) \odot \sigma(W_g x) \right] \odot \left[ \beta_2 \tanh\left(\frac{W_u x}{\beta_2}\right) \right]
+\end{equation}
+با انتخاب $\beta_1 = 4$ و $\beta_2 = 25$، خروجی در بی‌نهایت کران‌دار قطعی می‌گردد:
+\begin{equation}
+    \|\text{SiTU-GLU}(x)\|_\infty \le \beta_1 \beta_2 = 100
+\end{equation}
+در مجاورت نقطه مبدا، بسط تیلور رابطه نشان می‌دهد که رفتار محلی کاملاً منطبق بر فعال‌ساز توانمند \en{SwiGLU} است:
+\begin{equation}
+    \beta \tanh\left(\frac{z}{\beta}\right) = z - \frac{z^3}{3\beta^2} + \mathcal{O}(z^5) \approx z
+\end{equation}
+
+\paragraph*{بهینه‌ساز \en{Per-Head Muon}}
+در لایه‌های پروژکشن توجه، عملگر تعامد نیوتن-شولتز به جای اعمال بر کل ماتریس، بر روی ماتریس‌های هر سر به صورت مستقل اجرا می‌شود:
+\begin{equation}
+    W_Q = [W_{Q,1}, W_{Q,2}, \dots, W_{Q,H}] \implies O_{t,h} = \text{NewtonSchulz}(M_{t,h})
+\end{equation}
+این سازوکار موجب همسان‌سازی مقیاس به‌روزرسانی میان سرهای مختلف توجه و پیشگیری از تسلط سرهای با اندازه گرادیان بالا بر فرآیند آموزش می‌شود.
+
+\paragraph*{تقطیر مدل پیش‌نویس با تابع زیان \en{LK Loss}}
+در فاز آموزش مدل پیش‌نویس برای استنتاج حدسی (\en{Speculative Decoding})، بهینه‌سازی مستقیماً نرخ پذیرش توکن را بیشینه می‌کند:
+\begin{equation}
+    \mathcal{L}_{\text{LK}} = -\log \sum_{x \in \mathcal{V}} \min(p(x), q(x))
+\end{equation}
+که در آن $p$ توزیع مدل اصلی و $q$ توزیع مدل پیش‌نویس است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    box/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4.8cm, line width=1pt},
+    math_node/.style={draw=teal!70!black, fill=teal!10, rounded corners, align=center, font=\small, text width=4.8cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (scores) [box] {امتیاز روتر بدون تلفات کمکی\\$s_i = \sigma(W_r x_i)$};
+    \node (margin) [math_node, below=of scores] {محاسبه حاشیه تفاضلی نسبت به برش\\$s_{i,j} - \alpha_i^{(t)}$};
+    \node (histo) [box, below=of margin] {تخمین هیستوگرام فشرده\\یکپارچه‌سازی توزیع با \en{All-Reduce}};
+    \node (update) [math_node, below=of histo] {به‌روزرسانی انحراف کوانتایل\\$b_j^{(t+1)} \leftarrow -\text{quantile}_{1-k/n}$};
+    
+    \draw [arrow] (scores) -- (margin);
+    \draw [arrow] (margin) -- (histo);
+    \draw [arrow] (histo) -- (update);
+\end{tikzpicture}
+\caption{الگوریتم تعادل بار \en{Quantile Balancing (QB)} در مدل \model{Kimi K3}}
+\label{fig:kimi_qb_flow}
+\end{figure}

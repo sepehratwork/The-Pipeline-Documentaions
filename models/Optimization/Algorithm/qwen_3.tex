@@ -1,1 +1,54 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و راهبرد بهینه‌سازی مدل‌های خانواده \model{Qwen3}}
+خانواده مدل‌های \model{Qwen3} در بازه مقیاسی ۰.۶ تا ۲۳۵ میلیارد پارامتر در ساختارهای متراکم و \en{MoE} آموزش دیده‌اند \cite{qwen2025qwen3}. این مدل‌ها با معماری ادغام حالت‌های تفکر و بدون تفکر، یکپارچه‌سازی پایداری عددی در پیش‌آموزش و تقطیر بهینه را محقق ساخته‌اند.
+
+\paragraph*{پایدارسازی توجه با \en{QK-Norm} و زیان تعادل بار جهانی}
+به منظور تثبیت دینامیک گرادیان و امکان‌پذیری نرخ‌های یادگیری بالا در فازهای آغازین:
+\begin{itemize}
+    \item بایاس $QKV$ به طور کامل حذف گردیده و عملگر \en{RMSNorm} به صورت مستقل بر بردار کوئری و کلید اعمال می‌شود \cite{dehghani2023scaling}:
+    \begin{equation}
+        \text{Attn}(Q, K, V) = \text{Softmax}\left( \frac{\text{RMSNorm}(Q) \cdot \text{RMSNorm}(K)^T}{\sqrt{d_k}} \right) V
+    \end{equation}
+    این رویکرد مانع از واگرایی ضرب داخلی و تولید لاجیت‌های فرین در لایه‌های ابتدایی می‌گردد.
+    \item در لایه‌های \en{MoE}، تابع اتلاف تعادل بار در سطح کل دسته توزیع‌شده جهانی (\en{Global-Batch Load Balancing Loss}) \cite{qiu2025demons} اعمال می‌شود:
+    \begin{equation}
+        \mathcal{L}_{\text{balance}} = \alpha N \sum_{i=1}^N P_i f_i
+    \end{equation}
+    که در آن $P_i$ میانگین احتمال تخصیص متخصص $i$ و $f_i$ نسبت کل توکن‌های هدایت‌شده به آن در سراسر پردازنده‌ها است.
+\end{itemize}
+
+\paragraph*{پایپ‌لاین چهارمرحله‌ای پس‌آموزش در مدل‌های پرچم‌دار}
+\begin{itemize}
+    \item \textbf{مرحله ۱: آغاز سرد استدلال (\en{Long-CoT Cold Start}):} آموزش با داده‌های استدلالی تصفیه‌شده جهت پی‌ریزی الگوهای تفکر چندمرحله‌ای.
+    \item \textbf{مرحله ۲: یادگیری تقویتی استدلال (\en{Reasoning RL}):} بهینه‌سازی با \en{GRPO} روی ۳,۹۹۵ جفت پرسش-ارزیاب با دسته‌های بزرگ و حفظ پویای آنتروپی.
+    \item \textbf{مرحله ۳: همجوشی حالت‌های تفکر (\en{Thinking Mode Fusion}):} آموزش پیوسته \en{SFT} با تلفیق پرومپت‌های دارای \verb|/think| و \verb|/no_think| جهت سازگارسازی مدل با تصمیم‌گیری در شرایط توقف اضطراری تفکر.
+    \item \textbf{مرحله ۴: یادگیری تقویتی عمومی (\en{General RL}):} ارتقای کیفیت در حوزه‌های مکالمه، پیروی از دستورات و استفاده از ابزار با ترکیبی از پاداش‌های ارزیاب، مبتنی بر مدل و مدل‌های مولد پاداش.
+\end{itemize}
+
+\paragraph*{تقطیر خط‌مشی قوی به ضعیف (\en{Strong-to-Weak Distillation})}
+برای مدل‌های سبک‌تر (۰.۶B تا ۱۴B و ۳۰B-A3B)، کل چرخه چهارمرحله‌ای با تقطیر لاجیت از مدل‌های پرچم‌دار جایگزین می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{distill}}(\theta) = \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta} \left[ D_{\text{KL}}(\pi_\theta(\cdot \mid x, y_{<t}) \parallel \pi_{\text{teacher}}(\cdot \mid x, y_{<t})) \right]
+\end{equation}
+این رویکرد با مصرف تنها یک‌دهم منابع یادگیری تقویتی، توانایی استدلال و قابلیت تعویض حالت را به مدل‌های کوچک منتقل می‌سازد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.8cm,
+    stage/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=5cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (s1) [stage] {\textbf{مرحله ۱: آغاز سرد استدلال}\\آموزش با زنجیره تفکر عمیق (\en{Long-CoT})};
+    \node (s2) [stage, below=of s1] {\textbf{مرحله ۲: یادگیری تقویتی استدلال}\\بهینه‌سازی \en{GRPO} بر مسائل تحلیلی};
+    \node (s3) [stage, below=of s2] {\textbf{مرحله ۳: همجوشی حالت تفکر}\\تلفیق حالات با پرومپت \en{/think} و \en{/no\_think}};
+    \node (s4) [stage, below=of s3] {\textbf{مرحله ۴: یادگیری تقویتی عمومی}\\بهینه‌سازی جامع با پاداش‌های سه‌گانه};
+    
+    \draw [arrow] (s1) -- (s2);
+    \draw [arrow] (s2) -- (s3);
+    \draw [arrow] (s3) -- (s4);
+\end{tikzpicture}
+\caption{پایپ‌لاین چهارمرحله‌ای پس‌آموزش و همجوشی حالت‌های تفکر در \model{Qwen3}}
+\label{fig:qwen3_post_train}
+\end{figure}

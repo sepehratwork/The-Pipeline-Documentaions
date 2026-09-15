@@ -2,54 +2,59 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 16868 items from 5000.
+Reallocated field_info (elt_size=8) to 17420 items from 5000.
 Database file #1: references.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
 Warning--I didn't find a database entry for "nemotron_nano2_2025"
+Warning--I didn't find a database entry for "tieleman2012rmsprop"
+Warning--I didn't find a database entry for "kunstner2023noise"
 Warning--empty journal in goldwaser2026equivalence
 Warning--empty journal in geva2021transformer
 Warning--empty journal in geva2022transformer
 Warning--empty journal in ye2025transformer
 Warning--empty journal in ikeda2025layerwise
-You've used 546 entries,
+Warning--empty journal in zhao2025small
+Warning--empty journal in su2026moe
+Warning--empty journal in chen2025olmix
+You've used 571 entries,
             1791 wiz_defined-function locations,
-            2523 strings with 102214 characters,
-and the built_in function-call counts, 119322 in all, are:
-= -- 8407
-> -- 9169
-< -- 83
-+ -- 3272
-- -- 2726
-* -- 7375
-:= -- 20814
-add.period$ -- 1632
-call.type$ -- 546
-change.case$ -- 545
+            2619 strings with 106197 characters,
+and the built_in function-call counts, 125066 in all, are:
+= -- 8865
+> -- 9539
+< -- 87
++ -- 3405
+- -- 2834
+* -- 7734
+:= -- 21777
+add.period$ -- 1707
+call.type$ -- 571
+change.case$ -- 570
 chr.to.int$ -- 0
-cite$ -- 551
-duplicate$ -- 5352
-empty$ -- 10205
-format.name$ -- 2726
-if$ -- 25706
+cite$ -- 579
+duplicate$ -- 5615
+empty$ -- 10695
+format.name$ -- 2834
+if$ -- 26956
 int.to.chr$ -- 0
-int.to.str$ -- 546
-missing$ -- 503
-newline$ -- 2727
-num.names$ -- 546
-pop$ -- 2102
+int.to.str$ -- 571
+missing$ -- 528
+newline$ -- 2852
+num.names$ -- 571
+pop$ -- 2182
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 2655
+skip$ -- 2800
 stack$ -- 0
-substring$ -- 2847
-swap$ -- 1317
-text.length$ -- 83
+substring$ -- 3104
+swap$ -- 1386
+text.length$ -- 87
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 5
-while$ -- 771
-width$ -- 549
-write$ -- 5561
-(There were 6 warnings)
+warning$ -- 8
+while$ -- 816
+width$ -- 574
+write$ -- 5818
+(There were 11 warnings)

@@ -1,1 +1,67 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{مبانی بهینه‌سازی در سری مدل‌های \model{MiniMax-M2}}
+مدل \model{MiniMax-M2} با ۲۲۹.۹ میلیارد پارامتر کل و ۹.۸ میلیارد پارامتر فعال در هر توکن، بر اصل بیشینه‌سازی بازده محاسباتی استوار است \cite{minimax2026m2}. بهینه‌سازی این خانواده، تلفیقی از بازنگری در مسیریابی پیش‌آموزش و الگوریتم‌های مقاوم عاملیتی در پس‌آموزش است.
+
+\paragraph*{مسیریابی سیگموئیدی با انحراف یادگیری‌پذیر در پیش‌آموزش}
+به‌جای استفاده از تابع \en{Softmax} در تخصیص تخصص‌ها که مجموع احتمالات را به ۱ مقید کرده و سبب ناپایداری در رقابت متخصصان می‌شود، در \model{MiniMax-M2} از تابع فعال‌ساز سیگموئید مستقل همراه با انحراف ویژه تخصص (\en{Expert Bias}) استفاده شده است:
+\begin{equation}
+    s_{i,j} = \text{Sigmoid}(W_r x_i + b_j)
+\end{equation}
+پارامتر انحراف $b_j$ همراه با سایر پارامترهای شبکه از طریق گرادیان پس‌انتشار بهینه‌سازی می‌شود. این امر توزیع بار را به طور خودکار تعدیل کرده و وابستگی به توابع اتلاف کمکی توازن بار را به حداقل می‌رساند.
+
+\paragraph*{الگوریتم بهینه‌سازی خط‌مشی با نمونه‌برداری اهمیت برش‌خورده (\en{CISPO})}
+در فاز آموزش تقویتی، الگوریتم \en{CISPO} \cite{minimax2025m1, minimax2026m2} توسعه داده شده است. فعل و انفعال عامل با محیط به صورت یک فرایند تصمیم‌گیری مارکوف (\en{MDP}) با تفکیک سیاست $\pi_\theta(a_t \mid s_t)$ از گذار حالت $s_{t+1} = f_{\text{trans}}(s_t, a_t, o_t)$ مدل می‌شود. تابع هدف \en{CISPO} به صورت زیر تعریف می‌گردد:
+\begin{equation}
+\begin{split}
+    \mathcal{J}_{\text{CISPO}}(\theta) = \mathbb{E}_{(q, a), \{o_i\} \sim \pi_{\theta_{\text{old}}}} \Bigg[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \text{sg}\left(\hat{r}_{i,t}(\theta)\right) \\
+    \cdot \hat{A}_{i,t} \log \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \Bigg]
+\end{split}
+\end{equation}
+که در آن $\text{sg}(\cdot)$ عملگر توقف گرادیان است و نسبت نمونه‌برداری اهمیت به شکل نامتقارن برش می‌خورد:
+\begin{equation}
+    \hat{r}_{i,t}(\theta) = \text{clip}\left( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}, \, 0, \, 1 + \epsilon_{\text{high}}^{\text{IS}} \right)
+\end{equation}
+کران صفر در سمت پایین اجازه می‌دهد تا کنش‌هایی که در خط‌مشی جاری نامحتمل شده‌اند به شدت تضعیف شوند، در حالی که کران بالا مانع از به‌روزرسانی‌های ویرانگر می‌گردد.
+
+\paragraph*{فرمول‌بندی پاداش ترکیبی و مزیت \en{Reward-to-Go}}
+برای تخصیص بهینه اعتبار در توالی‌های طولانی تا ۱۹۲ هزار توکن، مزیت با تفاضل خط مبنای مسیر $B_i$ محاسبه می‌شود:
+\begin{equation}
+    \hat{A}_{i,t} = \sum_{p=t}^T r_p - B_i
+\end{equation}
+پاداش در هر گام عاملیتی از سه بخش تشکیل می‌گردد:
+\begin{equation}
+    r_t = \alpha \cdot r_t^{\text{process}} + \beta \cdot r_t^{\text{speed}} + r_t^{\text{perf}}
+\end{equation}
+که در آن پاداش سرعت به صورت تابعی کاهشی بر حسب زمان تکمیل فرمول‌بندی شده است:
+\begin{equation}
+    r_t^{\text{speed}} = h\left(\frac{T_{\text{completion}}}{T_{\text{baseline}}}\right)
+\end{equation}
+
+\paragraph*{بهینه‌سازی محاسباتی زیرساخت \en{Forge}}
+\begin{itemize}
+    \item \textbf{زمان‌بندی \en{Windowed FIFO}:} برای جلوگیری از مسدود شدن صف آموزش با نمونه‌های بسیار طولانی، نمونه‌ها در پنجره‌ای با اندازه $W = 0.3N$ به صورت حریصانه پردازش شده و در مرز پنجره ترتیب ورود رعایت می‌گردد.
+    \item \textbf{ادغام درخت پیشوند (\en{Prefix Tree Merging}):} در رول‌اوت‌های عاملیتی چندمرحله‌ای، توکن‌های پیشوند مشترک ادغام شده و توجه آن‌ها یک‌بار محاسبه می‌گردد؛ این بازآرایی محاسباتی بدون هیچ‌گونه تقریب عددی، شتاب محاسبات آموزش را تا ۴۰ برابر بهبود می‌دهد.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    block/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    tree/.style={draw=teal!70!black, fill=teal!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    opt/.style={draw=orange!80!black, fill=orange!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (harness) [block] {رول‌اوت‌های عاملیتی چندمرحله‌ای\\تولید پیشوندهای مشترک طولانی};
+    \node (merge) [tree, below=of harness] {\textbf{ادغام درخت پیشوند (\en{Prefix Tree})}\\محاسبه یک‌باره توجه پیشوند\\انشعاب به شاخه‌های مستقل};
+    \node (fifo) [opt, below=of merge] {\textbf{زمان‌بندی \en{Windowed FIFO}}\\پنجره لغزان $W = 0.3N$\\تعادل میان همگامی و گذردهی};
+    \node (cispo) [block, below=of fifo] {بهینه‌سازی با اتلاف \en{CISPO}\\برش نامتقارن $[0, 1+\epsilon]$\\توقف گرادیان $\text{sg}(\hat{r}_{i,t})$};
+    
+    \draw [arrow] (harness) -- (merge);
+    \draw [arrow] (merge) -- (fifo);
+    \draw [arrow] (fifo) -- (cispo);
+\end{tikzpicture}
+\caption{جریان بهینه‌سازی و شتاب‌بخشی زیرساخت \en{Forge} در \model{MiniMax-M2}}
+\label{fig:minimax_m2_opt_flow}
+\end{figure}

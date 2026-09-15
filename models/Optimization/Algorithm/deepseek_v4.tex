@@ -1,1 +1,83 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مقدمه و چارچوب بهینه‌سازی مدل‌های \model{DeepSeek-V4}}
+سری مدل‌های \model{DeepSeek-V4} شامل دو نسخه \en{DeepSeek-V4-Flash} (با ۲۸۴ میلیارد پارامتر کل و ۱۳ میلیارد پارامتر فعال) و \en{DeepSeek-V4-Pro} (با ۱.۶ تریلیون پارامتر کل و ۴۹ میلیارد پارامتر فعال) با هدف پشتیبانی کارآمد از بافت یک میلیون توکن (\en{1M context}) و مقیاس‌پذیری زمان آزمون طراحی شده‌اند \cite{deepseek2026v4}. بهینه‌سازی این حجم از پارامترها نیازمند بازنگری بنیادین در الگوریتم‌های بهینه‌سازی، پایدارسازی مانیفلد پسماند و ساختار تقطیر پس‌آموزش بوده است.
+
+\paragraph*{بهینه‌ساز متعامد \en{Muon} و تکرارهای نیوتن-شولتز هیبرید}
+در بهینه‌سازی ماتریس‌های وزن اصلی لایه‌های ترنسفورمر، بهینه‌ساز \en{Muon} \cite{jordan2024muon, liu2025muon} جایگزین \en{AdamW} شده است. بر خلاف الگوریتم‌های متداول که از نرمال‌سازی مختصاتی بهره می‌برند، \en{Muon} وزن‌ها را بر مانیفلد ماتریس‌های متعامد طیفی (\en{Spectral Orthogonal Matrices}) از طریق تجزیه قطبی (\en{Polar Decomposition}) به‌روزرسانی می‌کند. اگر $G \in \mathbb{R}^{n \times m}$ تانسور مومنتوم گرادیان باشد:
+\begin{equation}
+    G = U \Sigma V^T \implies \mathcal{O}(G) = U V^T = G (G^T G)^{-1/2}
+\end{equation}
+محاسبه مستقیم تجزیه مقادیر منفرد (\en{SVD}) در طول آموزش ناممکن است. بدین جهت، از تکرارهای مرتبه سوم نیوتن-شولتز (\en{Newton-Schulz Iterations}) استفاده می‌شود. ابتدا ماتریس نرمال‌سازی می‌شود:
+\begin{equation}
+    M_0 = \frac{G}{\|G\|_F}
+\end{equation}
+سپس رابطه بازگشتی زیر به کار گرفته می‌شود:
+\begin{equation}
+    M_{k} = a M_{k-1} + b (M_{k-1} M_{k-1}^T) M_{k-1} + c (M_{k-1} M_{k-1}^T)^2 M_{k-1}
+\end{equation}
+در \model{DeepSeek-V4}، یک طرح هیبرید ۱۰ مرحله‌ای اعمال می‌گردد:
+\begin{itemize}
+    \item \textbf{مرحله همگرایی پرشتاب (۸ گام نخست):} با ضرایب $(a, b, c) = (3.4445, -4.7750, 2.0315)$ که مقادیر منفرد ماتریس را با شیب تند به سمت بازه واحد سوق می‌دهد.
+    \item \textbf{مرحله تثبیت عددی (۲ گام نهایی):} با ضرایب پایدارساز $(a, b, c) = (2.0, -1.5, 0.5)$ که مشتق دوم خطا را صفر کرده و تعامد طیفی را تثبیت می‌نماید.
+\end{itemize}
+گام نهایی به‌روزرسانی وزن با تعدیل مقیاس ریشه میانگین مربعات (\en{RMS Rescaling}) و واپاشی وزن (\en{Weight Decay}) $\lambda$ به صورت زیر است:
+\begin{align}
+    O_t &= M_{10} \cdot \sqrt{\max(n, m)} \cdot \gamma \\
+    W_t &= W_{t-1}(1 - \eta \lambda) - \eta O_t
+\end{align}
+
+\paragraph*{پایدارسازی مانیفلد پسماند با اتصالات ابرپیوندی \en{mHC}}
+اتصالات پسماند چندکاناله (\en{Hyper-Connections}) عرض بردار پسماند را با ضریب $n_{\text{hc}}$ گسترش می‌دهند:
+\begin{equation}
+    X_{l+1} = B_l X_l + C_l \mathcal{F}_l(A_l X_l)
+\end{equation}
+که در آن $X_l \in \mathbb{R}^{n_{\text{hc}} \times d}$ است. در اتصالات مانیفلد-محدود (\en{mHC}) \cite{xie2026mhc}، ماتریس نگاشت پسماند $B_l$ مقید به مانیفلد ماتریس‌های تصادفی مضاعف (\en{Birkhoff Polytope}) می‌گردد:
+\begin{equation}
+    \mathcal{M} \coloneqq \left\{ M \in \mathbb{R}^{n_{\text{hc}} \times n_{\text{hc}}} \;\middle|\; M \mathbf{1} = \mathbf{1}, \; \mathbf{1}^T M = \mathbf{1}^T, \; M \ge 0 \right\}
+\end{equation}
+طبق قضیه بیرکهوف، نرم طیفی $\|B_l\|_2 \le 1$ تضمین می‌شود؛ لذا نگاشت غیرمنبسط‌شونده (\en{Non-expansive}) بوده و حاصل‌ضرب لایه‌ها از انفجار یا میرایی گرادیان جلوگیری می‌کند. نگاشت‌های ورودی و خروجی نیز با توابع سیگموئید کران‌دار می‌شوند:
+\begin{equation}
+    A_l = \sigma(\tilde{A}_l), \quad C_l = 2\sigma(\tilde{C}_l)
+\end{equation}
+برای تصویر ماتریس پویای $\tilde{B}_l$ بر مانیفلد، از الگوریتم سینکهورن-نپ (\en{Sinkhorn-Knopp}) با $t_{\max}=20$ تکرار بهره گرفته می‌شود:
+\begin{equation}
+    M^{(0)} = \exp(\tilde{B}_l), \quad M^{(t)} = \mathcal{T}_r(\mathcal{T}_c(M^{(t-1)}))
+\end{equation}
+که در آن $\mathcal{T}_r$ و $\mathcal{T}_c$ عملگرهای نرمال‌سازی سطری و ستونی هستند.
+
+\paragraph*{مکانیسم‌های مهار ناپایداری در آموزش مدل‌های بزرگ}
+\begin{itemize}
+    \item \textbf{مسیریابی پیش‌دستانه (\en{Anticipatory Routing}):} برای خنثی کردن ناپایداری ناشی از وابستگی متقابل گرادیان روتر و ستون فقرات مدل، شاخص‌های مسیریابی توکن‌ها در گام $t$ بر اساس پارامترهای تاخیردار تاریخی $\theta_{t-\Delta t}$ روی داده‌های پیش‌واکشی‌شده تعیین می‌گردند.
+    \item \textbf{تحدید دامنه \en{SwiGLU Clamping}:} فعال‌ساز خطی لایه‌های متخصصان به بازه $[-10, 10]$ و مؤلفه گیت آن به مقدار حداکثر $10$ محدود شده است تا از تولید داده‌های پرت فعال‌سازی پیشگیری شود.
+\end{itemize}
+
+\paragraph*{الگوریتم تقطیر روی‌خط‌مشی تمام واژگان (\en{Full-Vocabulary OPD})}
+در مرحله پس‌آموزش، تمام تخصص‌های دامنه با استفاده از تقطیر روی‌خط‌مشی (\en{On-Policy Distillation}) \cite{lu2025onpolicy} تلفیق می‌شوند. تابع اتلاف به صورت واگرایی کولبک-لایبلر معکوس بر روی کل توزیع واژگان $|\mathcal{V}|$ فرمول‌بندی شده است:
+\begin{equation}
+    \mathcal{L}_{\text{OPD}}(\theta) = \sum_{i=1}^N w_i \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta} \left[ \sum_{t=1}^{|y|} \sum_{v \in \mathcal{V}} \pi_\theta(v \mid x, y_{<t}) \log \frac{\pi_\theta(v \mid x, y_{<t})}{\pi_{E_i}(v \mid x, y_{<t})} \right]
+\end{equation}
+به منظور پرهیز از ذخیره‌سازی پرهزینه لاجیت‌ها روی دیسک، وضعیت‌های پنهان لایه ماقبل آخر مدل‌های معلم ذخیره شده و لاجیت‌ها در زمان محاسبه اتلاف به صورت بی‌درنگ بازسازی می‌شوند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2cm,
+    base/.style={draw=blue!70!black, fill=blue!10, rounded corners, align=center, font=\small, text width=4.2cm, line width=1pt},
+    opt/.style={draw=teal!70!black, fill=teal!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    mhc/.style={draw=orange!80!black, fill=orange!10, rounded corners, align=center, font=\small, text width=4.5cm, line width=1pt},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1pt, draw=gray!80!black}
+]
+    \node (grad) [base] {محاسبه گرادیان تانسورها\\$G_t = \nabla_W \mathcal{L}(W_{t-1})$};
+    \node (muon) [opt, below left=1.2cm and 0.5cm of grad] {\textbf{بهینه‌ساز \en{Muon}}\\۸ گام نیوتن-شولتز سریع\\۲ گام نیوتن-شولتز پایدار\\تصویر بر مانیفلد متعامد};
+    \node (mhc_box) [mhc, below right=1.2cm and 0.5cm of grad] {\textbf{پایدارسازی پسماند \en{mHC}}\\تصویر ماتریس $B_l$ بر پلی‌توپ بیرکهوف\\الگوریتم \en{Sinkhorn-Knopp} ($t_{\max}=20$)};
+    \node (update) [base, below=3.6cm of grad] {به‌روزرسانی ناهمگام وزن‌ها\\اعمال \en{Anticipatory Routing}\\و تحدید دامنه \en{SwiGLU}};
+    
+    \draw [arrow] (grad) -| (muon);
+    \draw [arrow] (grad) -| (mhc_box);
+    \draw [arrow] (muon) |- (update);
+    \draw [arrow] (mhc_box) |- (update);
+\end{tikzpicture}
+\caption{سازوکار بهینه‌سازی هسته محاسباتی و پایدارسازی مانیفلد در \model{DeepSeek-V4}}
+\label{fig:deepseek_v4_opt_flow}
+\end{figure}
