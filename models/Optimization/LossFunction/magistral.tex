@@ -1,1 +1,68 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{فرمولاسیون بنیادین بهینه‌سازی سیاست نسبی گروهی (\en{GRPO})}
+مدل \model{Magistral} یک مدل استدلال تخصصی است که مستقیماً بر روی مدل پایه و بدون فاز آماده‌سازی \en{SFT} استدلالی، با یادگیری تقویتی از طریق پاداش‌های قابل‌ارزیابی (\en{RLVR}) آموزش دیده است \cite{magistral2025}. الگوریتم \en{GRPO} \cite{shao2024deepseekmath} نیاز به مدل نقاد را حذف کرده و مزیت را از میانگین و انحراف معیار گروهی $G$ پاسخ نمونه‌برداری‌شده برای هر پرامپت استخراج می‌کند. 
+
+در فرمولاسیون پیشنهادی \model{Magistral}، پنج اصلاح ریاضیاتی کلیدی اعمال شده است:
+\begin{enumerate}
+    \item \textbf{حذف جریمه واگرایی کولبک-لایبلر:} ضریب جریمه صفر قرار داده شده ($\beta_{\text{KL}} = 0$) تا فضا برای کشف آزادانه زنجیره‌های تفکر فراهم آید.
+    \item \textbf{نرمال‌سازی طولی کل دسته:} برای رفع سوگیری نسبت به طول پاسخ‌ها، مجموع زیان بر مجموع طول توکن‌های کل گروه تقسیم می‌شود:
+    \begin{equation}
+        \text{Normalizer} = \frac{1}{\sum_{i=1}^G |o_i|}
+    \end{equation}
+    \item \textbf{نرمال‌سازی مزیت درون مینی‌بتچ:} مزیت بر پایه توزیع مینی‌بتچ استانداردسازی می‌گردد:
+    \begin{equation}
+        \hat{A}_{i,t}^{\text{norm}} = \frac{\hat{A}_i - \text{mean}(\hat{A})}{\text{std}(\hat{A})}, \quad \hat{A}_i = r_i - \text{mean}(r_1, \dots, r_G)
+    \end{equation}
+    \item \textbf{انبساط کران بالای ناحیه اعتماد (\en{Clip-Higher}):} برای مقابله با فروپاشی آنتروپی، آستانه برش نامتقارن اعمال می‌شود:
+    \begin{equation}
+        \text{clip}_{\text{higher}}(r_{i,t}, \varepsilon_{\text{low}}, \varepsilon_{\text{high}}) = \text{clip}(r_{i,t}, 1 - \varepsilon_{\text{low}}, 1 + \varepsilon_{\text{high}})
+    \end{equation}
+    که در آن $\varepsilon_{\text{low}} = 0.2$ و $\varepsilon_{\text{high}} \in [0.26, 0.28]$ تنظیم شده است.
+    \item \textbf{پالایش دسته‌های فاقد گرادیان:} گروه‌های نمونه که دارای پاداش یکدست باشند ($\forall m, n: r_m = r_n$) از فرآیند پس‌انتشار حذف می‌گردند.
+\end{enumerate}
+
+تابع زیان جامع نهایی \model{Magistral} به فرم زیر است:
+\begin{equation}
+    \mathcal{J}_{\text{Magistral}}(\theta) = \mathbb{E}_{q, \{o_i\}_{i=1}^G} \left[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \min\left( r_{i,t} \hat{A}_{i,t}^{\text{norm}}, \; \text{clip}_{\text{higher}}(r_{i,t}, \varepsilon_{\text{low}}, \varepsilon_{\text{high}}) \hat{A}_{i,t}^{\text{norm}} \right) \right]
+\end{equation}
+مشروط بر آنکه $\exists 1 \le m < n \le G \text{ s.t. } r_m \ne r_n$.
+
+\paragraph*{مهندسی توابع پاداش چندوجهی (\en{Reward Shaping})}
+تابع پاداش ترکیبی از چهار مولفه مستقل تشکیل شده است:
+\begin{equation}
+    R(y) = R_{\text{format}}(y) + R_{\text{correct}}(y) + R_{\text{length}}(y) + R_{\text{lang}}(y)
+\end{equation}
+پاداش ساختاری $R_{\text{format}} = 0.1$ شرط لازم ورود به ارزیابی است و وجود تگ‌های $\langle\text{think}\rangle$ و قالب خروجی ریاضی یا کد را بررسی می‌کند؛ در صورت عدم تطابق، کل پاداش صفر خواهد شد. پس از احراز ساختار، پاداش صحت $R_{\text{correct}} = 0.9$ از طریق پارسر نمادین \en{SymPy} برای مسائل ریاضی یا تست‌های واحد ایزوله برای کد محاسبه می‌گردد.
+
+برای پیشگیری از رسیدن ناگهانی به سقف بافت محاسباتی، جریمه طول نرم (\en{Soft Length Penalty}) اعمال می‌شود:
+\begin{equation}
+    R_{\text{length}}(y) = \begin{cases} 
+        0, & |y| \le l_{\max} - l_{\text{cache}} \\ 
+        -0.1 \cdot \frac{|y| - (l_{\max} - l_{\text{cache}})}{l_{\text{cache}}}, & l_{\max} - l_{\text{cache}} < |y| \le l_{\max} \\ 
+        -0.1, & |y| > l_{\max} 
+    \end{cases}
+\end{equation}
+همچنین جهت تضمین تفکر مدل به همان زبان کاربر، یک کلاسیفایر زبان \en{fastText} بر هر سه بخش مسئله، تفکر و پاسخ اعمال شده و در صورت یکنواختی، پاداش $R_{\text{lang}} = 0.1$ اعطا می‌شود.
+
+\paragraph*{دیاگرام پاداش‌های مرحله‌ای و گرادیان سیاست \model{Magistral}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.6cm,
+    font=\small,
+    box/.style={rectangle, draw=purple!70!black, fill=purple!5, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    rew/.style={rectangle, draw=teal!70!black, fill=teal!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    loss/.style={rectangle, draw=red!70!black, fill=red!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (gen) {تولید پاسخ با برچسب $\langle\text{think}\rangle$};
+    \node[rew, right=of gen] (chk) {بررسی فرمت ($+0.1$) و تست صحت ($+0.9$)};
+    \node[rew, right=of chk] (pen) {جریمه طول نرم + ثبات زبان};
+    \node[loss, below=of chk] (grpo) {زیان \en{GRPO} با \en{Clip-Higher} و نرمال‌سازی طولی};
+    
+    \draw[arrow] (gen) -- (chk);
+    \draw[arrow] (chk) -- (pen);
+    \draw[arrow] (pen) |- (grpo);
+    \draw[arrow] (chk) -- node[right]{\en{Pass/Fail}} (grpo);
+\end{tikzpicture}
+\end{center}

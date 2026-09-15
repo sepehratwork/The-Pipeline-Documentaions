@@ -1,1 +1,104 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مبانی ریاضیاتی و معماری اثرگذار بر تابع زیان (\en{Architectural Foundations})}
+معماری \model{DeepSeek-V4} بر پایه ترکیبی از کارشناس‌های تنک (\en{DeepSeekMoE})، توجه خردورزانه فشرده تنک (\en{Compressed Sparse Attention - CSA})، توجه به‌شدت فشرده (\en{Heavily Compressed Attention - HCA}) و ابراتصالات مقید به منیفلد (\en{Manifold-Constrained Hyper-Connections - mHC}) بنا شده است \cite{deepseek2026v4}. برای تثبیت گرادیان‌ها در اعماق بسیار زیاد و جلوگیری از افت رتبه (\en{Rank Collapse}) جریان پس‌ماند، بردار حالت پنهان قبل از لایه $l$ به‌صورت یک ماتریس تعمیم‌یافته $X_l \in \mathbb{R}^{n_{hc} \times d}$ تعریف می‌شود که در آن $n_{hc}$ ضریب انبساط پهنای پس‌ماند و $d$ بعد پنهان شبکه است. معادله بازگشتی انتقال سیگنال در لایه‌ها عبارت است از:
+\begin{equation}
+    X_{l+1} = B_l X_l + C_l \mathcal{F}_l(A_l X_l)
+\end{equation}
+که در آن $\mathcal{F}_l: \mathbb{R}^d \to \mathbb{R}^d$ نگاشت غیرخطی بلوک ترنسفورمر (اعم از توجه یا \en{MoE}) است و $A_l \in \mathbb{R}^{1 \times n_{hc}}$ و $C_l \in \mathbb{R}^{n_{hc} \times 1}$ به ترتیب عملگرهای فرافکنی ورودی و خروجی هستند. ماتریس تبدیل پس‌ماند $B_l \in \mathbb{R}^{n_{hc} \times n_{hc}}$ جهت مهار رشد نامقید نرم طیفی، به چندوجهی بیرکهوف (\en{Birkhoff Polytope}) یا منیفلد ماتریس‌های تصادفی مضاعف (\en{Doubly Stochastic Matrices}) $\mathcal{M}$ مقید می‌گردد:
+\begin{equation}
+    \mathcal{M} = \left\{ M \in \mathbb{R}^{n_{hc} \times n_{hc}} \;\middle|\; M \mathbf{1}_{n_{hc}} = \mathbf{1}_{n_{hc}}, \; \mathbf{1}_{n_{hc}}^T M = \mathbf{1}_{n_{hc}}^T, \; M \ge 0 \right\}
+\end{equation}
+بر پایه قضیه بیرکهوف-فون نویمان، نرم طیفی عملگر $B_l$ دارای کران تساوی $\|B_l\|_2 = 1$ خواهد بود؛ در نتیجه تبدیل پس‌ماند اکیداً ناگسترشی (\en{Non-expansive}) است. این قید در حین پس‌انتشار گرادیان، کران بالای ژاکوبین لایه‌ها را تضمین کرده و مانع انفجار یا میرایی نمایی گرادیان خطای پس‌ماند می‌گردد:
+\begin{equation}
+    \left\| \frac{\partial X_{l+1}}{\partial X_l} \right\|_2 \le \|B_l\|_2 + \|C_l\|_2 \left\| \mathcal{J}_{\mathcal{F}_l} \right\|_2 \|A_l\|_2 \le 1 + 2 \left\| \mathcal{J}_{\mathcal{F}_l} \right\|_2
+\end{equation}
+تصویر کردن ماتریس وزن خام $\tilde{B}_l$ روی منیفلد $\mathcal{M}$ از طریق الگوریتم سینکهورن-نپ (\en{Sinkhorn-Knopp}) با $t_{\max} = 20$ تکرار بر پایه عملگرهای نرمال‌سازی سطری $\mathcal{T}_r$ و ستونی $\mathcal{T}_c$ محقق می‌شود:
+\begin{equation}
+    M^{(0)} = \exp(\tilde{B}_l), \quad M^{(t)} = \mathcal{T}_r\left(\mathcal{T}_c\left(M^{(t-1)}\right)\right), \quad B_l = M^{(t_{\max})}
+\end{equation}
+همچنین $A_l = \sigma(\tilde{A}_l)$ و $C_l = 2\sigma(\tilde{C}_l)$ با تابع سیگموئید $\sigma(\cdot)$ مقید می‌شوند تا از پدیده خنثی‌سازی سیگنال پیشگیری گردد.
+
+\paragraph*{توابع زیان فاز پیش‌آموزش (\en{Pre-training Objectives})}
+در مرحله پیش‌آموزش، تابع هدف کل ترکیبی از مدل‌سازی خودبازگشتی استاندارد، پیش‌بینی چندتوکنی (\en{MTP}) و تنظیم‌کننده تعادل بار کارشناس‌ها در سطح توالی است:
+\begin{equation}
+    \mathcal{L}_{\text{pretrain}}(\theta) = \mathcal{L}_{\text{LM}}(\theta) + \lambda_{\text{MTP}} \mathcal{L}_{\text{MTP}}(\theta) + \lambda_{\text{bal}} \mathcal{L}_{\text{seq\_bal}}(\theta)
+\end{equation}
+زیان مدل‌سازی زبانی بر پایه آنتروپی متقاطع توکن بعدی بر روی پیکره بیش از ۳۲ تریلیون توکن تعریف می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{LM}}(\theta) = - \frac{1}{T} \sum_{t=1}^{T} \log P_\theta(x_t \mid x_{<t})
+\end{equation}
+ماژول پیش‌بینی چندتوکنی (\en{MTP}) با عمق $D=1$، افزون بر توکن جاری، توکن بلافاصله بعدی را نیز پیش‌بینی می‌کند:
+\begin{equation}
+    \mathcal{L}_{\text{MTP}}(\theta) = - \frac{1}{T-1} \sum_{t=1}^{T-1} \log P_{\theta,\text{MTP}}(x_{t+1} \mid x_{\le t})
+\end{equation}
+ضریب وزن $\lambda_{\text{MTP}}$ در بیشتر طول دوره آموزش روی $0.3$ تثبیت شده و هم‌زمان با آغاز واپاشی کسینوسی نرخ یادگیری به $0.1$ کاهش می‌یابد.
+
+در سازوکار \en{DeepSeekMoE}، تابع محاسبه امتیاز میل به کارشناس‌ها (\en{Affinity Scores}) از سیگموئید به فرم تصحیح‌شده زیر تغییر یافته است:
+\begin{equation}
+    s_{i,j} = \sqrt{\text{Softplus}\left( (W_g x_i)_j \right)}
+\end{equation}
+برای پرهیز از تضعیف برازش گرادیان بر اثر زیان‌های کمکی متداول، تعادل کارشناس‌ها با راهبرد بدون زیان کمکی (\en{Auxiliary-Loss-Free Strategy}) از طریق به‌روزرسانی دینامیک بایاس‌ها دنبال می‌شود؛ با این حال، جهت ممانعت از بروز عدم تعادل‌های حاد درون تک‌توالی‌ها، یک زیان تعادل درون‌توالی با ضریب بسیار کوچک $\lambda_{\text{bal}} = 0.0001$ اعمال می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{seq\_bal}} = E \sum_{j=1}^{E} f_j \cdot P_j, \quad f_j = \frac{1}{T} \sum_{t=1}^T \mathbb{I}(j \in \text{Top-}k(s_{t})), \quad P_j = \frac{1}{T} \sum_{t=1}^T \frac{\exp(s_{t,j})}{\sum_{j'=1}^E \exp(s_{t,j'})}
+\end{equation}
+
+همچنین در لایه‌های توجه \en{CSA} و \en{HCA}، برای کنترل گستره دینامیکی و مهار انفجار لاجیت‌های توجه در طول بافت‌های تا یک میلیون توکن، از چاهک توجه (\en{Attention Sink}) با لاجیت‌های یادگیرنده $z'_h$ در مخرج سافت‌مکس استفاده می‌شود:
+\begin{equation}
+    \alpha_{h,i,j} = \frac{\exp(z_{h,i,j})}{\sum_{k} \exp(z_{h,i,k}) + \exp(z'_h)}
+\end{equation}
+این ساختار به هر هد توجه اجازه می‌دهد در صورت عدم لزوم ارتباط با پیشینه، مجموع وزن‌های توجه به توکن‌های پیشین را به صفر میل دهد.
+
+\paragraph*{تقطیر سیاست درون‌خطی چنداستادی (\en{Multi-Teacher On-Policy Distillation})}
+در فاز پس‌آموزش، مدل \model{DeepSeek-V4} مرحله مرسوم یادگیری تقویتی آمیخته را به‌طور کامل با تقطیر سیاست درون‌خطی (\en{On-Policy Distillation - OPD}) جایگزین ساخته است \cite{lu2025onpolicy}. با فرض وجود $N$ مدل متخصص دامنه‌ای $\{ \pi_{E_1}, \pi_{E_2}, \dots, \pi_{E_N} \}$، تابع هدف \en{OPD} بر پایه کمینه‌سازی واگرایی کولبک-لایبلر معکوس (\en{Reverse KL Divergence}) روی توزیع کامل دایره واژگان تعریف می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{OPD}}(\theta) = \sum_{i=1}^N w_i \cdot \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta(\cdot \mid x)} \left[ \mathbb{D}_{\text{KL}}\left(\pi_\theta(\cdot \mid x, y_{<t}) \;\parallel\; \pi_{E_i}(\cdot \mid x, y_{<t})\right) \right]
+\end{equation}
+که در آن $w_i$ ضریب اهمیت تخصص دامنه متناظر با ورودی $x$ است. برای هر گام توکن $t$، بسط تحلیلی واگرایی کولبک-لایبلر بر روی کل واژگان $\mathcal{V}$ عبارت است از:
+\begin{equation}
+    \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_{E_i}) = \sum_{v \in \mathcal{V}} \pi_\theta(v \mid s_t) \left[ \log \pi_\theta(v \mid s_t) - \log \pi_{E_i}(v \mid s_t) \right]
+\end{equation}
+برای استخراج گرادیان این تابع نسبت به لاجیت‌های تولیدی مدل دانش‌آموز $z_v \equiv z_t^\theta(v)$، با فرض رابطه سافت‌مکس $\pi_\theta(v) = \frac{\exp(z_v)}{\sum_{u \in \mathcal{V}} \exp(z_u)}$، دیفرانسیل کل را با قاعده زنجیره‌ای تشکیل می‌دهیم:
+\begin{equation}
+    \frac{\partial \mathcal{L}_{\text{OPD}}}{\partial z_v} = \sum_{u \in \mathcal{V}} \frac{\partial \mathbb{D}_{\text{KL}}}{\partial \pi_\theta(u)} \frac{\partial \pi_\theta(u)}{\partial z_v}
+\end{equation}
+مشتقات جزئی عبارت‌اند از:
+\begin{equation}
+    \frac{\partial \mathbb{D}_{\text{KL}}}{\partial \pi_\theta(u)} = \log \pi_\theta(u) - \log \pi_{E_i}(u) + 1
+\end{equation}
+\begin{equation}
+    \frac{\partial \pi_\theta(u)}{\partial z_v} = \pi_\theta(u) \left(\delta_{uv} - \pi_\theta(v)\right)
+\end{equation}
+با جایگذاری و ساده‌سازی روابط جبر خطی:
+\begin{align}
+    \frac{\partial \mathcal{L}_{\text{OPD}}}{\partial z_v} &= \sum_{u \in \mathcal{V}} \left[ \log \frac{\pi_\theta(u)}{\pi_{E_i}(u)} + 1 \right] \pi_\theta(u) (\delta_{uv} - \pi_\theta(v)) \nonumber \\
+    &= \pi_\theta(v) \log \frac{\pi_\theta(v)}{\pi_{E_i}(v)} + \pi_\theta(v) - \pi_\theta(v) \sum_{u \in \mathcal{V}} \pi_\theta(u) \left[ \log \frac{\pi_\theta(u)}{\pi_{E_i}(u)} + 1 \right] \nonumber \\
+    &= \pi_\theta(v) \left[ \log \frac{\pi_\theta(v)}{\pi_{E_i}(v)} - \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_{E_i}) \right]
+\end{align}
+این فرمول‌بندی دقیق گرادیان، نوسانات و واریانس شدید ناشی از برآوردگرهای تک‌توکنی گرادیان سیاست را مرتفع نموده و یادگیری هم‌زمان از بیش از ده معلم تخصصی را بدون افت پایداری امکان‌پذیر می‌سازد.
+
+\paragraph*{دیاگرام جریان زیان و بهینه‌سازی \model{DeepSeek-V4}}
+جریان محاسباتی پیش‌آموزش و پس‌آموزش تقطیری مدل در نمودار زیر به تصویر کشیده شده است:
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.4cm and 1.8cm,
+    font=\small,
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, thick, rounded corners, minimum height=1cm, text centered, inner sep=6pt},
+    loss/.style={rectangle, draw=red!70!black, fill=red!8, thick, rounded corners, minimum height=1cm, text centered, inner sep=6pt},
+    sink/.style={rectangle, draw=teal!70!black, fill=teal!8, thick, rounded corners, minimum height=1cm, text centered, inner sep=6pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (input) {ورودی توالی $x_{1:T}$};
+    \node[box, right=of input] (mhc) {لایه‌های \en{mHC} با تصویر بیرکهوف};
+    \node[box, right=of mhc] (layers) {توجه ترکیبی \en{CSA/HCA} و \en{MoE}};
+    
+    \node[loss, above=of layers] (preloss) {زیان پیش‌آموزش: $\mathcal{L}_{\text{LM}} + \lambda\mathcal{L}_{\text{MTP}} + \mathcal{L}_{\text{bal}}$};
+    \node[sink, below=of layers] (opd) {تقطیر چنداستادی \en{OPD}: $\min \mathbb{D}_{\text{KL}}(\pi_\theta \parallel \pi_{E_i})$};
+    
+    \draw[arrow] (input) -- (mhc);
+    \draw[arrow] (mhc) -- (layers);
+    \draw[arrow] (layers) -- (preloss);
+    \draw[arrow] (layers) -- (opd);
+\end{tikzpicture}
+\end{center}

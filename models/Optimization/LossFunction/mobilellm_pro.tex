@@ -1,1 +1,49 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{تقطیر دانشی پیش‌آموزش و تعمیم موضعی پنهان (\en{Positional Distillation})}
+مدل \model{MobileLLM-Pro} یک مدل بهینه‌شده برای پردازنده‌های لبه‌ای با ۱ میلیارد پارامتر است \cite{huber2025mobilellmpro}. در تمام مراحل پیش‌آموزش، مدل به‌جای آموزش مرسوم با برچسب‌های تک‌کلمه‌ای، از تقطیر دانشی لاجیت‌محور بر پایه واگرایی کولبک-لایبلر مستقیم روی کل واژگان ۲۰۲ هزارتایی مدل معلم (\en{Llama 4-Scout}) استفاده می‌کند:
+\begin{equation}
+    \mathcal{L}_{\text{KD}}(\theta) = \mathbb{D}_{\text{KL}}\left( P_{\text{teacher}}(x_t \mid x_{<t}) \;\parallel\; P_{\text{student}}(x_t \mid x_{<t}) \right)
+\end{equation}
+
+در فاز بسط بافت تا ۱۲۸ هزار توکن، برای ممانعت از رخداد شیفت شدید توزیع داده، روش «تقطیر موقعیتی پنهان» به کار گرفته شده است. در ماتریس تعبیه موقعیت دورانی (\en{RoPE}) با فرکانس زاویه‌ای $\theta_i = 10000^{-2i/d}$، چرخش بردار ویژگی به زاویه $p\theta_i$ وابسته است:
+\begin{equation}
+    \begin{pmatrix} x'_i \\ x'_{i+1} \end{pmatrix} = \begin{pmatrix} \cos(p\theta_i) & -\sin(p\theta_i) \\ \sin(p\theta_i) & \cos(p\theta_i) \end{pmatrix} \begin{pmatrix} x_i \\ x_{i+1} \end{pmatrix}
+\end{equation}
+از آنجا که لاجیت‌های معلم کل فضای زاویه‌ای ۳۶۰ درجه را پوشش می‌دهند، مدل دانش‌آموز بر روی دسته‌های بسته‌بندی‌شده اسناد کوتاه با ماسک علّی بلوکی آموزش می‌بیند و با بازتولید لاجیت‌های معلم، روابط زاویه‌ای مسافت‌های طولانی را بدون نیاز به اسناد بلند طبیعی جذب می‌نماید.
+
+\paragraph*{ادغام متخصص‌ها در فضای وزن (\en{Specialist Model Merging})}
+در مرحله سوم پیش‌آموزش، $n$ مدل متخصص موازی بر روی دامنه‌های تفکیک‌شده آموزش دیده و سپس میانگین‌گیری وزنی نامتقارن در فضای پارامتر صورت می‌گیرد:
+\begin{equation}
+    M = \frac{1}{n} \sum_{b=1}^{n} w_b \theta_b, \quad \sum_{b=1}^n w_b = 1.0
+\end{equation}
+
+\paragraph*{زیان آموزش آگاه از کوانتایزیشن (\en{QAT Loss with Learnable Ranges})}
+در فاز نهایی، عملگر کوانتایزیشن متقارن مقادیر وزن $W_g$ را به بازه ۴ بیتی $[-8, 7]$ تصویر می‌کند:
+\begin{equation}
+    Q(W_g) = s_w \cdot \text{clip}\left( \text{round}\left( \frac{W_g}{s_w} \right), -8, 7 \right), \quad s_w = \frac{\max(-w_{\min}, w_{\max})}{7.5}
+\end{equation}
+در کوانتایزیشن کانالی شتاب‌دهنده‌ها، مرزهای $w_{\min}$ و $w_{\max}$ پارامترهای یادگیرنده هستند و با تخمین‌گر عبور مستقیم (\en{STE}) بهینه‌سازی می‌شوند. همچنین یک زیان خود-تقطیری (\en{Self-KD}) با چک‌پوینت ممیز شناور مدل به عنوان معلم برقرار می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{QAT}}(\theta) = \mathcal{L}_{\text{CE}}(\theta) + \lambda_{\text{self}} \mathbb{D}_{\text{KL}}\left( P_{\text{FP}}(\cdot \mid x) \;\parallel\; P_{\text{INT4}}(\cdot \mid x) \right)
+\end{equation}
+
+\paragraph*{دیاگرام مراحل چهارگانه و ساختار تقطیر در \model{MobileLLM-Pro}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.5cm,
+    font=\small,
+    box/.style={rectangle, draw=teal!70!black, fill=teal!5, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    loss/.style={rectangle, draw=blue!70!black, fill=blue!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (kd) {فاز ۱: تقطیر لاجیت کامل معلم بزرگ};
+    \node[box, right=of kd] (rope) {فاز ۲: تقطیر موقعیتی پنهان \en{RoPE}};
+    \node[box, below=of rope] (merge) {فاز ۳: ادغام مدل‌های متخصص};
+    \node[loss, left=of merge] (qat) {فاز ۴: \en{QAT} ۴ بیتی با خود-تقطیری};
+    
+    \draw[arrow] (kd) -- (rope);
+    \draw[arrow] (rope) -- (merge);
+    \draw[arrow] (merge) -- (qat);
+\end{tikzpicture}
+\end{center}

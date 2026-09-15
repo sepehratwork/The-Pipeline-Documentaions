@@ -1,1 +1,45 @@
-\item \textbf asd
+\item \model{Nemotron 3}
+
+\paragraph*{مبانی معماری و کارشناس‌های پنهان (\en{LatentMoE Foundations})}
+سری \model{Nemotron 3} مبتنی بر ساختار هیبریدی \en{Mamba-Transformer MoE} با جایگزینی عمده لایه‌های پرهزینه توجه با لایه‌های \en{Mamba-2} طراحی شده است \cite{nemotron2025v3}. در مدل‌های \en{Super} و \en{Ultra}، معماری \en{LatentMoE} به کار گرفته شده است که طی آن، توکن ورودی با بعد $d$ پیش از ارسال به کارشناس‌ها، به بعد پنهان فشرده $\ell < d$ (با نسبت $d/\ell \approx 4$) نگاشت می‌شود:
+\begin{equation}
+    z = W_{\downarrow} x \in \mathbb{R}^\ell
+\end{equation}
+این فشرده‌سازی باعث کاهش ۴ برابری ترافیک ارتباطی \en{All-to-All} شده و امکان افزایش تعداد کل کارشناس‌ها به $N' = N \cdot (d/\ell)$ و کارشناس‌های فعال به $K' = K \cdot (d/\ell)$ را با حفظ پهنای باند حافظه فراهم می‌آورد.
+
+\paragraph*{پیش‌آموزش \en{NVFP4} و بهینه‌سازی دقیق عددی}
+در پیش‌آموزش با دقت عددی ۴ بیتی \en{NVFP4}، تنسورهای وزن، اکتیویشن و گرادیان‌ها در محاسبات \en{GEMM} با مقیاس‌بندی میکروبلوکی کوانتایز می‌شوند. برای پایدارسازی گرادیان‌ها، تبدیل تصادفی هادامارد (\en{Random Hadamard Transform - RHT}) روی ورودی‌های گرادیان وزن و گردکردن تصادفی (\en{Stochastic Rounding - SR}) اعمال می‌گردد:
+\begin{equation}
+    \mathbb{E}[\text{SR}(g)] = g
+\end{equation}
+این سازوکار تضمین می‌کند که امید ریاضی به‌روزرسانی گرادیان بدون تورش باقی مانده و پدیده محوشدگی گرادیان‌های کوچک رخ ندهد.
+
+\paragraph*{یادگیری تقویتی هم‌زمان چندمحیطی (\en{Multi-Environment RL})}
+برخلاف روش‌های مرحله‌ای متوالی که منجر به فرسایش مهارت‌های قبلی می‌شوند، \model{Nemotron 3} تمام دامنه‌ها شامل استدلال ریاضی، کدنویسی، دنبال‌کردن دستورات و کانتکست طولانی را در قالب یک فاز یکپارچه با الگوریتم \en{GRPO} بهینه‌سازی می‌کند:
+\begin{equation}
+    \mathcal{L}_{\text{Multi-Env}}(\theta) = -\mathbb{E} \left[ \sum_{e \in \mathcal{E}} \lambda_e \frac{1}{|G_e|} \sum_{i \in G_e} \min\left( \frac{\pi_\theta}{\pi_{\text{old}}} \hat{A}_i^e, \; \text{clip}\left(\frac{\pi_\theta}{\pi_{\text{old}}}, 1-\epsilon, 1+\epsilon\right) \hat{A}_i^e \right) \right]
+\end{equation}
+کنترل پویای بودجه تفکر نیز از طریق تزریق توکن پایانی `</think>` در مرز آستانه تعیین‌شده توسط کاربر پشتیبانی می‌گردد.
+
+\paragraph*{دیاگرام جریان فشرده‌سازی \en{LatentMoE} و بهینه‌سازی \model{Nemotron 3}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.7cm,
+    font=\small,
+    box/.style={rectangle, draw=green!60!black, fill=green!5, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    opt/.style={rectangle, draw=blue!70!black, fill=blue!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    loss/.style={rectangle, draw=red!70!black, fill=red!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (input) {توکن ورودی با بعد $d$};
+    \node[opt, right=of input] (latent) {فشرده‌سازی پنهان: $z = W_\downarrow x \in \mathbb{R}^\ell$};
+    \node[opt, right=of latent] (moe) {مسیریابی به کارشناس‌های پنهان $K'$ از $N'$};
+    \node[loss, below=of latent] (rl) {یادگیری تقویتی چندمحیطی هم‌زمان (\en{Multi-Env RL})};
+    \node[box, left=of rl] (budget) {کنترل دندانه‌دار بودجه تفکر};
+    
+    \draw[arrow] (input) -- (latent);
+    \draw[arrow] (latent) -- (moe);
+    \draw[arrow] (moe) |- (rl);
+    \draw[arrow] (budget) -- (rl);
+\end{tikzpicture}
+\end{center}

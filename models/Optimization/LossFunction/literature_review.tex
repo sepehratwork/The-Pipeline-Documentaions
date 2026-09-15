@@ -1,1 +1,310 @@
-\item \textbf asd
+\item \textbf{مرور جامع پیشینه و تبارشناسی توابع زیان در مدل‌های زبانی (\en{Comprehensive Survey \& Taxonomy of Loss Functions in Language Models})}
+
+\paragraph*{مقدمه و چارچوب ریاضی بنیادین توابع زیان (\en{Mathematical Foundations of Loss Functions})}
+در یادگیری ماشین و مدل‌سازی آماری، هدف بنیادین یادگیری یک نگاشت تابعی $f$ از فضای ورودی $\Phi$ به فضای برونداد مطلوب $\mathcal{Y}$ است، به گونه‌ای که $f: \Phi \to \mathcal{Y}$ توسط یک خانواده پارامتریک از مدل‌ها $f_\Theta$ با بردار وزن‌ها و متغیرهای حالت $\Theta \in \mathbb{R}^d$ تقریب زده شود \cite{ciampiconi2024survey}. تابع زیان (\en{Loss Function}) که با $L(f_\Theta(x_i), y_i)$ نمادگذاری می‌شود، نگاشتی اسکالر به مجموعه اعداد حقیقی است:
+\begin{equation}
+    L: \mathcal{Y} \times \mathcal{Y} \to \mathbb{R}, \quad l_i = L(f_\Theta(x_i), y_i)
+\end{equation}
+که میزان واگرایی، جریمه خطا، یا عدم شباهت میان پیش‌بینی مدل و متغیر هدف را تعیین می‌نماید. بر روی یک مجموعه داده متشکل از $N$ نمونه آموزشی مستقل و هم‌توزیع، زیان کل به صورت میانگین تجربی تعریف می‌شود:
+\begin{equation}
+    \mathcal{L}(f_\Theta) = \frac{1}{N} \sum_{i=1}^N L(f_\Theta(x_i), y_i)
+\end{equation}
+هدف فرآیند آموزش، حل مسئله بهینه‌سازی مقید یا نامقید زیر به همراه یک عملگر منظم‌ساز (\en{Regularizer}) $R(\Theta)$ جهت مهار بیش‌برازش و حفظ تعادل میان سوگیری و واریانس (\en{Bias-Variance Trade-off}) است \cite{ciampiconi2024survey, terven2025comprehensive}:
+\begin{equation}
+    \min_{\Theta \in \mathbb{R}^d} \frac{1}{N} \sum_{i=1}^N L(f_\Theta(x_i), y_i) + \lambda \rho(\Theta)
+\end{equation}
+که در آن $\rho(\Theta) = \|\Theta\|_2^2$ متناظر با رگرسیون ریج (\en{Ridge}) و توزیع پیشین گوسی (\en{Gaussian Prior}) در استنباط بیزی بیشینه‌احتمال پسین (\en{MAP})، و $\rho(\Theta) = \|\Theta\|_1$ معرف منظم‌ساز لاسو (\en{Lasso}) با توزیع پیشین لاپلاس جهت القای تنک‌سازی (\en{Sparsity}) است \cite{ciampiconi2024survey}.
+
+\paragraph*{اصول ریاضی حاکم بر تحلیل توابع زیان (\en{Analytical Properties of Losses})}
+پایداری و تضمین‌های همگرایی الگوریتم‌های بهینه‌سازی به خواص دیفرانسیلی و هندسی تابع زیان وابسته است \cite{ciampiconi2024survey}:
+\begin{itemize}
+    \item \textbf{پیوستگی (\en{Continuity - CONT}):} تابع $L$ پیوسته است اگر و تنها اگر به ازای هر دنباله $x_n \to c$ داشته باشیم $\lim_{x_n \to c} L(x_n) = L(c)$.
+    \item \textbf{مشتق‌پذیری (\en{Differentiability - DIFF}):} وجود گرادیان $\nabla_\Theta L$ در تمام نقاط دامنه، بستر به‌کارگیری روش‌های گرادیانی مرتبه اول را فراهم می‌کند.
+    \item \textbf{پیوستگی لیپ‌شیتز (\en{Lipschitz Continuity - L-CONT}):} تابع با ثابت $\ell$ لیپ‌شیتز است اگر:
+    \begin{equation}
+        |L(\Theta_1) - L(\Theta_2)| \le \ell \|\Theta_1 - \Theta_2\|_2, \quad \forall \Theta_1, \Theta_2
+    \end{equation}
+    این ویژگی کران‌داری تندی شیب گرادیان و مصونیت نسبی در برابر اختلالات متغیرها را تضمین می‌کند \cite{chen2026unveiling}.
+    \item \textbf{تحدب (\en{Convexity - CONVEX}):} شرط تحدب مستلزم آن است که ماتریس هسیان $\nabla^2 L(\Theta)$ همواره نیمه‌معین مثبت باشد ($\nabla^2 L(\Theta) \succeq 0$)، که متضمن برابری هر کمینه محلی با کمینه سراسری است. در صورت معین مثبت بودن اکید هسیان ($\nabla^2 L(\Theta) \succ 0$)، تابع دارای تحدب اکید (\en{Strict Convexity - S-CONV}) بوده و جواب بهینه‌سازی یکتا خواهد بود \cite{ciampiconi2024survey}.
+\end{itemize}
+
+\paragraph*{پیش‌بینی توکن بعدی و زیان منفی لگاریتم درست‌نمایی (\en{Next-Token Prediction \& NLL})}
+در مدل‌های زبانی خودبازگشتی (\en{Autoregressive LLMs})، مدل‌سازی توزیع احتمال شرطی توالی متنی $X = (x_1, x_2, \dots, x_T)$ بر پایه قاعده ضرب احتمالات صورتبندی می‌شود \cite{ciampiconi2024survey, terven2025comprehensive, gan2026beyond}:
+\begin{equation}
+    P(X) = \prod_{t=1}^T P_\theta(x_t \mid x_{<t})
+\end{equation}
+اصل برآورد بیشینه‌احتمال (\en{MLE}) با فرض نمونه‌های متنی برگرفته از توزیع تجربی داده‌ها $q(x)$، تابع درست‌نمایی را به حداکثر می‌رساند. با اعمال منفی لگاریتم، تابع زیان استاندارد اتورگرسیو به فرم زیر استخراج می‌شود \cite{xiao2024survey, terven2025comprehensive}:
+\begin{equation}
+    \mathcal{L}_{\text{NLL}}(\theta) = - \sum_{t=1}^T \log P_\theta(x_t \mid x_{<t})
+\end{equation}
+از منظر تئوری اطلاعات شانون، بهینه‌سازی این معیار معادل کمینه‌سازی انتروپی متقاطع (\en{Cross-Entropy}) و واگرایی کولبک-لایبلر (\en{Kullback-Leibler Divergence - KL}) میان توزیع واقعی $q$ و توزیع پیش‌بین $P_\theta$ است:
+\begin{equation}
+    H(q, P_\theta) = - \sum_{x} q(x) \log P_\theta(x) = \mathcal{D}_{\text{KL}}(q \parallel P_\theta) + H(q)
+\end{equation}
+از آنجا که انتروپی ذاتی داده $H(q)$ مستقل از متغیرهای مدل $\theta$ است، داریم:
+\begin{equation}
+    \arg\min_\theta H(q, P_\theta) \equiv \arg\min_\theta \mathcal{D}_{\text{KL}}(q \parallel P_\theta)
+\end{equation}
+
+\paragraph*{تعمیم به دیورژانس‌های $f$ و عملگرهای فینشل-یانگ (\en{f-Divergences \& Fenchel-Young Losses})}
+تحقیقات بنیادین روله و همکاران \cite{roulet2025loss} نشان می‌دهد که زیان انتروپی متقاطع کلاسیک و عملگر سافت‌مکس سنتی، تنها یک حالت خاص از خانواده جامع زیان‌های فینشل-یانگ تولیدشده توسط دیورژانس‌های $f$ هستند. فرض کنید تابع $f: \mathbb{R}_+ \to \mathbb{R}$ محدب، مشتق‌پذیر و با شرط $f(1)=0$ باشد. دیورژانس $f$ میان توزیع پیش‌بین $p \in \Delta^k$ روی سیمپلکس احتمال و اندازه مرجع نایکنواخت $q \in \mathbb{R}_+^k$ به صورت زیر تعریف می‌شود:
+\begin{equation}
+    D_f(p, q) = \sum_{j=1}^k q_j f\left(\frac{p_j}{q_j}\right)
+\end{equation}
+با در نظر گرفتن منظم‌ساز محدب $\Omega_f(p; q) = D_f(p, q)$، عملگرهای تعمیم‌یافته $f$-سافت‌ماکس و $f$-سافت‌آرگ‌ماکس در فضای متغیرهای لاجیت $\theta \in \mathbb{R}^k$ از طریق تبدیلات فینشل تعریف می‌گردند \cite{roulet2025loss}:
+\begin{align}
+    \text{softmax}_f(\theta; q) &= \max_{p \in \Delta^k} \left\{ \langle p, \theta \rangle - D_f(p, q) \right\} \\
+    \text{softargmax}_f(\theta; q) &= \arg\max_{p \in \Delta^k} \left\{ \langle p, \theta \rangle - D_f(p, q) \right\}
+\end{align}
+زیان فینشل-یانگ متناظر با این عملگرها که تحدب کامل آن نسبت به لاجیت‌ها اثبات شده است، به صورت تحلیلی برابر است با:
+\begin{equation}
+    \ell_f(\theta, y; q) = \text{softmax}_f(\theta; q) + D_f(y, q) - \langle \theta, y \rangle
+\end{equation}
+طبق قضیه دانسکین (\en{Danskin's Theorem})، گرادیان دقیق این زیان نسبت به لاجیت‌ها معادل تفاضل بردار احتمالات پیش‌بینی‌شده و برچسب حقیقی است:
+\begin{equation}
+    \nabla_\theta \ell_f(\theta, y; q) = \text{softargmax}_f(\theta; q) - y
+\end{equation}
+روله و همکاران \cite{roulet2025loss} با اعمال نظریه دوگان فینشل نشان دادند که محاسبه عملگر $f$-سافت‌آرگ‌ماکس به حل یک معادله ریشه‌یابی اسکالر یک‌بعدی بر حسب متغیر دوگان لاگرانژ $\tau$ تقلیل می‌یابد:
+\begin{equation}
+    \sum_{j=1}^k q_j (f^*)'\left( \max\{\theta_j - \tau, f'(0)\} \right) = 1
+\end{equation}
+که در آن $f^*(v) = \sup_{u \ge 0} \{uv - f(u)\}$ مزدوج لژاندر-فینشل تابع $f$ است. این ریشه با نرخ همگرایی نمایی $2^{-t}$ از طریق الگوریتم تصنیف (\en{Bisection}) قابل حل بر روی سخت‌افزارهای مدرن (\en{GPU/TPU}) است. جدول زیر ارتباط میان انواع دیورژانس‌ها و خواص احتمالی خروجی را تشریح می‌کند:
+
+\begin{table}[htbp]
+\centering
+\caption{تحلیل ساختاری و هندسی خانواده زیان‌های حاصل از دیورژانس‌های $f$ \cite{roulet2025loss}}
+\label{tab:f_divergence_losses}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{نوع دیورژانس (\en{Divergence})} & \textbf{تابع مولد $f(u)$} & \textbf{منفی انتروپی متناظر} & \textbf{تابع زیان حاصله} & \textbf{ویژگی فضای احتمالات} \\
+\midrule
+\en{Kullback-Leibler} & $u \log u$ & \en{Shannon}: $\sum p_j \log p_j$ & \en{Logistic / Cross-Entropy} & متراکم (\en{Dense}), نامحدود \\
+\en{Chi-Square (Pearson)} & $\frac{1}{2}(u^2 - 1)$ & \en{Gini}: $\frac{1}{2}(\|p\|_2^2 - 1)$ & \en{Sparsemax Loss} & کاملاً تنک (\en{Exact Zero Support}) \\
+$\alpha$-\en{Divergence} & $\frac{u^\alpha - \alpha u + (\alpha - 1)}{\alpha(\alpha - 1)}$ & \en{Tsallis Negentropy} & \en{Entmax Loss} & تنک به ازای $\alpha > 1$ \\
+\en{Jensen-Shannon} & $u \log u - (u+1)\log\frac{u+1}{2}$ & \en{JS Negentropy} & \en{JS-Loss} & متراکم، کران‌دار، متقارن \\
+\en{Squared Hellinger} & $(\sqrt{u} - 1)^2$ & \en{Hellinger Negentropy} & \en{Hellinger-Loss} & غیرخطی، هندسی، متراکم \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+بر پایه یافته‌های تجربی \cite{roulet2025loss}، انتخاب مقدار بهینه $\alpha = 1.5$ در دیورژانس‌های خانواده $\alpha$، که نقطه‌ای متعادل میان انتروپی شانون ($\alpha \to 1$) و جینی ($\alpha = 2$) است، در تمامی مراحل پیش‌آموزش، تنظیم دقیق و تقطیر دانش، عملکردی پایدارتر و برتر از زیان سنتی \en{Cross-Entropy} به ثبت می‌رساند.
+
+\paragraph*{آموزش فراتر از پیش‌بینی توکن: تلفات سطح پچ (\en{Patch-Level Training Loss})}
+شائو و همکاران \cite{shao2025beyond} نشان دادند که رویکرد کلاسیک پیش‌بینی توکن بعدی (\en{NTP}) به دلیل تنک بودن شدید چگالی اطلاعات در توکن‌های مجزا، موجب اتلاف منابع محاسباتی و فعال‌سازی بخش اندکی از نورون‌ها در هر گام انتشار رو به جلو می‌شود. با تعریف هزینه محاسباتی پیش‌آموزش به صورت $C \approx 6ND$ (که $N$ تعداد پارامترها و $D$ تعداد توکن‌ها است)، فشرده‌سازی دنباله با ادغام هر $K$ توکن متوالی در یک واحد متراکم موسوم به پچ (\en{Patch}) محقق می‌گردد \cite{shao2025beyond}:
+\begin{equation}
+    E(p_i) = \frac{1}{K} \sum_{k=0}^{K-1} E(x_{iK+k})
+\end{equation}
+مدل ترنسفورمر به جای پیش‌بینی تک‌توکن، تمام $K$ توکن متوالی موجود در پچ آینده را با یک هد خروجی مشترک مدل‌سازی می‌کند. تابع زیان آموزش پچ‌محور به صورت زیر صورتبندی می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{patch}} = - \sum_{i=1}^{T} \sum_{k=0}^{K-1} \log P(x_{iK+k} \mid p_{<i})
+\end{equation}
+در یک برنامه درسی دوسطحی، مدل ابتدا روی سهم $\lambda$ از کل داده‌ها با زیان $\mathcal{L}_{\text{patch}}$ آموزش دیده و سپس روی سهم باقی‌مانده $1-\lambda$ با زیان سنتی سطح توکن جفت می‌شود. نسبت کاهش هزینه کل آموزش برابر با $\frac{\lambda}{K} + (1 - \lambda)$ است که به ازای $K=4$ و $\lambda=2/3$، هزینه کل آموزش بدون افت دقت و پرپلکسیتی دقیقاً نصف ($0.5\times$) می‌گردد \cite{shao2025beyond}.
+
+\paragraph*{قوانین مقیاس‌بندی زیان-به-زیان و حاکمیت داده‌ها (\en{Loss-to-Loss Scaling Laws})}
+مایلوهانان و همکاران \cite{mayilvahanan2025llms} نشان دادند که قوانین مقیاس‌بندی صرفاً محدود به متغیرهای محاسباتی و پارامتر نیستند، بلکه رابطه میان زیان اعتبارسنجی پیش‌آموزش ($L_x$) و زیان در آزمون‌های ارزیابی پایین‌دستی ($L_y$) از یک قانون توانی انتقال‌یافته (\en{Shifted Power Law}) تبعیت می‌کند \cite{mayilvahanan2025llms}:
+\begin{equation}
+    L_y(f_p^{N,D}) \approx K \cdot \left( L_x(f_p^{N,D}) - E_{x \mid p} \right)^\kappa + E_{y \mid p}
+\end{equation}
+که در آن $E_{x \mid p}$ و $E_{y \mid p}$ خطاهای تقلیل‌ناپذیر (\en{Irreducible Errors}) روی توزیع‌های مبدا و مقصد هستند. ارزیابی بیش از ۶۰۰۰ چک‌پوینت نشان می‌دهد که توزیع داده‌های پیش‌آموزش عامل اصلی در تغییر مکان هندسی این خطوط است؛ در حالی که دگرگونی در معماری مدل (نظیر ترنسفورمرهای خودبازگشتی در برابر مدل‌های فضای حالت خطی \model{Mamba})، ساختار توکنایزر، اندازه بافت و بهینه‌سازها هیچ تغییر معناداری در شیب و رفتار این قوانین زیان ایجاد نمی‌کنند \cite{mayilvahanan2025llms}.
+
+\paragraph*{دینامیک نرخ یادگیری و قانون چندتوانی زیان (\en{Multi-Power Law - MPL})}
+لو و همکاران \cite{luo2025multipower} با بررسی فرآیند کاهش نرخ یادگیری در بهینه‌سازهای تصادفی، تابع زیان وابسته به زمان $\mathcal{L}(t)$ را با تجزیه مجموع نرخ یادگیری مدل‌سازی نمودند. با تعریف گام معادل نرخ ثابت $Z(t) = \frac{S(t)}{\eta_0}$ که در آن $S(t) = \sum_{\tau=1}^t \eta_\tau$، زیان لحظه‌ای به صورت زیر ساختاربندی می‌شود:
+\begin{equation}
+    \mathcal{L}(t) = \mathcal{L}_{\text{const}}(Z(t)) - \mathcal{L}_D(t)
+\end{equation}
+جزء اول بر مبنای قانون چینچیلا به فرم توانی بسط می‌یابد:
+\begin{equation}
+    \mathcal{L}_{\text{const}}(Z(t)) = L_0 + A \cdot (S_1(t) + S_W)^{-\alpha}
+\end{equation}
+و جزء دوم تصحیح زوال زیان ناشی از افت نرخ یادگیری است که از طریق مجموع تلسکوپی افت‌های بین‌مرحله‌ای استخراج می‌شود:
+\begin{equation}
+    \mathcal{L}_D(t) = \sum_{k=1}^t B(\eta_{k-1} - \eta_k) \cdot \left[ 1 - \left( C \eta_k^{-\gamma} S_k(t) + 1 \right)^{-\beta} \right]
+\end{equation}
+که در آن $S_k(t) = \sum_{\tau=k}^t \eta_\tau$ است. تحلیل نظری برای توابع زیان درجه دوم $\mathcal{L}(\theta) = \frac{1}{2}(\theta - \theta^*)^\top H (\theta - \theta^*)$ تحت نویز گرادیان گوسی اثبات می‌کند که اگر چگالی مقادیر ویژه هسیان دارای طیف توانی $p(\lambda) \propto \lambda^{-\nu}$ و کواریانس نویز دارای رفتار $\mathbb{E}[\Sigma \mid \lambda] \propto \lambda^{-\rho}\exp(-r\lambda)$ باشد، این قانون چندتوانی دقیقاً پدیدار گشته و نشان می‌دهد که زمان‌بندی زوال رادیکالی-مکعبی (\en{Sqrt-Cube Decay}: $\eta_t = \eta_{\max}(1 - \tau)^{1.5}$) به کمینه‌سازی مطلوب‌تری نسبت به زمان‌بندی کسینوسی سنتی منجر می‌گردد \cite{luo2025multipower}.
+
+\paragraph*{هندسه چشم‌انداز زیان: حوضچه‌ها و هموارسازی تصادفی (\en{Loss Basins \& Parameter Smoothing})}
+چن و همکاران \cite{chen2026unveiling} نشان دادند که اگر چشم‌انداز مدل‌های زبانی بر پایه معیارهای گسسته ارزیابی (موفقیت یا شکست صفر و یک در حل مسئله) به جای مقادیر درست‌نمایی ارزیابی شود، ساختار هندسی پارامتری ویژگی‌های متمایزی بروز می‌دهد:
+\begin{itemize}
+    \item \textbf{حالت غالب (\en{Most-Case Basin}):} در امتداد جهات تصادفی همسانگرد $\delta \sim \mathcal{N}(0, I)$، مدل در یک حوضچه بسیار عریض با کفی کاملاً تخت قرار دارد که در آن عملکرد وظایف پایه، ریاضی و ایمنی مطلقاً ثابت می‌ماند (ثبات معنایی).
+    \item \textbf{بدترین حالت (\en{Worst-Case Cliff}):} در جهت گرادیانی بیشینه تخریب که با بهینه‌سازی $\delta_{\text{worst}} = \arg\max_\delta L(\theta + \alpha \delta)$ تحت قید نرم حاصل می‌شود، چشم‌انداز به صورت یک پرتگاه بی‌نهایت تیز ظاهر شده و قابلیت‌های مدل به سرعت فرو می‌پاشد.
+\end{itemize}
+برای ایجاد کران نظری، مفهوم هموارسازی تصادفی (\en{Randomized Smoothing - RS}) به فضای پارامتریک تعمیم داده شد. تابع عملکرد هموارشده با واریانس $\sigma^2$ به صورت $\bar{\mathcal{S}}(\theta) = \mathbb{E}_{\epsilon \sim \mathcal{N}(0, \sigma^2 I)} [\mathcal{S}(\theta + \epsilon)]$ دارای کران لیپ‌شیتز سراسری است \cite{chen2026unveiling}:
+\begin{equation}
+    \|\nabla_\theta \bar{\mathcal{S}}(\theta)\|_2 \le \frac{1}{\sqrt{2\pi}\sigma}
+\end{equation}
+طبق قانون قوی هموارسازی تصادفی، کران پایین عملکرد مدل پس از تنظیم دقیق (\en{SFT}) نسبت به نقطه شروع $\theta_0$ با استفاده از تابع توزیع تجمعی گوسی استاندارد $\Phi$ به صورت زیر تضمین می‌شود:
+\begin{equation}
+    \bar{\mathcal{S}}(\theta_{\text{sft}}) \ge \Phi \left( \Phi^{-1}(\bar{\mathcal{S}}(\theta_0)) - \frac{\|\theta_{\text{sft}} - \theta_0\|_2}{\sigma} \right)
+\end{equation}
+به منظور انبساط فعال این حوضچه پایداری در فاز پیش‌آموزش، بهینه‌ساز تقویت‌شده با گوسین (\en{GO Optimizer}) زیان را به صورت امید ریاضی روی پارامترهای مختل‌شده کمینه می‌سازد \cite{chen2026unveiling}:
+\begin{equation}
+    \mathcal{L}_{\text{GO}}(x, \theta) = - \mathbb{E}_{\epsilon \sim \mathcal{N}(0, \sigma^2 I)} \left[ \log P(x \mid \theta + \epsilon) \right]
+\end{equation}
+
+\paragraph*{تحلیل مقایسه‌ای پیش‌آموزش و پس‌آموزش: \en{SFT} در برابر نظارت بر برونداد (\en{OS / RL})}
+جاوانمارد، میرزاسلیمانی و میررکنی \cite{javanmard2026theoretical} تعامل ریاضی میان توزیع پیش‌آموزش $\Sigma_0$ و فازهای پس‌آموزش را با استفاده از مدل توجه خطی (\en{Linear Self-Attention - LSA}) در وظایف رگرسیون درون‌متنی فرمول‌بندی کردند. در معماری \en{LSA} با وزن‌های ماتریسی $\tilde{V}$ و $\tilde{W}=I$، گام بازگشتی تخمین بردار وزن حقیقی $w^*_\tau \sim \mathcal{N}(0, I_d)$ به صورت زیر است:
+\begin{equation}
+    \hat{w}_{i+1, \tau} = \hat{w}_{i, \tau} + \tilde{V} S_\tau (\hat{w}_{i, \tau} - w^*_\tau)
+\end{equation}
+که در آن $S_\tau$ کواریانس تجربی نمونه‌های پرامپت است. 
+در رویکرد \en{SFT} با نظارت بر گام‌های استدلال زنجیره فکر (\en{CoT})، با تعریف ماتریس داده‌های پیش‌آموزش $\Gamma_0 = (1 + \frac{1}{n})\Sigma_0 + \frac{1}{n}\text{tr}(\Sigma_0)I_d$ و ماتریس‌های تجربی $\Omega = [w^*_1, \dots, w^*_B]$ و $\Phi = [S_1 w^*_1, \dots, S_B w^*_B]$، جواب تحلیلی کمینه‌ساز زیان که در نزدیک‌ترین فاصله فروبنیوس به پیش‌آموزش قرار دارد عبارت است از \cite{javanmard2026theoretical}:
+\begin{equation}
+    \tilde{V}^* = -\eta \Omega \Phi^\dagger - \Gamma_0^{-1}(I - \Phi \Phi^\dagger)
+\end{equation}
+تحلیل مجانبی با نظریه ماتریس‌های تصادفی (\en{Random Matrix Theory}) اثبات می‌کند که هرگاه توزیع داده‌های \en{SFT} حاوی مؤلفه‌های تداخل با پیش‌آموزش باشد، خطای آزمون دچار پدیده نزول دوگانه در مرز نسبت تعداد نمونه به بعد ($B/d \to 1$) می‌شود و کمینه خطا تنها با حجم داده محدود و با کیفیت بالا در زیرفضای هدف حاصل می‌گردد.
+
+در نقطه مقابل، در نظارت بر برونداد (\en{Outcome Supervision - OS}) که سنگ‌بنای الگوریتم‌های \en{RL} است، زیان تنها بر خطای گام نهایی $k$ اعمال می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{OS}} = \frac{1}{2B} \sum_{\tau=1}^B \|(I + \tilde{V} S_\tau)^k w^*_\tau\|_2^2
+\end{equation}
+با تعریف $M_\tau = I + \tilde{V} S_\tau$، نرم طیفی ماتریس هسیان در نزدیکی کمینه سراسری از رابطه زیر تبعیت می‌کند:
+\begin{equation}
+    \lambda_{\max}(H_{\text{OS}}) \propto \frac{1}{B} \sum_{\tau=1}^B k^2 \cdot \rho(M_\tau)^{2k-2}
+\end{equation}
+که در آن $\rho(M_\tau)$ شعاع طیفی است. این رابطه نشان می‌دهد که با افزایش مراحل استدلال $k$، انحنای چشم‌انداز به صورت درجه دوم و توانی رشد کرده و به شدت ناپایدار می‌شود. این پدیده علت ریاضی بروز رفتار «بیش‌تفکری» (\en{Overthinking}) در مدل‌های استدلالی است و لزوم مقیاس بسیار بالای داده‌ها ($B$ بزرگ) در آموزش مبتنی بر \en{RL} جهت مهار نوسانات گرادیان را اثبات می‌نماید \cite{javanmard2026theoretical}.
+
+\paragraph*{تحول هم‌ترازی: از \en{RLHF} تا \en{DPO} و تنش‌های انتخاب اجتماعی (\en{Social Choice \& Alignment})}
+هم‌ترازی زبانی بر پایه ترجیحات انسانی عمدتاً از مدل مقایسه‌ای برادلی-تری-لوس (\en{Bradley-Terry-Luce - BTL}) نشأت می‌گیرد \cite{bradley1952rank, ouyang2022training, xiao2024survey}:
+\begin{equation}
+    P^*(y_w \succ y_l \mid x) = \sigma(r^*(x, y_w) - r^*(x, y_l)) = \frac{1}{1 + \exp(r^*(x, y_l) - r^*(x, y_w))}
+\end{equation}
+در روش بهینه‌سازی خط‌مشی نزدیک (\en{PPO}) در چارچوب \en{RLHF}، هدف بهینه‌سازی سیاست $\pi_\theta$ تحت جریمه واگرایی \en{KL} نسبت به مدل مبنا $\pi_{\text{ref}}$ به صورت زیر است:
+\begin{equation}
+    \max_{\pi_\theta} \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta} [r(x, y)] - \beta \mathcal{D}_{\text{KL}}(\pi_\theta(y \mid x) \parallel \pi_{\text{ref}}(y \mid x))
+\end{equation}
+پاسخ تحلیلی این مسئله یک توزیع بولتزمن است:
+\begin{equation}
+    \pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\left(\frac{1}{\beta} r(x, y)\right)
+\end{equation}
+با اعمال لگاریتم و بازنویسی پاداش بر حسب نسبت احتمالات سیاست و تفاضل‌گیری روی جفت ترجیحی $(y_w, y_l)$، تابع افراز نامعلوم $Z(x)$ کاملاً حذف شده و تابع زیان بهینه‌سازی مستقیم ترجیحات (\en{DPO}) استخراج می‌گردد \cite{rafailov2023direct, xiao2024survey}:
+\begin{equation}
+    \mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = - \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]
+\end{equation}
+
+با این حال، شیائو و همکاران \cite{xiao2025theoretical} نشان دادند که فرض ترایایی در مدل \en{BTL} در صورت وجود چرخه‌های کندورسه (\en{Condorcet Cycles} نظیر $y_1 \succ y_2 \succ y_3 \succ y_1$) با شکست مواجه می‌شود. در چنین شرایطی، برآورد بیشینه‌احتمال (\en{MLE}) در \en{RLHF} به طور ضمنی **قاعده شمارش بوردا (\en{Borda Count Rule})** را پیاده می‌کند:
+\begin{equation}
+    r(y_i) > r(y_j) \iff \text{BC}_i > \text{BC}_j, \quad \text{BC}_i = \sum_{k \ne i} P(y_i \succ y_k)
+\end{equation}
+از آنجا که قاعده بوردا اصل سازگاری کندورسه را نقض می‌کند، \en{RLHF} ممکن است برنده واقعی را نادیده بگیرد. علت موفقیت تجربی \en{RLHF} این است که در عمل هر جفت پاسخ تنها توسط یک ارزیاب برچسب می‌خورد (برچسب‌های دودویی $0$ یا $1$) که تحت این فرض، سازگاری اکثریتی حفظ می‌شود. برای داده‌های تجمیعی چند ارزیاب، شیائو و همکاران روش \en{Copeland RLHF} را بر مبنای تابع مشخصه برد اکثریت معرفی نمودند تا **قاعده کوپلند (\en{Copeland Rule})** پیاده‌سازی شود \cite{xiao2025theoretical}:
+\begin{equation}
+    \mathcal{L}_{\text{Copeland}} = - \sum_{y_i, y_j, i \ne j} \mathbb{I}\left[ P(y_i \succ y_j) > \frac{1}{2} \right] \cdot \log \sigma(r(y_i) - r(y_j))
+\end{equation}
+
+\paragraph*{پیشرفت‌های نوین هم‌ترازی: مهار انفجار گرادیان با \en{SPO} و مقاوم‌سازی توزیعی با \en{Dr. DPO}}
+تان \cite{tan2025principled} یک تناقض بنیادین را در زیان \en{DPO} استاندارد اثبات کرد: در حالی که هدف بهینگی مستلزم همگرایی تفاضل لاجیت‌ها به مقداری متناهی است، تابع لاگ-سیگموئید \en{DPO} مدل را به سمت بی‌نهایت راندن تفاضل لاجیت‌ها سوق می‌دهد. مشتق جزئی زیان \en{DPO} نسبت به احتمال برونداد ردشده $\Pi_l = \pi_\theta(y_l \mid x)$ برابر است با:
+\begin{equation}
+    \frac{\partial \mathcal{L}_{\text{DPO}}}{\partial \Pi_l} = \beta \cdot \sigma(-\beta \cdot \text{logits}) \cdot \frac{1}{\Pi_l}
+\end{equation}
+هنگامی که مدل در جفت‌های واضح اطمینان بالایی کسب می‌کند، $\Pi_l \to 0$ شده و در نتیجه کسر $\frac{1}{\Pi_l}$ منفجر می‌گردد. این امر موجب ناپایداری عددی و هک پاداش می‌شود. برای حل این مشکل، زیان بهینه‌سازی پایدار ترجیحات (\en{Stable Preference Optimization - SPO}) با تکیه بر تابع کران‌دار $f(z) = -z e^{-z}$ با اکسترمم در $z=1$ معرفی شد \cite{tan2025principled}:
+\begin{equation}
+    \mathcal{L}_{\text{SPO}}(\theta) = - (\beta \cdot \text{logits}) \exp(-\beta \cdot \text{logits}) - \left( \alpha \log \frac{\pi_{\text{ref}}(y_l \mid x)}{\pi_\theta(y_l \mid x)} \right) \exp\left(-\alpha \log \frac{\pi_{\text{ref}}(y_l \mid x)}{\pi_\theta(y_l \mid x)}\right)
+\end{equation}
+در این فرمول، با میل کردن $\Pi_l \to 0$، ترم نمایی $e^{-\beta \cdot \text{logits}}$ با سرعتی به مراتب بیشتر به صفر میل کرده و از انفجار گرادیان جلوگیری می‌کند.
+
+از سوی دیگر، وو و همکاران \cite{wu2025drdpo} برای مهار نویزهای جفتی (جابجایی برچسب‌های مرجح و غیرمرجح)، چارچوب بهینه‌سازی مقاوم توزیعی ترجیحات مستقیم (\model{Dr. DPO}) را بر مبنای حل دوگان لاگرانژ در مجموعه عدم قطعیت دیورژانس $\phi$ صورتبندی کردند:
+\begin{equation}
+    \mathcal{L}_{\text{Dr. DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\beta' \log \mathbb{E}_{\mathcal{O}} \left[ \exp\left( \frac{h_{\text{DPO}}(x, y_w, y_l)}{\beta'} \right) \right]
+\end{equation}
+گرادیان این تابع زیان نشان می‌دهد که وزن‌دهی انطباقی $w(x, y_w, y_l) \propto \exp(h_{\text{DPO}} / \beta')$ به صورت پویا اثر داده‌های نویزی و نامنطبق با گرادیان را صفر می‌کند. همچنین طبق قضیه مک‌دیارمید (\en{McDiarmid's Inequality})، کران بالای تعمیم مدل روی توزیع ایده‌آل بدون نویز $\mathcal{O}'$ به صورت تحلیلی اثبات شده است \cite{wu2025drdpo}:
+\begin{equation}
+    \mathcal{L}_{\mathcal{O}'} \le \mathcal{L}_{\text{Dr. DPO}}^N + \frac{2b \exp((b-a)/\beta')}{N - 1 + \exp((b-a)/\beta')} \sqrt{\frac{N}{2} \ln \frac{1}{\delta}}
+\end{equation}
+
+\paragraph*{تعمیم تئوریک سَوِج و رهایی از قید تحدب زیان (\en{DPO Unchained})}
+ژو و همکاران \cite{zhou2026dpo} با شکستن وابستگی انحصاری الگوریتم‌های هم‌ترازی به مدل برادلی-تری، نشان دادند که بهینه‌سازی ترجیحات تحت تریپتیک جامع $(\ell, F, \tilde{\ell})$ در نظریه تصمیم سَوِج (\en{Savage's Decision Theory}) و ساختار موضوعی \en{KLST*} قابل تعریف است:
+\begin{itemize}
+    \item \textbf{قضیه رهایی از مدل انتخاب انسانی (Theorem 4.3):} به ازای هر زیان جایگزین اکیداً صعودی $\psi$ و هر تابع انتخاب انسانی $F$ (شامل مدل‌های با امکان انصراف یا \en{Abstention})، همواره یک زیان صریحاً سره (\en{Strictly Proper}) وجود دارد به گونه‌ای که $\psi = \tilde{\ell}_0 \circ F$.
+    \item \textbf{عدم نیاز به تحدب تابع زیان (\en{Convexity is Dispensable}):} توابع زیان غیرمحدب ملایم با خاصیت پایداری شیب می‌توانند بدون نقض مبانی تئوریک در آموزش ترجیحات استفاده شوند.
+    \item \textbf{قضیه یکتایی لگاریتم سَوِج (Theorem 5.1):} در صورتی که زیان تفکیک‌پذیر باشد ($\ell_i(p) = \ell(p_i)$) و تعداد کلاس‌ها بیش از دو باشد ($n > 2$)، تنها زیان مجاز که شرط سره بودن را ارضا می‌کند، زیان لگاریتمی (\en{Log-Loss / KL Divergence}) است. خروج از \en{KL} بدون نقض اصول موضوعه سَوِج، مستلزم تجمیع تلفات دوتایی مانند \model{ORPO} است \cite{zhou2026dpo}.
+\end{itemize}
+
+\paragraph*{تعمیم ضعیف به قوی: واگرایی \en{KL} پیشرو در برابر معکوس (\en{Weak-to-Strong Generalization})}
+یائو و همکاران \cite{yao2025revisiting} و گان و همکاران \cite{gan2026beyond} دینامیک انتقال نظارت از یک مدل ضعیف ($F_w$) به یک مدل قوی ($F_{sw}$) را بررسی کردند. تفاوت رفتاری توابع واگرایی در این فرآیند تعیین‌کننده است:
+\begin{itemize}
+    \item \textbf{دیورژانس \en{KL} پیشرو (\en{Forward KL} یا \en{Mass-Covering}):} به دلیل ماهیت پوشش توده، مدل قوی را وادار می‌کند تمام نواحی توزیع مدل ضعیف را پوشش دهد که منجر به برازش بر روی برچسب‌های نویزی کلاس‌های فرعی می‌شود.
+    \item \textbf{دیورژانس \en{KL} معکوس (\en{Reverse KL} یا \en{Mode-Seeking}):} دارای خاصیت مودیابی و تحمیل صفر (\en{Zero-Forcing}) است؛ بدین معنا که مدل قوی تنها بر روی مدهای با اطمینان بالای ناظر ضعیف تمرکز کرده و مناطق با احتمال ناچیز را حذف می‌کند.
+\end{itemize}
+بر پایه برابری فیثاغورسی در هندسه دیورژانس‌های برگمن، اثبات شده است که آموزش لایه نهایی مدل قوی با \en{Reverse KL} تضمین می‌کند که عملکرد دانش‌آموز قوی حداقل به اندازه میزان عدم توافق با معلم ضعیف بهبود می‌یابد \cite{yao2025revisiting}:
+\begin{equation}
+    \mathcal{D}_{\text{KL}}(F^*, F_{sw}) \le \mathcal{D}_{\text{KL}}(F^*, F_w) - \mathcal{D}_{\text{KL}}(F_{sw}, F_w)
+\end{equation}
+که در حضور تعداد متناهی داده‌های آموزشی، با اضافه شدن ترم‌های پیچیدگی رادماخر و خطای تقریب $\mathcal{O}(\sqrt{\varepsilon}) + \mathcal{O}(\sqrt{C_{\mathcal{F}}/n})$ همچنان کران‌دار باقی می‌ماند.
+
+\paragraph*{مدل‌های پاداش و ارزیابی در سیستم‌های مولد و بازیابی (\en{Reward Modeling \& RAG Evaluation})}
+ژونگ و همکاران \cite{zhong2025reward} و تِروِن و همکاران \cite{terven2025comprehensive} نقش توابع زیان را در سطوح مختلف مدل‌های پاداش ارزیابی کردند:
+\begin{itemize}
+    \item \textbf{مدل‌های پاداش برونداد (\en{ORM}):} آموزش با زیان انتروپی متقاطع دوتایی روی درستی پاسخ نهایی $\mathcal{L}_{\text{ORM}} = -(\hat{y} \log y + (1 - \hat{y}) \log(1 - y))$.
+    \item \textbf{مدل‌های پاداش فرآیند (\en{PRM}):} نظارت گام‌به‌گام با محاسبه زیان روی تک‌تک مراحل استدلال با هدف مهار خطای مثبت کاذب.
+    \item \textbf{توابع زیان ترکیبی در \en{RAG}:} ادغام زیان‌های تضادی (\en{Contrastive}) و رتبه‌بندی حاشیه‌ای (\en{Marginal Ranking}) برای بخش بازیابی با زیان انتروپی متقاطع توکنی جهت تولید پاسخ \cite{terven2025comprehensive}:
+    \begin{equation}
+        \mathcal{L}_{\text{RAG}} = \lambda_{\text{gen}} \mathcal{L}_{\text{CE}} + \lambda_{\text{ret}} \max(0, m - f(q, p) + f(q, n))
+    \end{equation}
+\end{itemize}
+
+\paragraph*{دیاگرام جامع تبارشناسی و ساختار توابع زیان (\en{Taxonomy Diagram})}
+در شکل زیر، ساختار درخت تکامل و روابط مفهومی میان توابع زیان مدل‌های زبانی از مبانی نظریه اطلاعات تا پارادایم‌های نوین هم‌ترازی ترسیم شده است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.85,
+    every node/.style={transform shape},
+    box/.style={rectangle, rounded corners=4pt, draw=blue!70!black, fill=blue!5, very thick, minimum width=3.2cm, minimum height=1.0cm, align=center, font=\small\bfseries},
+    prebox/.style={rectangle, rounded corners=4pt, draw=teal!70!black, fill=teal!10, very thick, minimum width=3.2cm, minimum height=1.0cm, align=center, font=\small\bfseries},
+    optbox/.style={rectangle, rounded corners=4pt, draw=purple!70!black, fill=purple!10, very thick, minimum width=3.2cm, minimum height=1.0cm, align=center, font=\small\bfseries},
+    alignbox/.style={rectangle, rounded corners=4pt, draw=orange!80!black, fill=orange!10, very thick, minimum width=3.2cm, minimum height=1.0cm, align=center, font=\small\bfseries},
+    frontierbox/.style={rectangle, rounded corners=4pt, draw=red!70!black, fill=red!10, very thick, minimum width=3.2cm, minimum height=1.0cm, align=center, font=\small\bfseries},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80!black}
+]
+
+    % Row 1: Foundations
+    \node[box] (info) at (0, 0) {مبانی نظریه اطلاعات\\ \en{Information Theory \& MLE}};
+    \node[box] (savage) at (6, 0) {نظریه تصمیم و دوگان فینشل\\ \en{Savage Properness \& Duality}};
+    \node[box] (bregman) at (12, 0) {واگرایی‌های برگمن و کواریانس\\ \en{Bregman Divergences}};
+
+    % Row 2: Pretraining
+    \node[prebox] (ntp) at (0, -2.5) {پیش‌بینی توکن بعدی\\ \en{Token-Level NLL / CCE}};
+    \node[prebox] (fdiv) at (6, -2.5) {زیان‌های فینشل-یانگ\\ \en{f-Divergence Losses}};
+    \node[prebox] (patch) at (12, -2.5) {آموزش سطح پچ\\ \en{Patch-Level Training}};
+
+    % Row 3: Optimization & Landscapes
+    \node[optbox] (basin) at (0, -5.0) {چشم‌انداز حوضچه‌ای و هموارسازی\\ \en{Loss Basins \& GO Optimizer}};
+    \node[optbox] (mpl) at (6, -5.0) {قانون چندتوانی نرخ یادگیری\\ \en{Multi-Power Law (MPL)}};
+    \node[optbox] (lsa) at (12, -5.0) {تحلیل توجه خطی در \en{SFT}\\ \en{LSA Double Descent}};
+
+    % Row 4: Classical Alignment
+    \node[alignbox] (rlhf) at (3, -7.5) {هم‌ترازی سنتی با قید \en{KL}\\ \en{PPO / Borda-Rule RLHF}};
+    \node[alignbox] (dpo) at (9, -7.5) {بهینه‌سازی مستقیم ترجیحات\\ \en{Standard DPO (Bradley-Terry)}};
+
+    % Row 5: Robust Alignment Frontiers
+    \node[frontierbox] (drdpo) at (-0.5, -10.0) {مقاوم‌سازی توزیعی\\ \en{Dr. DPO (DRO)}};
+    \node[frontierbox] (spo) at (4.0, -10.0) {تثبیت گرادیان متناهی\\ \en{SPO (Stable Target)}};
+    \node[frontierbox] (unchained) at (8.5, -10.0) {انتخاب نامحدود سَوِج\\ \en{DPO Unchained}};
+    \node[frontierbox] (w2sg) at (13.0, -10.0) {تعمیم ضعیف به قوی\\ \en{W2SG (Reverse KL)}};
+
+    % Connections
+    \draw[arrow] (info) -- (ntp);
+    \draw[arrow] (savage) -- (fdiv);
+    \draw[arrow] (bregman) -- (patch);
+
+    \draw[arrow] (ntp) -- (basin);
+    \draw[arrow] (fdiv) -- (mpl);
+    \draw[arrow] (patch) -- (lsa);
+
+    \draw[arrow] (basin) -- (rlhf);
+    \draw[arrow] (mpl) -- (rlhf);
+    \draw[arrow] (mpl) -- (dpo);
+    \draw[arrow] (lsa) -- (dpo);
+
+    \draw[arrow] (rlhf) -- (drdpo);
+    \draw[arrow] (dpo) -- (spo);
+    \draw[arrow] (dpo) -- (unchained);
+    \draw[arrow] (rlhf) -- (w2sg);
+    \draw[arrow] (dpo) -- (w2sg);
+
+\end{tikzpicture}
+\caption{تبارشناسی ساختاری و روابط مفهومی توابع زیان نوین در چرخه یادگیری مدل‌های زبانی}
+\label{fig:loss_taxonomy_diagram}
+\end{figure}

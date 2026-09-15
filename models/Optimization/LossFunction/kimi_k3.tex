@@ -1,1 +1,73 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{مبانی معماری و ریاضیاتی اثرگذار بر تابع زیان (\en{Architectural Foundations})}
+مدل \model{Kimi K3} با ۲.۸ تریلیون پارامتر کل و ۱۰۴ میلیارد پارامتر فعال، یک مدل ترکیبی مبتنی بر توجه دلتای کیمی (\en{Kimi Delta Attention - KDA})، پس‌ماندهای توجهی (\en{Attention Residuals - AttnRes}) و کارشناس‌های پنهان پایدار (\en{Stable LatentMoE}) با ۸۹۶ کارشناس است \cite{kimi2026k3}. فرمول بازگشتی لایه \en{KDA} برای بردار وضعیت $S_t \in \mathbb{R}^{d_k \times d_v}$ به‌صورت زیر است:
+\begin{equation}
+    S_t = \left( I - \beta_t k_t k_t^T \right) \text{Diag}(\alpha_t) S_{t-1} + \beta_t k_t v_t^T
+\end{equation}
+برای پرهیز از انفجار مقادیر در فرمول‌بندی دسته‌ای، لگاریتم فاکتور میرایی کانالی $g_t^h$ با تابع سیگموئید مقیاس‌شده کران‌دار می‌گردد:
+\begin{equation}
+    g_t^h = g_{\min} \cdot \sigma\left(e^{A_h} z_t^h\right) \in (g_{\min}, 0)^{d_k}, \quad \alpha_t^h = \exp(g_t^h) \in (e^{g_{\min}}, 1)^{d_k}
+\end{equation}
+با تعیین ثابت $g_{\min} = -5$، تضمین می‌شود که ضریب میرایی تجمعی در بازه مجاز پویای محاسبات \en{BF16} باقی بماند.
+
+در لایه‌های فیدفوروارد، برای مهار واگرایی فعال‌سازها ناشی از ضرب‌های متوالی، تابع فعال‌سازی غیرخطی کران‌دار \en{SiTU-GLU} معرفی شده است:
+\begin{equation}
+    \text{SiTU-GLU}(x) = \left[ \beta_1 \tanh\left(\frac{W_g x}{\beta_1}\right) \odot \sigma(W_g x) \right] \odot \left[ \beta_2 \tanh\left(\frac{W_u x}{\beta_2}\right) \right]
+\end{equation}
+با ضرایب $\beta_1 = 4$ و $\beta_2 = 25$، کران اکید خروجی $\|\text{SiTU-GLU}(x)\|_\infty \le 100$ حاصل می‌شود که از جهش‌های شدید گرادیان پیشگیری می‌کند.
+
+\paragraph*{استخراج ریاضیاتی تعادل چندکی کارشناس‌ها (\en{Quantile Balancing - QB})}
+تخصیص بهینه توکن‌ها به ۸۹۶ کارشناس در قالب یک مسئله بهینه‌سازی خطی عدد صحیح مدل می‌شود:
+\begin{equation}
+    \max_{x_{i,j} \in \{0, 1\}} \sum_{i=1}^m \sum_{j=1}^n x_{i,j} s_{i,j} \quad \text{s.t.} \quad \sum_{j=1}^n x_{i,j} = k, \quad \sum_{i=1}^m x_{i,j} = \frac{mk}{n}
+\end{equation}
+با رهاسازی قید عدد صحیح به بازه $x_{i,j} \in [0, 1]$ و تشکیل فرم دوگان لاگرانژ با ضرایب $\alpha_i$ و $\beta_j$:
+\begin{equation}
+    \mathcal{L}(x, \alpha, \beta) = \sum_{i,j} x_{i,j} s_{i,j} - \sum_i \alpha_i \left(\sum_j x_{i,j} - k\right) - \sum_j \beta_j \left(\sum_i x_{i,j} - \frac{mk}{n}\right)
+\end{equation}
+بر اساس قضیه دوگان قوی، تابع هدف دوگان کمینه‌سازی عبارت است از:
+\begin{equation}
+    \min_{\alpha, \beta} \mathcal{D}(\alpha, \beta) = \sum_{i,j} \max(0, s_{i,j} - \alpha_i - \beta_j) + k \sum_i \alpha_i + \frac{mk}{n} \sum_j \beta_j
+\end{equation}
+با صفر قرار دادن زیرگرادیان نسبت به متغیر دوگان کارشناس $\beta_j$:
+\begin{equation}
+    \frac{\partial \mathcal{D}}{\partial \beta_j} = \frac{mk}{n} - \sum_{i=1}^m \mathbb{I}(s_{i,j} - \alpha_i - \beta_j > 0) = 0
+\end{equation}
+این تساوی ایجاب می‌کند که مقدار آستانه کارشناس $\beta_j^*$ منطبق بر چندک توزیع مارجین امتیازها نسبت به برش توکن باشد:
+\begin{equation}
+    \beta_j^* = \text{quantile}_{1 - k/n}\left( s_{:,j} - \alpha \right)
+\end{equation}
+در فرایند آموزش، بردار بایاس با رابطه‌ی $b = -\beta^*$ به‌روزرسانی شده و در زمان استنتاج ثابت می‌ماند که تعادل بار بدون هیچ‌گونه نیاز به تلفات کمکی محقق شود.
+
+\paragraph*{توابع زیان فاز پس‌آموزش و کدگشایی حدسی (\en{Post-Training \& Speculative Losses})}
+در فاز تقطیر سیاست درون‌خطی چنداستادی (\en{MOPD})، پاداش توکنی تقطیر با برش متقارن $R_{\max}$ محاسبه می‌شود:
+\begin{equation}
+    r_{\text{opd}}^d(y_t \mid e, x, y_{<t}) = \text{clip}\left( \text{sg}\left[ \log \frac{\pi_{\text{teacher}}^{(d,e)}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid e, x, y_{<t})} \right], -R_{\max}, R_{\max} \right)
+\end{equation}
+جهت آموزش لایه پیش‌نویس \en{MTP} برای مدل کدگشایی حدسی بر مبنای الگوریتم \en{EAGLE-3}، به‌جای تقریب‌های رایج \en{KL}، زیان نرخ پذیرش مستقیم (\en{LK Loss}) کمینه می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{LK}} = - \log \sum_{v \in \mathcal{V}} \min\left( P_{\text{target}}(v), P_{\text{draft}}(v) \right)
+\end{equation}
+که در آن مستقیماً هم‌پوشانی آماری دو توزیع بیشینه شده و پذیرش توکن‌های حدسی در مرحله استنتاج سرعت می‌یابد.
+
+\paragraph*{دیاگرام حل دوگان \en{Quantile Balancing} و تعادل بار}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    font=\small,
+    box/.style={rectangle, draw=teal!70!black, fill=teal!5, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    opt/.style={rectangle, draw=blue!70!black, fill=blue!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    res/.style={rectangle, draw=red!70!black, fill=red!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (primal) {برنامه خطی تخصیص: $\max \sum x_{ij}s_{ij}$};
+    \node[opt, right=of primal] (dual) {تابع هدف دوگان لاگرانژ $\mathcal{D}(\alpha, \beta)$};
+    \node[res, right=of dual] (quantile) {استخراج تحلیلی چندک: $\beta_j^* = \text{quantile}_{1-k/n}$};
+    \node[box, below=of dual] (routing) {هدایت کارشناس‌ها با بایاس تثبیت‌شده: $\text{Top-}k(s + b)$};
+    
+    \draw[arrow] (primal) -- (dual);
+    \draw[arrow] (dual) -- (quantile);
+    \draw[arrow] (quantile) |- (routing);
+\end{tikzpicture}
+\end{center}

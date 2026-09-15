@@ -1,1 +1,47 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مبانی معماری و تعادل بار در پیش‌آموزش (\en{Architectural Foundations})}
+سری \model{Qwen3} دربرگیرنده مدل‌های متراکم و \en{MoE} از مقیاس ۰.۶ تا ۲۳۵ میلیارد پارامتر است \cite{qwen2025v3}. در معماری توجه، بایاس لایه‌های \en{QKV} حذف شده و نرمال‌سازی هدهای پرسش و کلید (\en{QK-Norm}) برای تثبیت ضرب‌های ماتریسی در پیش‌آموزش ۳۶ تریلیون توکنی تعبیه شده است:
+\begin{equation}
+    \text{Attn}(Q, K, V) = \text{Softmax}\left( \frac{\text{RMSNorm}(Q) \cdot \text{RMSNorm}(K)^T}{\sqrt{d_k}} \right) V
+\end{equation}
+در مدل پرچمدار \en{Qwen3-235B-A22B}، کارشناس مشترک حذف شده و زیان تعادل بار در سطح کل دسته محاسباتی (\en{Global-Batch Load Balancing Loss}) \cite{qiu2025demons} اعمال می‌شود تا تخصص‌پذیری کارشناس‌ها ارتقا یابد.
+
+\paragraph*{ادغام حالت تفکر و ساختار تابع زیان (\en{Thinking Mode Fusion})}
+پس از فازهای پیش‌آغازین زنجیره تفکر طولانی (\en{Long-CoT}) و \en{Reasoning RL} با الگوریتم \en{GRPO}، فاز ادغام حالت تفکر اجرا می‌شود. در این مرحله، مدل توانایی تفکر عمیق را با پاسخگویی مستقیم و سریع تلفیق می‌کند. پرامپت‌ها با پرچم‌های \en{/think} یا \en{/no\_think} نشانه‌گذاری می‌شوند. برای حالت بدون تفکر، یک بلوک تفکر خالی $\langle\text{think}\rangle\langle/\text{think}\rangle$ درج می‌شود. تابع زیان ریزتنظیم نظارت‌شده (\en{SFT}) به‌صورت زیر تفکیک می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{Fusion}}(\theta) = - \sum_{t \in \mathcal{T}_{\text{resp}}} \log P_\theta(y_t \mid x, y_{<t}, \text{flag}) - \sum_{t \in \mathcal{T}_{\text{think}}} \mathbb{I}(\text{flag} = \text{think}) \log P_\theta(y_t \mid x, y_{<t})
+\end{equation}
+این ساختار به مدل امکان می‌دهد با قطع فرآیند تفکر در هر طول دلخواه و درج پیام خاتمه تفکر، فوراً به تولید پاسخ نهایی بر پایه استدلال‌های ناقص بپردازد که بنیان کنترل بودجه تفکر است.
+
+\paragraph*{تقطیر از مدل‌های قوی به ضعیف (\en{Strong-to-Weak Distillation})}
+برای مدل‌های سبک‌وزن سری \model{Qwen3}، مراحل سنگین یادگیری تقویتی جای خود را به تقطیر مستقیم دو مرحله‌ای می‌دهند:
+\begin{enumerate}
+    \item \textbf{تقطیر برون‌خطی (\en{Off-Policy}):} آموزش با آنتروپی متقاطع روی خروجی‌های هر دو حالت تفکری و غیرتفکری تولیدشده توسط مدل معلم.
+    \item \textbf{تقطیر درون‌خطی (\en{On-Policy}):} دانش‌آموز بر روی پرامپت‌ها نمونه‌برداری کرده و واگرایی کولبک-لایبلر توزیع لاجیت آن نسبت به مدل پرچمدار کمینه می‌شود:
+    \begin{equation}
+        \mathcal{L}_{\text{Distill}}(\theta) = \mathbb{E}_{x, y \sim \pi_\theta} \left[ \sum_{t=1}^{|y|} \mathbb{D}_{\text{KL}}\left( \pi_\theta(\cdot \mid x, y_{<t}) \;\parallel\; \pi_{\text{Teacher}}(\cdot \mid x, y_{<t}) \right) \right]
+    \end{equation}
+\end{enumerate}
+این روش با صرف تنها یک‌دهم زمان محاسباتی \en{GPU}، دقت و پتانسیل کاوشگری بالاتری (شاخص \en{Pass@64}) نسبت به اجرای مستقیم \en{RL} بر روی مدل‌های کوچک پدید می‌آورد.
+
+\paragraph*{دیاگرام همجوشی حالت‌های تفکر و تقطیر درون‌خطی در \model{Qwen3}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.5cm,
+    font=\small,
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    flag/.style={rectangle, draw=purple!70!black, fill=purple!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    loss/.style={rectangle, draw=red!70!black, fill=red!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (input) {ورودی با پرچم \en{/think} یا \en{/no\_think}};
+    \node[flag, right=of input] (branch) {تفکیک ساختار: بلوک تفکر فعال یا خالی};
+    \node[loss, right=of branch] (fusion) {زیان تلفیق حالت‌ها $\mathcal{L}_{\text{Fusion}}$};
+    \node[box, below=of branch] (distill) {تقطیر لاجیت به مدل‌های سبک $\mathcal{L}_{\text{Distill}}$};
+    
+    \draw[arrow] (input) -- (branch);
+    \draw[arrow] (branch) -- (fusion);
+    \draw[arrow] (branch) -- (distill);
+\end{tikzpicture}
+\end{center}

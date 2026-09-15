@@ -1,1 +1,52 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{مدل‌سازی فرآیند تصمیم‌گیری مارکوف عاملی (\en{Agentic MDP})}
+در سری \model{MiniMax-M2}، تعامل عامل با محیط به عنوان یک فرآیند تصمیم‌گیری مارکوف تعمیم‌یافته مدل‌سازی می‌شود: $\mathcal{M} = (\mathcal{S}, \mathcal{A}, \mathcal{T}, \mathcal{R}, \gamma)$ \cite{minimax2026m2}. وضعیت $s_t \in \mathcal{S}$ بیانگر کل کانتکست موجود (شامل دستور اولیه، تاریخچه گفتگو و نتایج پیشین ابزارها) و عمل $a_t \in \mathcal{A}$ به عنوان یک توالی تولیدی از مدل زبانی (ترکیبی از زنجیره تفکر و فراخوانی ساختاریافته ابزار) در نظر گرفته می‌شود. انتقال وضعیت $s_{t+1} = f_{\text{trans}}(s_t, a_t, o_t)$ شامل مدیریت کانتکست، خلاصه‌سازی و دریافت خروجی ابزار $o_t$ از محیط بیرونی است.
+
+\paragraph*{بهینه‌سازی سیاست با نمونه‌برداری بااهمیت برش‌خورده (\en{CISPO})}
+برای آموزش پایدار رفتارهای عاملی افق-بلند، الگوریتم \en{CISPO} معرفی شده است. در این الگوریتم، عملگر توقف گرادیان $\text{sg}(\cdot)$ مستقیماً بر نسبت وزن‌های اهمیت اثر داده می‌شود تا از خطاهای تقریب مرتبه دوم و نوسانات ناپایدار ژاکوبین جلوگیری شود:
+\begin{equation}
+    \mathcal{J}_{\text{CISPO}}(\theta) = \mathbb{E} \left[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \text{sg}\left( \hat{r}_{i,t}(\theta) \right) \hat{A}_{i,t} \log \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \right]
+\end{equation}
+نسبت اهمیت به‌صورت نامتقارن با کران پایین صفر برش می‌خورد:
+\begin{equation}
+    \hat{r}_{i,t}(\theta) = \text{clip}\left( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}, \; 0, \; 1 + \epsilon_{\text{high}}^{\text{IS}} \right)
+\end{equation}
+کران صفر به مدل اجازه می‌دهد عمل‌هایی را که احتمال وقوع آن‌ها تحت سیاست جدید به شدت افت کرده است، بدون مقاومت تضعیف نماید، در حالی که کران بالا گام‌های به‌روزرسانی ناشی از توکن‌های نادر را محدود می‌سازد.
+
+\paragraph*{برآورد مزیت مبتنی بر پاداش رو به جلو و سرعت اجرا}
+برآورد مزیت در امتداد یک مسیر بلند با خط پایه در سطح مسیر $B_i$ صورت می‌پذیرد:
+\begin{equation}
+    \hat{A}_{i,t} = \sum_{p=t}^{T} r_p - B_i, \quad G_t = \sum_{\tau=t}^{T} \gamma^{\tau-t} r_\tau
+\end{equation}
+پاداش مرکب هر گام با احتساب پاداش فرآیندی ($r_t^{\text{process}}$)، عملکردی ($r_t^{\text{perf}}$) و سرعت اجرای واقعی دیوار ($r_t^{\text{speed}}$) محاسبه می‌شود:
+\begin{equation}
+    r_t = \alpha \cdot r_t^{\text{process}} + \beta \cdot r_t^{\text{speed}} + r_t^{\text{perf}}
+\end{equation}
+که در آن پاداش سرعت تابعی یکنواخت نزولی از زمان سپری‌شده دیوار است:
+\begin{equation}
+    r_t^{\text{speed}} = h\left( \frac{T_{\text{completion}}}{T_{\text{baseline}}} \right)
+\end{equation}
+این عبارت در تابع هزینه به مدل القا می‌کند که فراخوانی‌های مستقل ابزارها را به‌جای توالی زنجیره‌ای، به‌صورت موازی اجرا کند.
+
+\paragraph*{دیاگرام جریان بهینه‌سازی سیاست عاملی \en{CISPO}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    font=\small,
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    opt/.style={rectangle, draw=orange!80!black, fill=orange!10, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    loss/.style={rectangle, draw=red!70!black, fill=red!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (traj) {مسیر عاملی $\tau = (s_t, a_t, o_t)$};
+    \node[opt, right=of traj] (reward) {پاداش مرکب: فرآیند + صحت + سرعت};
+    \node[opt, below=of traj] (is) {نسبت اهمیت با برش نامتقارن $[0, 1+\epsilon]$};
+    \node[loss, right=of is] (cispo) {زیان \en{CISPO} با عملگر \en{Stop-Gradient}};
+    
+    \draw[arrow] (traj) -- (reward);
+    \draw[arrow] (traj) -- (is);
+    \draw[arrow] (reward) |- (cispo);
+    \draw[arrow] (is) -- node[above]{\en{sg}} (cispo);
+\end{tikzpicture}
+\end{center}

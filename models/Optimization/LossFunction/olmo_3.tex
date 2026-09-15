@@ -1,1 +1,52 @@
-\item \textbf asd
+\item \model{OLMo 3}
+
+\paragraph*{بهینه‌سازی توزیع داده و بازنمونه‌برداری آگاه از کیفیت (\en{Dolma 3})}
+مدل \model{OLMo 3} به عنوان یک مدل کاملاً باز، از ترکیب داده‌های مقید از طریق برازش رگرسیون خطی تعمیم‌یافته روی میزان بیت بر بایت (\en{BPB}) استفاده می‌کند \cite{olmo2025v3}. برای اعمال ضرایب بازنمونه‌برداری بر اساس صدک کیفیت داده‌ها ($x \in [a, 1]$ که در آن $a=0.4$ مرز دور ریختن ۴۰٪ داده‌های بی‌کیفیت است)، خانواده توابع توانی-نمایی فشرده فرمول‌بندی شده است:
+\begin{equation}
+    f_{p, \lambda}(x) = \begin{cases} 
+        0, & x < a \\ 
+        C(x-a)^p e^{\lambda(x-a)}, & x \ge a 
+    \end{cases}
+\end{equation}
+ضرایب $p, \lambda, C$ تحت قیود حجم بودجه توکن ($\int_0^1 f_{p,\lambda}(x) dx = Z/X$) و سقف تکرار حداکثری ($\frac{1}{b}\int_{1-b}^1 f_{p,\lambda}(x) dx \le 7$) بهینه‌سازی می‌شوند.
+
+\paragraph*{فرضیه یادگیری تفاضلی در بهینه‌سازی ترجیحات (\en{Delta Learning DPO})}
+در فاز پس‌آموزش، مدل \model{OLMo 3 Think} نشان داد که آموزش تقلیدی (\en{SFT}) روی استدلال‌های مدل‌های برتر به اشباع می‌رسد. در پاسخ، مفهوم یادگیری تفاضلی (\en{Delta Learning}) \cite{geng2025delta} در بهینه‌سازی مستقیم ترجیحات (\en{DPO}) \cite{rafailov2024direct} به کار گرفته شد. با تشکیل جفت‌های متضاد $(x, y_c, y_r)$ که در آن پاسخ برگزیده $y_c$ از یک مدل قوی (\en{Qwen3-32B}) و پاسخ مردود $y_r$ به عمد از یک مدل ضعیف‌تر (\en{Qwen3-0.6B}) استخراج شده تا شکاف کیفیتی بیشینه شود، زیان \en{DPO} نرمال‌شده بر طول محاسبه می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\text{Delta-DPO}}(\theta) = -\mathbb{E}_{(x, y_c, y_r)} \left[ \log \sigma \left( \frac{\beta}{|y_c|} \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} - \frac{\beta}{|y_r|} \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)} \right) \right]
+\end{equation}
+نرمال‌سازی بر پایه طول $|y|$ از تسلط سوگیری طول جلوگیری می‌کند. در مدل گفتگومحور \model{OLMo 3 Instruct}، اختلاف طول جفت‌های ترجیحی مقید به حداکثر ۱۰۰ توکن می‌شود ($||y_c| - |y_r|| \le 100$) تا مدل به سمت اختصار و چگالی هوشمندی بالا سوق یابد.
+
+\paragraph*{فرمولاسیون الگوریتم \en{OlmoRL}}
+در مرحله نهایی یادگیری تقویتی با پاداش‌های قابل‌ارزیابی، الگوریتم \en{OlmoRL} با چند اصلاح ریاضیاتی کلیدی معرفی شده است:
+\begin{multline}
+    \mathcal{J}_{\text{OlmoRL}}(\theta) = \frac{1}{\sum_{i=1}^G |y_i|} \sum_{i=1}^G \sum_{t=1}^{|y_i|} \min\left( \frac{\pi_\theta(y_{i,t} \mid x, y_{i,<t})}{\pi_{\text{vllm}}(y_{i,t} \mid x, y_{i,<t})}, \; \rho \right) \\
+    \times \min\left( r_{i,t} A_{i,t}, \; \text{clip}(r_{i,t}, 1-\varepsilon_{\text{low}}, 1+\varepsilon_{\text{high}}) A_{i,t} \right)
+\end{multline}
+ویژگی‌های برجسته این فرمولاسیون عبارت‌اند از:
+\begin{itemize}
+    \item \textbf{حذف انحراف معیار در مزیت:} مزیت به‌صورت ساده $A_{i,t} = r(x, y_i) - \text{mean}(\{r(x, y_i)\}_{i=1}^G)$ محاسبه می‌شود؛ حذف تقسیم بر انحراف معیار مانع از آن می‌شود که پرسش‌های بسیار دشوار یا بسیار آسان (که انحراف معیار پایینی دارند) به‌طور نامتناسب وزن بالایی در گرادیان پیدا کنند.
+    \item \textbf{سقف نسبت اهمیت ترتیبی ($\rho$):} خطای ناهمخوانی میان موتور تولید موازی (\en{vLLM}) و موتور یادگیرنده را مهار می‌سازد.
+    \item \textbf{نمونه‌برداری فعال (\en{Active Sampling}):} پرامپت‌هایی که تمام خروجی‌های آن‌ها دارای پاداش یکسان هستند را پیش از ورود به دسته تمرینی حذف و جایگزین می‌کند تا اندازه مؤثر دسته حفظ شود.
+\end{itemize}
+
+\paragraph*{دیاگرام ساختار یادگیری تفاضلی و بهینه‌سازی \en{OlmoRL}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.6cm,
+    font=\small,
+    box/.style={rectangle, draw=teal!70!black, fill=teal!5, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    dpo/.style={rectangle, draw=blue!70!black, fill=blue!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    loss/.style={rectangle, draw=red!70!black, fill=red!8, thick, rounded corners, minimum height=0.9cm, text centered, inner sep=5pt},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick, draw=gray!80!black}
+]
+    \node[box] (pair) {تولید جفت‌های تفاضلی: $y_c$ (قوی) در برابر $y_r$ (ضعیف)};
+    \node[dpo, right=of pair] (len) {اعمال قید طول $||y_c|-|y_r|| \le 100$};
+    \node[dpo, right=of len] (dpoloss) {زیان \en{DPO} نرمال‌شده بر طول};
+    \node[loss, below=of len] (rl) {الگوریتم \en{OlmoRL} با مزیت بدون انحراف معیار و سقف $\rho$};
+    
+    \draw[arrow] (pair) -- (len);
+    \draw[arrow] (len) -- (dpoloss);
+    \draw[arrow] (dpoloss) |- (rl);
+\end{tikzpicture}
+\end{center}
