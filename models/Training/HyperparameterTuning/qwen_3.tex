@@ -1,0 +1,48 @@
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و معماری مدل}
+خانواده \model{Qwen3} \cite{qwen2025qwen3} شامل مدل‌های متراکم از مقیاس \en{0.6B} تا \en{32B} و مدل‌های متکی بر مخلوط کارشناسان (نظیر \en{30B-A3B} و مدل پرچمدار \en{235B-A22B} با ۲۲ میلیارد پارامتر فعال در هر توکن) است که روی ۳۶ تریلیون توکن در ۱۱۹ زبان پیش‌آموزش دیده‌اند.
+
+\paragraph*{پیش‌آموزش سه‌مرحله‌ای و مقیاس‌بندی طول بافت}
+\begin{itemize}
+    \item \textbf{مرحله عمومی (\en{S1}):} آموزش روی ۳۰ تریلیون توکن با طول زمینه ۴,۰۹۶ توکن جهت تثبیت دانش زبانی.
+    \item \textbf{مرحله استدلال و تخصصی (\en{S2}):} آموزش روی ۵ تریلیون توکن غنی از علوم پایه، ریاضیات و کد با اعمال شتاب‌دهی بر افت نرخ یادگیری.
+    \item \textbf{مرحله گسترش طول بافت (\en{S3}):} آموزش بر روی صدها میلیارد توکن با طول بافت ۳۲,۷۶۸ (ترکیب ۷۵٪ داده‌های با طول \en{16K} تا \en{32K}). در این فاز، فرکانس پایه \en{RoPE} از طریق روش \en{ABF} از ۱۰,۰۰۰ به ۱,۰۰۰,۰۰۰ افزایش یافت و برای فاز استنباط روش‌های \en{YaRN} و توجه دوتکه (\en{DCA}) تنظیم شدند.
+\end{itemize}
+
+\paragraph*{چهار مرحله پس‌آموزش مدل‌های پرچمدار (\en{Flagship Post-Training})}
+\begin{itemize}
+    \item \textbf{مرحله ۱ (آغاز سرد \en{CoT} طولانی):} استفاده از پرسش‌های غیرقابل‌حل بدون استدلال و مهار کامل گام‌ها و نمونه‌های آموزشی جهت جلوگیری از محدود شدن کاوش خط‌مشی در مراحل بعد.
+    \item \textbf{مرحله ۲ (یادگیری تقویتی استدلال):} به‌کارگیری الگوریتم \en{GRPO} بر روی ۳,۹۹۵ جفت پرسش-ارزیاب دشوار، اندازه دسته بسیار بزرگ و تعداد رول‌اوت‌های بالا، همگام با پایش مداوم آنتروپی مدل برای پایداری در طول ۱۷۰ گام آموزشی.
+    \item \textbf{مرحله ۳ (ادغام حالت‌های تفکر -- \en{Thinking Mode Fusion}):} هم‌جوشی پاسخ‌های دارای تفکر و فاقد تفکر با پرچم‌های \en{\texttt{/think}} و \en{\texttt{/no\_think}} و پایدارسازی رفتار مدل تحت محدودیت بودجه زمان استنباط.
+    \item \textbf{مرحله ۴ (یادگیری تقویتی عمومی):} اعمال پاداش‌های سه‌گانه مبتنی بر قاعده، مدل داور با پاسخ مرجع، و مدل ترجیحات بر روی بیش از ۲۰ وظیفه متنوع.
+\end{itemize}
+
+\paragraph*{تقطیر قوی‌به‌ضعیف برای مدل‌های سبک (\en{Strong-to-Weak Distillation})}
+برای مدل‌های \en{0.6B} تا \en{14B} و مدل \en{30B-A3B}، کل فرآیند چندمرحله‌ای با تقطیر دوگانه جایگزین شد:
+\begin{itemize}
+    \item \textbf{تقطیر خارج‌خط‌مشی (\en{Off-policy Distillation}):} انتقال دانش پایه‌ای استدلال از معلمان بزرگ (\en{Qwen3-32B} و \en{Qwen3-235B-A22B}).
+    \item \textbf{تقطیر درون‌خط‌مشی (\en{On-policy Distillation}):} ترازسازی توزیع لاجیت دانش‌آموز بر روی توالی‌های تولیدشده توسط خودش با کمینه‌سازی واگرایی \en{KL} نسبت به خروجی معلم. این رویکرد به مصرف تنها ۱/۱۰ توان محاسباتی نسبت به آموزش مستقل \en{RL} منجر شد.
+\end{itemize}
+
+\paragraph*{فراپارامترهای استنباط و تولید}
+\begin{itemize}
+    \item \textbf{مد تفکر (\en{Thinking}):} دما $T = 0.6$، $\text{Top-}p = 0.95$، $\text{Top-}k = 20$، سقف توکن ۳۲,۷۶۸ (و ۳۸,۹۱۲ برای بنچمارک‌های \en{AIME}).
+    \item \textbf{مد بدون تفکر (\en{Non-thinking}):} دما $T = 0.7$، $\text{Top-}p = 0.8$، $\text{Top-}k = 20$، جریمه حضور (\en{Presence Penalty}) برابر $1.5$.
+\end{itemize}
+
+\paragraph*{دیاگرام خط لوله پس‌آموزش و تقطیر در \model{Qwen3}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.3cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.85cm},
+    flag/.style={base, fill=blue!10, draw=blue!60},
+    dist/.style={base, fill=teal!10, draw=teal!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[flag] (flagship) {\textbf{مدل‌های پرچمدار (\en{32B} و \en{235B-A22B})}\\\en{Long-CoT $\to$ Reasoning RL $\to$ Mode Fusion $\to$ General RL}};
+    \node[dist, below=of flagship] (distill) {\textbf{تقطیر قوی‌به‌ضعیف بر مدل‌های سبک}\\تقطیر خارج‌خط‌مشی $\to$ تقطیر درون‌خط‌مشی (\en{On-Policy KL})\\صرفه‌جویی ۹۰٪ در ساعات پردازش کارت گرافیک};
+
+    \draw[arrow] (flagship) -- node[right, font=\footnotesize] {تولید لاجیت معلم} (distill);
+\end{tikzpicture}
+\end{center}

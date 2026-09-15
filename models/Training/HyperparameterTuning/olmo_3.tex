@@ -1,0 +1,83 @@
+\item \model{Olmo 3}
+
+\paragraph*{مقدمه و معماری پایه}
+خانواده مدل‌های کاملاً متن‌باز \model{Olmo 3} \cite{olmo2025olmo3} در دو مقیاس ۷ میلیارد و ۳۲ میلیارد پارامتر با پنجره زمینه پیش‌آموزش ۸۱۹۲ توکن ارائه شده است. توجه پنجره لغزان (\en{SWA}) با طول ۴۰۹۶ در ۳ لایه از هر ۴ لایه تعبیه شده و لایه نهایی دارای توجه کامل است.
+
+\paragraph*{تحلیل مقایسه‌ای فراپارامترهای بهینه‌سازی پیش‌آموزش}
+در جدول زیر، تمامی مشخصات کالیبراسیون آموزش پایه برای هر سه مرحله گزارش شده است:
+
+\begin{table}[htbp]
+\centering
+\caption{فراپارامترهای تفصیلی مراحل پیش‌آموزش، آموزش میانی و گسترش بافت در مدل‌های \model{Olmo 3}}
+\label{tab:olmo3_hyperparams}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{فراپارامتر / مرحله} & \textbf{پیش‌آموزش 7B} & \textbf{پیش‌آموزش 32B} & \textbf{میانی 7B} & \textbf{میانی 32B} & \textbf{گسترش بافت 7B} & \textbf{گسترش بافت 32B} \\
+\midrule
+حجم توکن کل & 5.9T & 5.7T & 100B & 100B & 50B & 100B \\
+طول توالی ($L$) & 8,192 & 8,192 & 8,192 & 8,192 & 65,536 & 65,536 \\
+اندازه دسته (نمونه) & 512 & 1,024 & 256 & 512 & 64 & 128 \\
+اندازه دسته (توکن) & 4,194,304 & 8,388,608 & 2,097,152 & 4,194,304 & 4,194,304 & 8,388,608 \\
+بیشینه نرخ یادگیری & $3.0 \times 10^{-4}$ & $6.0 \times 10^{-4}$ & $2.074 \times 10^{-4}$ & $2.071 \times 10^{-4}$ & $2.074 \times 10^{-4}$ & $2.071 \times 10^{-4}$ \\
+حداقل نرخ یادگیری & $3.0 \times 10^{-5}$ & $6.210 \times 10^{-5}$ & 0 & 0 & 0 & 0 \\
+برنامه زمانی افت & کسینوسی اصلاح‌شده & کسینوسی برش‌خورده & خطی & کسینوسی & خطی & خطی \\
+گام‌های گرم‌شدن & 2000 & 2000 & 0 & 0 & 200 & 200 \\
+دمای آموزش ($LR^2/bsz$) & $2.146 \times 10^{-14}$ & $4.292 \times 10^{-14}$ & $2.051 \times 10^{-14}$ & $1.023 \times 10^{-14}$ & $1.026 \times 10^{-14}$ & $5.113 \times 10^{-15}$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{روش ارزیابی پیوسته مقیاس و نمونه‌برداری مقید}
+برای گزینش و وزن‌دهی دادگان، از تابع ریاضیاتی توانی-نمایی با قیود تحلیلی بر روی امتیازات کیفی استفاده شده است:
+\begin{equation}
+    f_{p,\lambda}(x) = \begin{cases} 0, & x < a \\ C(x-a)^p e^{\lambda(x-a)}, & x \ge a \end{cases}
+\end{equation}
+با حذف ۴۰٪ داده‌های بی‌کیفیت ($a = 0.40$)، سقف ضریب نمونه‌برداری $M = 7$ و حل عددی برای ارضای انتگرال سهمیه تعیین شد.
+
+\paragraph*{فراپارامترهای بهینه‌سازی ترجیحات (\en{Delta Learning DPO})}
+تابع زیان بهینه‌سازی ترجیحات مستقیم با نرمال‌سازی طول به فرم زیر اعمال گردید:
+\begin{equation}
+    \max_{\pi_\theta} \mathbb{E}_{(x, y_c, y_r)} \left[ \log \sigma \left( \frac{\beta}{|y_c|} \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} - \frac{\beta}{|y_r|} \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)} \right) \right]
+\end{equation}
+فراپارامترهای تنظیمی:
+\begin{itemize}
+    \item ضریب تنظیم‌کننده واگرایی: $\beta = 5.0$.
+    \item نرخ یادگیری در مدل‌های تفکر: $8.0 \times 10^{-8}$ (نسخه 7B) و $7.0 \times 10^{-8}$ (نسخه 32B) با افت خطی طی ۱ دور.
+    \item نرخ یادگیری در مدل دستوری (\en{Instruct}): $1.0 \times 10^{-6}$ بر روی ۲۶۰ هزار جفت داده.
+    \item کنترل تعصب طول: فیلتر جفت‌هایی با اختلاف طول فراتر از ۱۰۰ توکن ($||y_c| - |y_r|| \le 100$).
+\end{itemize}
+
+\paragraph*{نوآوری‌های الگوریتمی و زیرساختی \en{OlmoRL}}
+در فاز یادگیری تقویتی، فرمول‌بندی زیر بر بستر \en{GRPO} توسعه یافته است:
+\begin{equation}
+    \mathcal{J}(\theta) = \frac{1}{\sum_{i=1}^G |y_i|} \sum_{i=1}^G \sum_{t=1}^{|y_i|} \min\left( \frac{\pi(y_{i,t})}{\pi_{\text{vllm}}(y_{i,t})}, \rho \right) \min\left( r_{i,t} A_{i,t}, \text{clip}(r_{i,t}, 1-\epsilon_{\text{low}}, 1+\epsilon_{\text{high}}) A_{i,t} \right)
+\end{equation}
+با حذف کامل انحراف معیار در محاسبه مزیت: $A_{i,t} = r(x, y_i) - \text{mean}(\{r(x, y_i)\}_{i=1}^G)$.
+\begin{itemize}
+    \item حدود برش: $\epsilon_{\text{low}} = 0.20$ و $\epsilon_{\text{high}} = 0.272$.
+    \item سقف نمونه‌برداری اهمیت بریده‌شده (\en{TIS Cap}): $\rho = 2.0$ در مدل تفکر و $\rho = 0.2$ در مدل دستوری.
+    \item اندازه گروه نمونه‌برداری: $G = 8$ با دمای نمونه‌برداری $T = 1.0$.
+    \item نرخ یادگیری ثابت: $1.0 \times 10^{-6}$ برای 7B و $2.0 \times 10^{-6}$ برای 32B.
+    \item همگام‌سازی وزن‌ها حین تولید (\en{Inflight Updates}): به‌روزرسانی بدون تخلیه کش \en{KV} که شتاب ۴ برابری در پردازش ایجاد نمود.
+\end{itemize}
+
+\paragraph*{دیاگرام خط لوله بهینه‌سازی پس‌آموزش \model{Olmo 3}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.3cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.85cm},
+    sft/.style={base, fill=blue!10, draw=blue!60},
+    dpo/.style={base, fill=teal!10, draw=teal!60},
+    rl/.style={base, fill=purple!10, draw=purple!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[sft] (sftnode) {\textbf{آموزش نظارتی تفکر (\en{Dolci Think SFT})}\\حجم: ۴۵B توکن | بافت ۳۲K | نرخ یادگیری: $5\times 10^{-5}$};
+    \node[dpo, below=of sftnode] (dponode) {\textbf{تراز ترجیحات تضادی (\en{Delta DPO})}\\$\beta=5.0$ با تراز طول | مقایسه \en{Qwen3-32B} و \en{Qwen3-0.6B}\\$\eta \in [7, 8] \times 10^{-8}$};
+    \node[rl, below=of dponode] (rlnode) {\textbf{یادگیری تقویتی \en{OlmoRL}}\\$\epsilon_{\text{low}}=0.2, \epsilon_{\text{high}}=0.272, \rho=2.0$\\تولید ناهمگام + دسته‌بندی پیوسته + به‌روزرسانی در پرواز};
+
+    \draw[arrow] (sftnode) -- (dponode);
+    \draw[arrow] (dponode) -- (rlnode);
+\end{tikzpicture}
+\end{center}

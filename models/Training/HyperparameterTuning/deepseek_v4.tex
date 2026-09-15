@@ -1,0 +1,79 @@
+\item \model{DeepSeek-V4}
+
+\paragraph*{مقدمه و راهبرد بهینه‌سازی دوگانه}
+مدل‌های خانواده \model{DeepSeek-V4} \cite{deepseek2025v4} شامل نسخه‌های \en{DeepSeek-V4-Flash} (با ۲۸۴ میلیارد پارامتر کل و ۱۳ میلیارد پارامتر فعال در هر توکن) و \en{DeepSeek-V4-Pro} (با ۱.۶ تریلیون پارامتر کل و ۴۹ میلیارد پارامتر فعال) با هدف پشتیبانی بومی از بافت یک میلیون توکن توسعه یافته‌اند. برای تثبیت آموزش در این مقیاس، ترکیب نوآورانه‌ای از بهینه‌ساز پیشرفته ارتوگونال \en{Muon} \cite{jordan2024muon, liu2025muon} و بهینه‌ساز سنتی \en{AdamW} به کار گرفته شده است.
+
+\paragraph*{فرمول‌بندی ریاضیاتی تکرارهای ارتوگونال نیوتن-شولتز در \en{Muon}}
+بهینه‌ساز \en{Muon} به‌جای به‌روزرسانی درایه‌ای مقادیر گرادیان، ماتریس گشتاور را به نزدیک‌ترین ماتریس ارتوگونال نگاشت می‌دهد. فرض کنید $M \in \mathbb{R}^{n \times m}$ ماتریس حاصل از انباشت گشتاور نسترnested باشد:
+\begin{equation}
+    M_t = \mu M_{t-1} + G_t, \quad G_t = \nabla_W \mathcal{L}_t(W_{t-1})
+\end{equation}
+تبدیل ارتوگونال تئوریک بر پایه تجزیه مقادیر منفرد (\en{SVD}) برابر $O = U V^T$ با فرض $M = U \Sigma V^T$ تعریف می‌شود. از آنجا که محاسبه \en{SVD} در هر گام دارای مرتبه پیچیدگی $\mathcal{O}(\min(nm^2, n^2m))$ بوده و محاسبات توزیع‌شده را متوقف می‌سازد، تقریب چندجمله‌ای نیوتن-شولتز پیاده‌سازی شده است. پیش از آغاز، نرم ماتریس با فاکتور فربنیوس نرمال‌سازی می‌شود:
+\begin{equation}
+    M_0 = \frac{\mu M_t + G_t}{\|\mu M_t + G_t\|_F}
+\end{equation}
+سپس تکرارها در ۱۰ مرحله با رابطه بازگشتی درجه پنج زیر اجرا می‌شوند:
+\begin{equation}
+    M_k = a_k M_{k-1} + b_k (M_{k-1} M_{k-1}^T) M_{k-1} + c_k (M_{k-1} M_{k-1}^T)^2 M_{k-1}
+\end{equation}
+برای تنظیم سرعت همگرایی و تثبیت تکینگی، فراپارامترهای چندجمله‌ای در دو مرحله پیاپی تنظیم شده‌اند:
+\begin{itemize}
+    \item \textbf{فاز همگرایی سریع (۸ گام نخست):} ضرایب $(a, b, c) = (3.4445, -4.7750, 2.0315)$ که مقادیر منفرد را به سرعت به همسایگی ۱ هدایت می‌کنند.
+    \item \textbf{فاز تثبیت دقیق (۲ گام پایانی):} ضرایب $(a, b, c) = (2.0, -1.5, 0.5)$ که مقادیر منفرد را دقیقاً بر روی ۱ قفل می‌کنند.
+\end{itemize}
+پس از پایان تکرارها ($O'_t = M_{10}$)، ماتریس با فاکتور مقیاس ریشه میانگین مربعات (\en{RMS}) بازتنظیم می‌شود:
+\begin{equation}
+    O_t = O'_t \cdot \sqrt{\max(n, m)} \cdot \gamma
+\end{equation}
+که در آن فاکتور مقیاس مجدد $\gamma = 0.18$ انتخاب شده است تا امکان بازاستفاده مستقیم از ابرپارامترهای نرخ یادگیری \en{AdamW} بدون تغییر فراهم گردد. در نهایت، قاعده به‌روزرسانی وزن با کاهش وزن $\lambda = 0.1$ اعمال می‌شود:
+\begin{equation}
+    W_t = W_{t-1} (1 - \eta \lambda) - \eta O_t
+\end{equation}
+
+\paragraph*{فراپارامترهای بهینه‌ساز \en{AdamW}}
+برای لایه‌های امبدینگ، سر پیش‌بینی (\en{Prediction Head})، بایاس‌های ایستا و ضرایب گیتینگ ماژول اتصالات چندگونگی (\en{mHC}) و لایه‌های \en{RMSNorm}، بهینه‌ساز \en{AdamW} با پیکربندی زیر تنظیم شده است:
+\begin{equation}
+    \beta_1 = 0.9, \quad \beta_2 = 0.95, \quad \epsilon = 10^{-20}, \quad \lambda = 0.1
+\end{equation}
+
+\paragraph*{برنامه زمانی نرخ یادگیری و اندازه دسته‌ها}
+\begin{itemize}
+    \item \textbf{مدل \en{DeepSeek-V4-Flash}:} آموزش روی ۳۲ تریلیون توکن. فاز گرم‌شدن خطی (\en{Linear Warmup}) در ۲۰۰۰ گام نخست تا نرخ یادگیری بیشینه $\eta_{\text{peak}} = 2.7 \times 10^{-4}$، و سپس واپاشی کسینوسی تا $\eta_{\text{end}} = 2.7 \times 10^{-5}$. اندازه دسته از مقادیر کم با یک تابع پله‌ای تا سقف $75.5\text{M}$ توکن افزایش یافته و تثبیت می‌شود.
+    \item \textbf{مدل \en{DeepSeek-V4-Pro}:} آموزش روی ۳۳ تریلیون توکن. گرم‌شدن در ۲۰۰۰ گام تا $\eta_{\text{peak}} = 2.0 \times 10^{-4}$ و افت کسینوسی به $\eta_{\text{end}} = 2.0 \times 10^{-5}$. حداکثر اندازه دسته برابر $94.4\text{M}$ توکن در فاز پایدار است.
+\end{itemize}
+
+\paragraph*{توابع زیان توازن بار و پیش‌بینی چندتوکنی (\en{MTP})}
+برای تعادل بار در شبکه کارشناسان (\en{MoE}) با ۲۵۶ و ۳۸۴ کارشناس، از روش تعادل بار بدون اتلاف کمکی استفاده شده است که در آن سرعت به‌روزرسانی بایاس روی $\gamma_{\text{bias}} = 0.001$ تنظیم شده است. همچنین یک زیان توازن در سطح توالی با وزن فوق‌العاده اندک به تابع هدف کل افزوده شده است:
+\begin{equation}
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{LM}} + 0.0001 \cdot \mathcal{L}_{\text{seq-balance}} + \lambda_{\text{MTP}} \cdot \mathcal{L}_{\text{MTP}}
+\end{equation}
+فراپارامتر $\lambda_{\text{MTP}}$ در طول بخش عمده پیش‌آموزش روی $0.3$ حفظ شده و هم‌زمان با آغاز افت نرخ یادگیری کسینوسی به $0.1$ کاهش می‌یابد.
+
+\paragraph*{تحدید دامنه و مهار ناپایداری‌های گرادیان}
+جهت مقابله با جهش‌های انفجاری گرادیان (\en{Loss Spikes})، تکنیک \en{SwiGLU Clamping} با حدود زیر تنظیم شد:
+\begin{equation}
+    \text{Clamp}\left(W_{\text{linear}} x, -10, 10\right), \quad \min\left(W_{\text{gate}} x, 10\right)
+\end{equation}
+همچنین الگوریتم مسیریابی پیش‌دستانه (\en{Anticipatory Routing}) با تاخیر زمانی $\Delta t$ فعال گردید که با قفل گیتینگ روی وزن‌های تاریخی، جهش‌های تلفات را مهار می‌کند.
+
+\paragraph*{دیاگرام جریان تنظیم فراپارامترها و خط لوله بهینه‌سازی}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.5cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.9cm},
+    data/.style={base, fill=blue!10, draw=blue!60},
+    opt/.style={base, fill=teal!10, draw=teal!60},
+    stab/.style={base, fill=orange!10, draw=orange!60},
+    post/.style={base, fill=purple!10, draw=purple!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[data] (pretrain) {\textbf{پیش‌آموزش بر روی 32T/33T توکن}\\بافت مرحله‌ای: $4\text{K} \to 16\text{K} \to 64\text{K} \to 1\text{M}$};
+    \node[opt, below=of pretrain] (optdual) {\textbf{بهینه‌ساز دوگانه: \en{Muon} + \en{AdamW}}\\$\eta_{\text{peak}} \in [2.0, 2.7] \times 10^{-4} \to \eta_{\text{end}} = 10\%$\\نیوتن-شولتز: ۸ گام سریع + ۲ گام پایدار};
+    \node[stab, below=of optdual] (stability) {\textbf{پایدارسازهای دینامیک گرادیان}\\تحدید \en{SwiGLU} به $[-10, 10]$\\مسیریابی پیش‌دستانه با تاخیر $\Delta t$};
+    \node[post, below=of stability] (posttrain) {\textbf{پس‌آموزش و تقطیر درون‌خطی (\en{OPD})}\\تقطیر معکوس \en{KL} بر کل واژگان با ۱۰+ معلم تخصصی};
+
+    \draw[arrow] (pretrain) -- (optdual);
+    \draw[arrow] (optdual) -- (stability);
+    \draw[arrow] (stability) -- (posttrain);
+\end{tikzpicture}
+\end{center}

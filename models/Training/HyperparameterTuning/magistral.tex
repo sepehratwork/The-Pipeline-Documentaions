@@ -1,0 +1,72 @@
+\item \model{Magistral}
+
+\paragraph*{مقدمه و راهبرد RLVR از پایه}
+مدل \model{Magistral} \cite{mistral2025magistral} به عنوان نخستین مدل استدلال‌کننده شرکت Mistral در دو نسخه \en{Magistral Medium} (آموزش‌دیده بر پایه مدل \en{Mistral Medium 3} صرفاً از طریق یادگیری تقویتی و بدون تقطیر از استدلال‌های مدل‌های پیشین) و \en{Magistral Small} (مدل ۲۴ میلیارد پارامتری حاصل از آغاز سرد \en{SFT} و سپس \en{RL}) ارائه شده است.
+
+\paragraph*{فرمول‌بندی الگوریتم \en{GRPO} اصلاح‌شده}
+در خط لوله \en{Magistral}، بهینه‌سازی خط‌مشی گروهی با چندین تغییر اساسی در فراپارامترها و تابع هدف پیاده‌سازی شده است:
+\begin{align*}
+    \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{q \sim \mathcal{P}(Q), \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}} & \left[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \min \left( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})} \hat{A}_{i,t}^{\text{norm}}, \right. \right. \\
+    & \left. \left. \text{clip}\left( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}, 1-\epsilon_{\text{low}}, 1+\epsilon_{\text{high}} \right) \hat{A}_{i,t}^{\text{norm}} \right) \right]
+\end{align*}
+با شرط حذف دسته‌های فاقد تنوع سیگنال: $\exists 1 \le m < n \le G, \quad r_m \neq r_n$.
+اصلاحات فراپارامتری کلیدی این رابطه عبارتند از:
+\begin{itemize}
+    \item \textbf{حذف کامل جریمه واگرایی \en{KL}:} تنظیم $\beta_{\text{KL}} = 0$؛ مشاهدات نشان داد خط‌مشی به هر ترتیب از مدل مبنا فاصله می‌گیرد و حفظ مدل مرجع بار محاسباتی توجیه‌ناپذیری تحمیل می‌کند.
+    \item \textbf{نرمال‌سازی اتلاف بر حسب توکن کل:} تقسیم بر $\sum_{i=1}^G |o_i|$ مانع از غلبه پاسخ‌های کوتاه با گرادیان‌های درشت در میانگین گروهی می‌شود.
+    \item \textbf{نرمال‌سازی مزیت در سطح مینی‌دسته:}
+    \begin{equation}
+        \hat{A}_{i,t}^{\text{norm}} = \frac{\hat{A}_i - \hat{A}_{\text{mean}}}{\hat{A}_{\text{std}}}
+    \end{equation}
+    که در آن میانگین و انحراف معیار روی کل مینی‌دسته محاسبه می‌شود تا از وزن‌دهی نامتناسب به پرسش‌های بیش‌ازحد آسان یا سخت اجتناب گردد.
+    \item \textbf{شکستن تقارن برش با \en{Clip-Higher}:} برای تحریک کاوش در مسیرهای کم‌احتمال و مهار فروپاشی آنتروپی، حد بالای برش افزایش یافت:
+    \begin{equation}
+        \epsilon_{\text{low}} = 0.20, \quad \epsilon_{\text{high}} \in [0.26, 0.28] \text{ (Medium)}, \quad \epsilon_{\text{high}} = 0.30 \text{ (Small)}
+    \end{equation}
+\end{itemize}
+
+\paragraph*{شکل‌دهی چندبُعدی تابع پاداش (\en{Reward Shaping})}
+پاداش به ازای هر خروجی در چهار مؤلفه محاسبه می‌شود:
+\begin{itemize}
+    \item \textbf{پاداش قالب‌بندی ($R_{\text{format}}$):} تخصیص امتیاز $0.1$ در صورت رعایت دقیق ساختار `<think>...</think>` و درج جواب در `\boxed{}` یا بلوک‌های کد مارک‌داون. در صورت عدم انطباق، پاداش کل صفر شده و ارزیابی لغو می‌گردد.
+    \item \textbf{پاداش درستی ($R_{\text{acc}}$):} امتیاز $0.9$ در صورت تایید پاسخ توسط مفسر نمادین \en{SymPy} برای مسائل ریاضی و عبور موفق از ۲۰ تست واحد در محیط ایزوله کامپایلر \en{C++20} (با سقف زمانی ۴ ثانیه و حافظه ۳۰۰ مگابایت). مجموع پاداش درستی و فرمت به $1.0$ می‌رسد.
+    \item \textbf{پاداش یکپارچگی زبان ($R_{\text{lang}}$):} امتیاز $0.1$ بر پایه دسته‌بند \en{fastText} بر روی متن ورودی، مسیر تفکر و پاسخ نهایی، در صورتی که هر سه در یک زبان یکسان باشند.
+    \item \textbf{جریمه خطی نرم بر طول توالی (\en{Soft Length Penalty}):} برای هشدار به مدل نسبت به نزدیکی به سقف بافت محاسباتی:
+    \begin{equation}
+        R_{\text{length}}(y) = \begin{cases} 
+            0, & |y| \le l_{\max} - l_{\text{cache}} \\ 
+            -0.1 \cdot \frac{|y| - l_{\max} + l_{\text{cache}}}{l_{\text{cache}}}, & l_{\max} - l_{\text{cache}} < |y| \le l_{\max} \\ 
+            -0.1, & |y| > l_{\max} 
+        \end{cases}
+    \end{equation}
+    بازه عاری از جریمه ($l_{\max} - l_{\text{cache}}$) در طول فازهای آموزش به صورت $16\text{K} \to 24\text{K} \to 32\text{K}$ افزایش یافت.
+\end{itemize}
+
+\paragraph*{پویایی سیستم ناهمگام و اندازه دسته‌ها}
+با افزایش طول توالی استدلال، برای مدیریت سربار حافظه \en{KV Cache}، اندازه دسته در طول آموزش کاهش یافت:
+\begin{equation}
+    n_{\text{batch}}: 8\text{K} \to 4\text{K} \to 2\text{K} \text{ sequences}
+\end{equation}
+برای مهار پدیده خارج‌خط‌مشی شدید (\en{Off-policyness})، دو قید تثبیت گردید: ۱) نسبت نمونه‌برداری ناهمگام به اندازه دسته مقید شد: $\frac{n_{\text{async}}}{n_{\text{batch}}} \le 2$؛ ۲) برابری مطلق اندازه دسته و مینی‌دسته: $n_{\text{batch}} = n_{\text{minibatch}}$.
+
+\paragraph*{دیاگرام معماری پاداش و فیلترهای کنترلی \model{Magistral}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.2cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.85cm},
+    test/.style={base, fill=orange!10, draw=orange!60},
+    rew/.style={base, fill=teal!10, draw=teal!60},
+    term/.style={base, fill=blue!10, draw=blue!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[test] (format) {\textbf{اعتبارسنجی قالب‌بندی}\\تگ یکتای \en{<think>} و بلوک پاسخ\\صحت فرمت $\implies +0.1$ (در غیر این صورت خروج)};
+    \node[rew, below left=of format] (acc) {\textbf{پاداش درستی ($+0.9$)}\\\en{SymPy} برای ریاضیات\\کامپایل \en{C++20} با ۲۰ تست};
+    \node[rew, below right=of format] (lang) {\textbf{پاداش زبان ($+0.1$)}\\دسته‌بند \en{fastText}\\تطابق زبان پرسش و استدلال};
+    \node[term, below=2.6cm of format] (penalty) {\textbf{جریمه طول نرم}\\شیب افت $-0.1$ در بازه $[l_{\max}-l_{\text{cache}}, l_{\max}]$\\آستانه پویا: $16\text{K} \to 24\text{K} \to 32\text{K}$};
+
+    \draw[arrow] (format) -| node[above, font=\footnotesize] {تایید} (acc);
+    \draw[arrow] (format) -| node[above, font=\footnotesize] {تایید} (lang);
+    \draw[arrow] (acc) |- (penalty);
+    \draw[arrow] (lang) |- (penalty);
+\end{tikzpicture}
+\end{center}

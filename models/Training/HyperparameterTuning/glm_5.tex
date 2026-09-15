@@ -1,0 +1,69 @@
+\item \model{GLM-5}
+
+\paragraph*{مقدمه و معماری مدل}
+مدل \model{GLM-5} \cite{zeng2026glm5} با هدف تحول مهندسی کارگزارمحور با ابعاد ۷۴۴ میلیارد پارامتر کل (۴۰ میلیارد پارامتر فعال در هر توکن)، ۸۰ لایه، بعد مخفی ۶۱۴۴ و ۲۵۶ کارشناس \en{MoE} توسعه یافته است. تنظیم هایپرپارامترهای بهینه‌ساز و توابع زیان در این مدل در چهار فاز پیش‌آموزش، آموزش میانی، تطبیق توجه تنک، و پس‌آموزش چندمرحله‌ای به دقت کالیبره شده است.
+
+\paragraph*{تکنیک \en{Muon Split} و بهینه‌سازی پیش‌آموزش}
+در مدل‌های متکی بر توجه با متغیرهای مکنون (\en{MLA})، ماتریس‌های تصویر بالا ($W^{UQ}, W^{UK}, W^{UV}$) به دلیل اختلاط سرهای گوناگون توجه دچار ناهماهنگی مقیاس به‌روزرسانی می‌شوند. در \model{GLM-5} رویکرد \en{Muon Split} پیشنهاد شده است که طی آن، این ماتریس‌ها به ازای هر سر به زیرماتریس‌های مجزا شکسته شده و تعامد ماتریسی روی تک‌تک آن‌ها مستقل اجرا می‌شود:
+\begin{equation}
+    W^{UQ} = \begin{bmatrix} W_1^{UQ} \\ W_2^{UQ} \\ \vdots \\ W_{n_h}^{UQ} \end{bmatrix}, \quad O_{h} = \text{NewtonSchulz}(M_h), \quad \forall h \in \{1, \dots, n_h\}
+\end{equation}
+این ساختار از انفجار یا محوشدگی مقادیر لاجیت جلوگیری کرده و نیاز به هرگونه برش لاجیت را مرتفع می‌سازد.
+\begin{itemize}
+    \item \textbf{برنامه زمانی نرخ یادگیری:} گرم‌شدن از ۰ به $2 \times 10^{-4}$ و سپس افت کسینوسی تا سقف $4 \times 10^{-5}$ در انتهای ۲۷ تریلیون توکن پیش‌آموزش پایه.
+    \item \textbf{فاز آموزش میانی (\en{Mid-Training}):} افت خطی نرخ یادگیری از $4 \times 10^{-5}$ به $1 \times 10^{-5}$ در طول ۱.۵۵ تریلیون توکن با گسترش پنجره زمینه ($32\text{K} \to 128\text{K} \to 200\text{K}$).
+\end{itemize}
+
+\paragraph*{فراپارامترهای تطبیق توجه تنک \en{DSA}}
+انطباق معماری توجه تنک عمیق (\en{DSA}) طی دو مرحله با بودجه محدود انجام پذیرفت:
+\begin{itemize}
+    \item \textbf{فاز گرم‌کردن شاخص‌گذار (\en{Indexer Warmup}):} ۱۰۰۰ گام با اندازه دسته ۱۶ (شامل ۱۴ توالی به طول ۲۰۲,۷۵۲ توکن) با نرخ یادگیری کاهشی از $5 \times 10^{-3}$ به $2 \times 10^{-4}$ در شرایطی که ستون فقرات مدل فریز است.
+    \item \textbf{فاز انطباق مشترک (\en{Sparse Adaptation}):} آموزش مشترک شاخص‌گذار و مدل اصلی روی ۲۰ میلیارد توکن با نرخ یادگیری ثابت $1 \times 10^{-5}$.
+\end{itemize}
+
+\paragraph*{فرمول‌بندی و هایپرپارامترهای یادگیری تقویتی \en{Reasoning RL}}
+در فاز یادگیری تقویتی، الگوریتم \en{GRPO} \cite{shao2024deepseekmath} بدون عبارت جریمه \en{KL} و با تلفیق فیلتر نامتقارن \en{IcePop} برای حذف شکاف توزیع استنباط و آموزش فرمول‌بندی شده است:
+\begin{equation}
+    \mathcal{L}_{\text{RL}}(\theta) = -\mathbb{E} \left[ \frac{1}{G} \sum_{i=1}^G \frac{1}{|y_i|} \sum_{t=1}^{|y_i|} \text{pop}(\rho_{i,t}, 1/\beta, \beta) \min\left(r_{i,t}\hat{A}_{i,t}, \text{clip}(r_{i,t}, 1-\epsilon_{\text{low}}, 1+\epsilon_{\text{high}})\hat{A}_{i,t}\right) \right]
+\end{equation}
+که در آن نسبت بازتوزین ناهماهنگی استنباط-آموزش برابر است با:
+\begin{equation}
+    \rho_{i,t} = \frac{\pi_{\theta_{\text{old}}}^{\text{train}}(y_{i,t} \mid x, y_{i,<t})}{\pi_{\theta_{\text{old}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}
+\end{equation}
+عملگر تصفیه \en{pop} به صورت زیر تعریف می‌شود:
+\begin{equation}
+    \text{pop}(\rho, 1/\beta, \beta) = \begin{cases} \rho, & \text{if } 1/\beta \le \rho \le \beta \\ 0, & \text{otherwise} \end{cases}
+\end{equation}
+فراپارامترهای کالیبره‌شده این مرحله عبارتند از:
+\begin{equation}
+    \beta = 2.0, \quad \epsilon_{\text{low}} = 0.20, \quad \epsilon_{\text{high}} = 0.28, \quad G = 32, \quad \text{Batch Size} = 32
+\end{equation}
+به منظور جلوگیری از فروپاشی آنتروپی ناشی از عدم قطعیت شاخص‌گذار توجه، عملگر قطعی \en{torch.topk} با $k=2048$ فعال گردید و کلیه پارامترهای شاخص‌گذار در طول \en{RL} فریز ماندند.
+
+\paragraph*{تقطیر بین‌مرحله‌ای درون‌خطی (\en{On-Policy Cross-Stage Distillation})}
+برای یکپارچه‌سازی تخصص‌های متنوع حاصل از \en{RL} استدلالی، عامل‌محور و عمومی، مزیت مستقیماً بر مبنای شکاف توزیعی با مدل‌های معلم تعیین می‌شود:
+\begin{equation}
+    \hat{A}_{i,t} = \text{sg}\left[ \log \frac{\pi_{\theta_{\text{teacher}}}^{\text{infer}}(y_{i,t} \mid x, y_{i,<t})}{\pi_{\theta}^{\text{train}}(y_{i,t} \mid x, y_{i,<t})} \right]
+\end{equation}
+در این فاز، اندازه گروه به $G=1$ تقلیل یافته و اندازه دسته بزرگ ۱۰۲۴ به کار گرفته می‌شود.
+
+\paragraph*{دیاگرام جریان بهینه‌سازی چندمرحله‌ای مدل \model{GLM-5}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.3cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.85cm},
+    stage/.style={base, fill=teal!10, draw=teal!60},
+    rl/.style={base, fill=blue!10, draw=blue!60},
+    dist/.style={base, fill=orange!10, draw=orange!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[stage] (pre) {\textbf{پیش‌آموزش و آموزش میانی}\\$27\text{T} \to 28.5\text{T}$ توکن | بافت تا $200\text{K}$\\بهینه‌ساز: \en{Muon Split} با $\eta: 2\times 10^{-4} \to 1\times 10^{-5}$};
+    \node[stage, below=of pre] (dsa) {\textbf{تطبیق توجه تنک \en{DSA}}\\فاز گرم‌کردن: ۱۰۰۰ گام ($\eta: 5\times 10^{-3} \to 2\times 10^{-4}$)\\فاز انطباق: ۲۰ میلیارد توکن ($\eta = 1\times 10^{-5}$)};
+    \node[rl, below=of dsa] (reasonrl) {\textbf{یادگیری تقویتی استدلال (\en{GRPO} + \en{IcePop})}\\$\beta=2.0, \epsilon_{\text{low}}=0.2, \epsilon_{\text{high}}=0.28, G=32$\\شاخص‌گذار فریز با $k=2048$};
+    \node[dist, below=of reasonrl] (distill) {\textbf{تقطیر درون‌خطی چندمعلمه بین‌مرحله‌ای}\\اندازه دسته ۱۰۲۴ | $G=1$ | هم‌ترازی کامل لاجیت‌ها};
+
+    \draw[arrow] (pre) -- (dsa);
+    \draw[arrow] (dsa) -- (reasonrl);
+    \draw[arrow] (reasonrl) -- (distill);
+\end{tikzpicture}
+\end{center}

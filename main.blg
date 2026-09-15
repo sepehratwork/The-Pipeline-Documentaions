@@ -16,45 +16,45 @@ Warning--empty journal in ikeda2025layerwise
 Warning--empty journal in zhao2025small
 Warning--empty journal in su2026moe
 Warning--empty journal in chen2025olmix
-You've used 593 entries,
+You've used 608 entries,
             1791 wiz_defined-function locations,
-            2699 strings with 110312 characters,
-and the built_in function-call counts, 129922 in all, are:
-= -- 9188
-> -- 9921
+            2752 strings with 113643 characters,
+and the built_in function-call counts, 133203 in all, are:
+= -- 9368
+> -- 10260
 < -- 88
-+ -- 3541
-- -- 2948
-* -- 8059
-:= -- 22628
-add.period$ -- 1773
-call.type$ -- 593
-change.case$ -- 592
++ -- 3659
+- -- 3051
+* -- 8298
+:= -- 23252
+add.period$ -- 1818
+call.type$ -- 608
+change.case$ -- 607
 chr.to.int$ -- 0
-cite$ -- 601
-duplicate$ -- 5837
-empty$ -- 11135
-format.name$ -- 2948
-if$ -- 27993
+cite$ -- 616
+duplicate$ -- 5973
+empty$ -- 11389
+format.name$ -- 3051
+if$ -- 28663
 int.to.chr$ -- 0
-int.to.str$ -- 593
-missing$ -- 550
-newline$ -- 2962
-num.names$ -- 593
-pop$ -- 2273
+int.to.str$ -- 608
+missing$ -- 565
+newline$ -- 3037
+num.names$ -- 608
+pop$ -- 2334
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 2884
+skip$ -- 2929
 stack$ -- 0
 substring$ -- 3213
-swap$ -- 1427
+swap$ -- 1446
 text.length$ -- 88
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 8
-while$ -- 847
-width$ -- 596
-write$ -- 6042
+while$ -- 862
+width$ -- 611
+write$ -- 6192
 (There were 11 warnings)

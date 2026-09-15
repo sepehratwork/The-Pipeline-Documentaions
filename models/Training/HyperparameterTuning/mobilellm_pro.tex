@@ -1,0 +1,60 @@
+\item \model{MobileLLM-Pro}
+
+\paragraph*{مقدمه و مشخصات لبه‌ای}
+مدل \model{MobileLLM-Pro} \cite{huber2025mobilellmpro} یک مدل زبانی ۱ میلیارد پارامتری بهینه‌شده برای پردازش روی دستگاه‌های قابل حمل با ۳۰ لایه، بعد مخفی ۱۲۸۰، سازوکار توجه گروهی (\en{GQA}) با ۴ سر \en{KV} و اشتراک کامل امبدینگ و سر خروجی است. فرایند تنظیم هایپرپارامترهای آن در چهار مرحله متمایز با تمرکز بر تقطیر هدایت می‌شود.
+
+\paragraph*{فاز ۱: فراگیری زبان با تقطیر مستقیم لاجیت‌ها}
+در فاز نخست با حجم ۱.۴ تریلیون توکن و بافت ۲۰۴۸ توکن، به‌جای تابع زیان کراس-آنتروپی مرسوم، از واگرایی مستقیم کولبک-لایبلر پیشرو (\en{Forward KL}) بر روی لاجیت‌های کامل مدل معلم (\en{Llama 4-Scout} با ۲۰۲,۰۴۸ بعد واژگان) استفاده شده است:
+\begin{equation}
+    \mathcal{L}_{\text{KD}}(\theta) = D_{\text{KL}}\left(P_{\text{teacher}} \,\|\, P_{\theta}\right) = \sum_{v \in \mathcal{V}} P_{\text{teacher}}(v \mid x) \log\left(\frac{P_{\text{teacher}}(v \mid x)}{P_\theta(v \mid x)}\right)
+\end{equation}
+\begin{itemize}
+    \item \textbf{فراپارامترهای بهینه‌ساز:} نرخ یادگیری بیشینه $\eta_{\text{max}} = 4.0 \times 10^{-4}$، گرم‌شدن اولیه طی ۱۰,۰۰۰ گام و افت کسینوسی به صفر در طول ۶۴۰,۰۰۰ گام به‌روزرسانی. اندازه دسته مؤثر برابر ۲ میلیون توکن تنظیم شد.
+\end{itemize}
+
+\paragraph*{فاز ۲: تقطیر مکانی ضمنی (\en{Implicit Positional Distillation})}
+برای گسترش زمینه تا ۱۲۸,۰۰۰ توکن بدون ایجاد تغییر در توزیع داده‌ها، مدل مستقیماً بر اساس لاجیت‌های غنی مدل معلم بر روی ۲۰ میلیارد توکن بهینه‌سازی گردید:
+\begin{itemize}
+    \item تعداد گام‌های به‌روزرسانی: ۱۰۰,۰۰۰ گام.
+    \item نرخ یادگیری: $\eta_{\text{max}} = 4.0 \times 10^{-5}$ با برنامه واپاشی کسینوسی تا صفر.
+    \item عدم تغییر در توزیع داده‌های پایه، پایداری بازنمایی‌های زوایای \en{RoPE} ($\theta_i = 10000^{-2i/d}$) را در بافت‌های فراتر از آموزش تضمین نمود.
+\end{itemize}
+
+\paragraph*{فاز ۳: بازپخت با ادغام غیریکنواخت متخصصان (\en{Specialist Merging})}
+در فاز بازپخت نهایی روی ۶۰ میلیون توکن، مدل به شاخه‌های تخصصی موازی تفکیک و آموزش داده شد:
+\begin{itemize}
+    \item بازه نرخ یادگیری: کاهش خطی از $1.0 \times 10^{-5}$ تا صفر در ۵۰۰ گام پایانی.
+    \item ادغام پارامتری با وزن‌دهی دامنه‌ای:
+    \begin{equation}
+        M = \frac{1}{n} \sum_{b=1}^n \theta_b \cdot w_b, \quad \sum_{b=1}^n w_b = 1.0
+    \end{equation}
+\end{itemize}
+
+\paragraph*{فاز ۴: هایپرپارامترهای آموزش آگاه از کوانتیزاسیون (\en{QAT})}
+در این فاز روی ۸۰ میلیارد توکن (~۵٪ از بودجه پیش‌آموزش)، برای نسخه شتاب‌دهنده، بازه‌های کوانتیزاسیون کانالی به‌صورت پارامترهای یادگیرنده درون شبکه بهینه‌سازی شدند:
+\begin{equation}
+    Q(W_g) = s_w \cdot \text{clip}\left( \left\lfloor \frac{W_g}{s_w} \right\rceil, -8, 7 \right), \quad s_w = \frac{1}{7.5} \max(-w_{\min}, w_{\max})
+\end{equation}
+که در آن $w_{\min}$ و $w_{\max}$ در طول فرآیند انتشار معکوس گرادیان مستقیماً یاد گرفته می‌شوند و خود-تقطیر با مدل فاز ۳ به عنوان معلم صورت می‌گیرد.
+
+\paragraph*{دیاگرام مراحل چهارگانه تنظیم بهینه‌سازی در \model{MobileLLM-Pro}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.3cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.85cm},
+    p1/.style={base, fill=blue!10, draw=blue!60},
+    p2/.style={base, fill=teal!10, draw=teal!60},
+    p3/.style={base, fill=orange!10, draw=orange!60},
+    p4/.style={base, fill=purple!10, draw=purple!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[p1] (phase1) {\textbf{فاز ۱: فراگیری زبان (1.4T توکن)}\\تقطیر لاجیت پیشرو بر واژگان ۲۰۲K\\$\eta_{\text{max}} = 4\times 10^{-4}$ با افت کسینوسی};
+    \node[p2, below=of phase1] (phase2) {\textbf{فاز ۲: تقطیر مکانی ضمنی (20B توکن)}\\انبساط به بافت ۱۲۸K بدون اسناد بلند\\$\eta_{\text{max}} = 4\times 10^{-5}$ در ۱۰۰K گام};
+    \node[p3, below=of phase2] (phase3) {\textbf{فاز ۳: ادغام مدل‌های متخصص (60M توکن)}\\افت خطی $\eta: 10^{-5} \to 0$ در ۵۰۰ گام\\میانگین‌گیری وزنی پارامترها};
+    \node[p4, below=of phase3] (phase4) {\textbf{فاز ۴: کوانتیزاسیون \en{QAT} (80B توکن)}\\کوانتیزاسیون \en{INT4} با بازه‌های یادگیرنده $w_{\min}, w_{\max}$\\خود-تقطیر با چک‌پوینت فاز ۳};
+
+    \draw[arrow] (phase1) -- (phase2);
+    \draw[arrow] (phase2) -- (phase3);
+    \draw[arrow] (phase3) -- (phase4);
+\end{tikzpicture}
+\end{center}

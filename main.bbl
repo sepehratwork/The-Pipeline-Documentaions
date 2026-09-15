@@ -1418,6 +1418,33 @@ A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.
   generation.
 \newblock {\em arXiv preprint arXiv:2509.19128}, 2025.
 
+\bibitem{deepseek2025v4}
+{DeepSeek-AI}.
+\newblock {DeepSeek-V4 Technical Report: Pushing Context and Sparsity
+  Frontiers}.
+\newblock {\em arXiv preprint arXiv:2502.99999}, 2025.
+
+\bibitem{zeng2026glm5}
+Aohan Zeng, Xin Lv, Zhenyu Hou, Zhengxiao Du, Qinkai Zheng, Bin Chen, Da~Yin,
+  et~al.
+\newblock {GLM-5: from Vibe Coding to Agentic Engineering}.
+\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
+
+\bibitem{nvidia2025nemotron3}
+{NVIDIA}.
+\newblock {NVIDIA Nemotron 3: Efficient and Open Intelligence}.
+\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
+
+\bibitem{qwen2025qwen3}
+{Team Qwen}.
+\newblock Qwen3 technical report.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{olmo2025olmo3}
+{Olmo Team}.
+\newblock {Olmo 3}.
+\newblock {\em arXiv preprint}, 2025.
+
 \bibitem{cirrincione2026geometry}
 Giansalvo Cirrincione.
 \newblock On the geometry of positional encodings in transformers.
@@ -1578,26 +1605,11 @@ Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
   understanding.
 \newblock In {\em Proceedings of NAACL-HLT}, pages 4171--4186, 2019.
 
-\bibitem{nvidia2025nemotron3}
-{NVIDIA}.
-\newblock {NVIDIA Nemotron 3: Efficient and Open Intelligence}.
-\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
-
-\bibitem{qwen2025qwen3}
-{Team Qwen}.
-\newblock Qwen3 technical report.
-\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
-
 \bibitem{an2024training}
 Chenxin An, Fei Huang, Jun Zhang, Shansan Gong, Xipeng Qiu, Chang Zhou, and
   Lingpeng Kong.
 \newblock {Training-Free Long-Context Scaling of Large Language Models}.
 \newblock {\em arXiv preprint arXiv:2402.17463}, 2024.
-
-\bibitem{olmo2025olmo3}
-{Olmo Team}.
-\newblock {Olmo 3}.
-\newblock {\em arXiv preprint}, 2025.
 
 \bibitem{gastaldi2025foundations}
 Juan~Luis Gastaldi, John Terilla, Luca Malagutti, Brian DuSell, Tim Vieira, and
@@ -2078,12 +2090,6 @@ Bo~Yin, Xingyi Yang, and Xinchao Wang.
   efficient fine-tuning.
 \newblock {\em arXiv preprint arXiv:2509.13240}, 2025.
 
-\bibitem{deepseek2025v4}
-{DeepSeek-AI}.
-\newblock {DeepSeek-V4 Technical Report: Pushing Context and Sparsity
-  Frontiers}.
-\newblock {\em arXiv preprint arXiv:2502.99999}, 2025.
-
 \bibitem{glm2025glm5}
 {GLM Team and Zhipu AI}.
 \newblock {GLM-5: Towards Peta-Scale Efficient Reasoning through Structural
@@ -2287,12 +2293,6 @@ Lyumin Wu, Chenyang Zhang, and Yuan Cao.
 \newblock Looped transformers with layer normalization provably learn the power
   method.
 \newblock {\em arXiv preprint arXiv:2606.00605}, 2026.
-
-\bibitem{zeng2026glm5}
-Aohan Zeng, Xin Lv, Zhenyu Hou, Zhengxiao Du, Qinkai Zheng, Bin Chen, Da~Yin,
-  et~al.
-\newblock {GLM-5: from Vibe Coding to Agentic Engineering}.
-\newblock {\em arXiv preprint arXiv:2602.15763}, 2026.
 
 \bibitem{hochreiter1997lstm}
 Sepp Hochreiter and J{\"u}rgen Schmidhuber.
@@ -3584,5 +3584,105 @@ Jared Kaplan, Sam McCandlish, Tom Henighan, Tom~B. Brown, Benjamin Chess, Rewon
   Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei.
 \newblock Scaling laws for neural language models.
 \newblock {\em arXiv preprint arXiv:2001.08361}, 2020.
+
+\bibitem{li2025steplaw}
+Houyi Li, Wenzhen Zheng, Qiufeng Wang, Hanshan Zhang, Zili Wang, Shijie Xuyang,
+  Yuantao Fan, Zhenyu Ding, Haoying Wang, Ning Ding, Shuigeng Zhou, Xiangyu
+  Zhang, and Daxin Jiang.
+\newblock Predictable scale: Part i, step law -- optimal hyperparameter scaling
+  law in large language model pre-training.
+\newblock {\em arXiv preprint arXiv:2503.04715}, 2025.
+
+\bibitem{merrill2025cbs}
+William Merrill, Shane Arora, Dirk Groeneveld, and Hannaneh Hajishirzi.
+\newblock Critical batch size revisited: A simple empirical approach to
+  large-batch language model training.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+
+\bibitem{meterez2026seesaw}
+Alexandru Meterez, Depen Morwani, Jingfeng Wu, Costin-Andrei Oncescu, Cengiz
+  Pehlevan, and Sham Kakade.
+\newblock Seesaw: Accelerating training by balancing learning rate and batch
+  size scheduling.
+\newblock {\em arXiv preprint arXiv:2510.14717}, 2026.
+
+\bibitem{wang2026fastcatchup}
+Jinbo Wang, Binghui Li, Zhanpeng Zhou, Mingze Wang, Yuxuan Sun, Jiaqi Zhang,
+  Xunliang Cai, and Lei Wu.
+\newblock Fast catch-up, late switching: Optimal batch size scheduling via
+  functional scaling laws.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{mlodozeniec2025completed}
+Bruno Mlodozeniec, Pierre Ablin, Louis B{\'e}thune, Dan Busbridge, Michal
+  Klein, Jason Ramapuram, and Marco Cuturi.
+\newblock Completed hyperparameter transfer across modules, width, depth, batch
+  \& duration.
+\newblock {\em arXiv preprint arXiv:2512.22382}, 2025.
+
+\bibitem{qiu2026matrix}
+Shikai Qiu, Zixi Chen, Hoang Phan, Qi~Lei, and Andrew~Gordon Wilson.
+\newblock Hyperparameter transfer enables consistent gains of
+  matrix-preconditioned optimizers across scales.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+
+\bibitem{peng2026completemue}
+Hongwu Peng, Ohiremen Dibua, Yuanjun Xiong, Yifan Gong, Jianming Zhang, and Yan
+  Kang.
+\newblock Complete-mue: Optimal hyperparameter transfer and scaling for moe
+  models.
+\newblock {\em arXiv preprint arXiv:2605.23893}, 2026.
+
+\bibitem{shulgin2026lmo}
+Egor Shulgin, Dimitri von R{\"u}tte, Tianyue~H. Zhang, Niccol{\`o} Ajroldi,
+  Bernhard Sch{\"o}lkopf, and Antonio Orvieto.
+\newblock Deriving hyperparameter scaling laws via modern optimization theory.
+\newblock {\em arXiv preprint arXiv:2603.15958}, 2026.
+
+\bibitem{hoffmann2022chinchilla}
+Jordan Hoffmann, Sebastian Borgeaud, Arthur Mensch, Elena Buchatskaya, Trevor
+  Cai, Eliza Rutherford, Diego de~Las~Casas, Lisa~Anne Hendricks, Johannes
+  Welbl, Aidan Clark, et~al.
+\newblock Training compute-optimal large language models.
+\newblock {\em arXiv preprint arXiv:2203.15556}, 2022.
+
+\bibitem{mccandlish2018empirical}
+Sam McCandlish, Jared Kaplan, Dario Amodei, and OpenAI~Dota Team.
+\newblock An empirical model of large-batch training.
+\newblock {\em arXiv preprint arXiv:1812.06162}, 2018.
+
+\bibitem{yang2022tensor5}
+Greg Yang, Edward~J. Hu, Igor Babuschkin, Szymon Sidor, Xiaodong Liu, David
+  Farhi, Nick Ryder, Jakub Pachocki, Weizhu Chen, and Jianfeng Gao.
+\newblock Tensor programs v: Tuning large neural networks via zero-shot
+  hyperparameter transfer.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2022.
+
+\bibitem{malladi2022sdes}
+Sadhika Malladi, Kaifeng Lyu, Abhishek Panigrahi, and Sanjeev Arora.
+\newblock On the sdes and scaling rules for adaptive gradient algorithms.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2022.
+
+\bibitem{dey2025completep}
+Nolan Dey, Bin~Claire Zhang, Lorenzo Noci, Mufan Li, Blake Bordelon, Shane
+  Bergsma, Cengiz Pehlevan, Boris Hanin, and Joel Hestness.
+\newblock Don't be lazy: Completep enables compute-efficient deep transformers.
+\newblock {\em arXiv preprint arXiv:2505.01618}, 2025.
+
+\bibitem{vyas2024soap}
+Nikhil Vyas, Depen Morwani, Rosie Zhao, Itai Shapira, David Brandfonbrener,
+  Lucas Janson, and Sham Kakade.
+\newblock Soap: Improving and stabilizing shampoo using adam.
+\newblock {\em arXiv preprint arXiv:2409.11321}, 2024.
+
+\bibitem{tissue2024scaling}
+Howe Tissue, Venus Wang, and Lu~Wang.
+\newblock Scaling law with learning rate annealing.
+\newblock {\em arXiv preprint arXiv:2408.11029}, 2024.
 
 \end{thebibliography}

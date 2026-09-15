@@ -1,0 +1,271 @@
+\item \model{مرور جامع و مبانی تحلیلی تنظیم ابرپارامترها (\en{Literature Review \& Theoretical Foundations})}
+
+\paragraph*{مقدمه و سیر تاریخی: از تنظیم اکتشافی تا نظریه تحلیلی مقیاس‌پذیری}
+آموزش مدل‌های زبانی پیشرفته (\en{LLMs}) مستلزم صرف بودجه‌های محاسباتی فراتر از $10^{25}$ تا $10^{26}$ فلاپس (\en{FLOPs}) است \cite{shulgin2026lmo}. در چنین رژیمی از مقیاس، رویکردهای سنتی مبتنی بر جستجوی شبکه‌ای (\en{Grid Search}) یا آزمون و خطا از نظر اقتصادی و زمانی ناممکن هستند. قوانین مقیاس‌پذیری اولیه نظیر فرمول‌بندی کاپلان و همکاران \cite{kaplan2020scaling} و قانون داده‌محور چینچیلا (\en{Chinchilla}) \cite{hoffmann2022chinchilla}، اگرچه رابطه توانی میان خطای آزمون و مقیاس مدل ($N$) و داده ($D$) را آشکار ساختند، اما فرایند آموزش را به عنوان یک جعبه سیاه با ابرپارامترهای بهینه‌سازی ثابت فرض می‌کردند. 
+
+در سال‌های اخیر، پارادایم علمی حاکم بر مهندسی مدل‌های زبانی دچار یک دگرگونی بنیادین شده است: پژوهشگران با پیوند زدن معادلات دیفرانسیل تصادفی (\en{SDEs})، تحلیل طیفی ماتریس هسیان، اوراکل‌های حداقل‌سازی خطی (\en{LMO})، و نظریه تانسورپروگرام‌ها (\en{$\mu$P})، تنظیم ابرپارامترها را به یک دانش ریاضی تحلیلی، پیش‌بین و قابل انتقال (\en{Transferable}) در ابعاد مختلف بدل کرده‌اند. نمودار زیر چارچوب مفهومی انتقال همه‌جانبه ابرپارامترها را بر حسب محورهای گوناگون مقیاس به تصویر می‌کشد:
+
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.85, every node/.style={transform shape},
+    box/.style={rectangle, rounded corners=6pt, draw=#1!80!black, fill=#1!12, thick, align=center, inner sep=7pt, font=\small\bfseries},
+    bridge/.style={rectangle, rounded corners=4pt, draw=orange!80!black, fill=orange!15, dashed, thick, align=center, inner sep=5pt, font=\footnotesize},
+    arrow/.style={->, >={Stealth[scale=1.1]}, thick, draw=blue!70!black},
+    darrow/.style={<->, >={Stealth[scale=1.1]}, thick, draw=purple!80!black}
+]
+    % Nodes
+    \node[box=blue, text width=3.4cm] (dense_small) at (0, 0) {مدل پایه چگال کوچک\\(\en{Small Dense Proxy})\\$d_{\text{in}}, d_{\text{out}}, L_{\text{base}}, B_0, D_0$};
+    \node[box=cyan, text width=3.4cm] (dense_large) at (6.5, 0) {مدل چگال بزرگ مقیاس\\(\en{Large Dense Target})\\$\rho_d \cdot d, \rho_L \cdot L, \rho_B \cdot B, \rho_D \cdot D$};
+    \node[box=teal, text width=3.4cm] (moe_dense) at (0, -4.2) {مدل متخصصان چگال\\(\en{Dense MoE Companion})\\$a = N, H = Nh, r_N = N$};
+    \node[box=magenta, text width=3.4cm] (moe_sparse) at (6.5, -4.2) {مدل متخصصان تنک هدف\\(\en{Sparse MoE Target})\\$a < N, H_a = ah, r_a = a$};
+
+    % Bridges and Arrows
+    \draw[arrow] (dense_small) -- node[above, font=\footnotesize\bfseries, text=blue!80!black] {انتقال عرض و عمق (\en{Complete$^{(d)}$P})} node[below, font=\scriptsize, text=gray!80!black] {$\eta \propto d_{\text{in}}^{-1} L^{\alpha-1}$, $\lambda \propto d_{\text{in}}^{-1}$} (dense_large);
+    
+    \draw[darrow] (dense_small) -- node[left, font=\footnotesize\bfseries, text=purple!80!black, text width=2.4cm, align=center] {پل اول (\en{Bridge I})\\عرض فعال $\mu$P} (moe_dense);
+    
+    \draw[darrow] (moe_dense) -- node[above, font=\footnotesize\bfseries, text=purple!80!black] {پل دوم (\en{Bridge II}): تحلیل \en{SDE}} node[below, font=\scriptsize, text=gray!80!black] {تطابق بار داده و خنثی‌سازی خطای مرتبه اول} (moe_sparse);
+
+    \draw[arrow, dashed, draw=red!70!black] (dense_small) to[bend left=25] node[right=4pt, font=\footnotesize\bfseries, text=red!80!black, text width=3.2cm, align=center] {قاعده طلایی \en{Complete-muE}:\\تنظیم یکباره چگال،\\انتقال مستقیم به \en{MoE}} (moe_sparse);
+
+    \node[bridge, text width=7.2cm] at (3.25, -2.1) {ماتریس تعادل \en{Seesaw} و قوانین گام (\en{Step Law}):\\تحدب سطح اتلاف، ناوردایی $B^*$ به $N$، و هم‌ارزی $\alpha\sqrt{\beta}=\mathrm{const}$};
+\end{tikzpicture}
+\end{center}
+
+\paragraph*{هندسه چشم‌انداز اتلاف و برازش تجربی: قانون گام (\en{Step Law})}
+در پژوهش جامع لی و همکاران (\en{Step Law}) \cite{li2025steplaw}، طی آموزش بیش از ۳,۷۰۰ مدل زبانی چگال و تنک بر بستر ۱۰۰ تریلیون توکن با مصرف نزدیک به یک میلیون ساعت پردازش \en{H800}، ویژگی‌های ساختاری کانتورهای بهینه‌سازی اثبات گردید. فرض کنید $\mathcal{L}_{A,\mathbb{D},N,D}(\text{LR}, \text{BS})$ تابع زیان مدل زبانی با معماری $A$ و توزیع داده $\mathbb{D}$ تحت تعداد پارامترهای غیرجای‌گذاری $N$ و حجم داده $D$ باشد. مقادیر بهینه نرخ یادگیری اوج $\eta$ و اندازه دسته $B$ به صورت زیر تعریف می‌شوند:
+\begin{equation}
+    \eta^*, B^* = \arg\min_{\text{LR}, \text{BS}} \mathcal{L}_{A,\mathbb{D},N,D}(\text{LR}, \text{BS})
+\end{equation}
+یافته‌های این پژوهش موارد کلیدی زیر را اثبات نمود \cite{li2025steplaw}:
+\begin{itemize}
+    \item \textbf{تحدب و ناحیه فلات بهینه (\en{Loss Landscape Convexity}):} چشم‌انداز اتلاف حول جفت بهینه $(\ln \eta^*, \ln B^*)$ شدیداً محدب، کاسه‌ای شکل و دارای یک حاشیه خطای امن (\en{Plateau}) است؛ به‌طوری‌که تلورانس‌های اندک در انتخاب ابرپارامتر مانع از افت کارایی مدل نمی‌شوند.
+    \item \textbf{استقلال اندازه دسته بهینه از ظرفیت مدل ($N$):} بر پایه آزمون تحلیل واریانس سلسله‌مراتبی $F$، برای برازش اندازه دسته در فضای لگاریتمی:
+    \begin{align}
+        \text{مدل متکی بر } N: \quad & \ln B = \beta_0 + \beta_1 \ln N \implies R^2_{\text{adj}} = -0.032 \\
+        \text{مدل متکی بر } D: \quad & \ln B = \beta_0 + \beta_2 \ln D \implies R^2_{\text{adj}} = 0.821 \\
+        \text{مدل دومتغیره کامل: } \quad & \ln B = \beta_0 + \beta_1 \ln N + \beta_2 \ln D \implies R^2_{\text{adj}} = 0.823
+    \end{align}
+    آمار آزمون برای متغیر $\ln N$ در مدل کامل برابر با $F = 0.08$ و $p = 0.257$ به دست آمد (کاملاً بی‌معنا)، در حالی که برای $\ln D$ مقدار $t = 11.863$ با سطح معناداری $p < 0.001$ تثبیت گردید.
+    \item \textbf{روابط توانی قانون گام:} معادلات بهینه چندمتغیره به فرم بسته زیر حاصل شدند:
+    \begin{equation}
+        \eta(N, D) = 1.79 \, N^{-0.713} \, D^{0.307}, \qquad B(D) = 0.58 \, D^{0.571}
+    \end{equation}
+    \item \textbf{رفع سوگیری چولگی به چپ با تثبیت $\eta_{\min}$:} در زمان‌بندی‌های سنتی که نرخ پایانی به شکل کسری از نرخ اوج است ($\eta_{\min} = 0.1 \eta_{\max}$)، افزایش نرخ اوج منجر به بزرگ ماندن مخرب نرخ پایانی و عدم همگرایی در انتهای آموزش می‌گردد. تثبیت نرخ پایانی در یک مقدار بسیار کوچک (مانند $\eta_{\min} = 10^{-5}$) پیش‌شرط لازم برای حذف این سوگیری سیستماتیک است.
+\end{itemize}
+
+\paragraph*{سطح اتلاف تعاملی و غیرقابل تفکیک \en{Farseer}}
+لی و همکاران در بخش دوم پژوهش‌های مقیاس‌پذیری خود تحت عنوان \en{Farseer} \cite{li2025farseer}، فرض پایه‌ای قانون چینچیلا را به چالش کشیدند. در قانون چینچیلا اتلاف به صورت تفکیک‌پذیر جمعی مدل می‌شود ($\mathcal{L} = E + A N^{-\alpha} + B D^{-\beta}$) که مستلزم صفر بودن مشتق دوم متقاطع است:
+\begin{equation}
+    \frac{\partial^2 \mathcal{L}_{\text{Chinchilla}}}{\partial N \partial D} = 0
+\end{equation}
+با آموزش ۱,۰۰۰ مدل و استفاده از سنجه نظریه اطلاعات بیت بر کاراکتر (\en{Bits Per Character - BPC}):
+\begin{equation}
+    \text{BPC} = \frac{1}{M} \sum_{i=1}^M \log_2 \frac{1}{P(x_i \mid x_{<i})} = \frac{\text{Loss}}{\ln 2} \times \frac{N_{\text{tokens}}}{N_{\text{chars}}}
+\end{equation}
+تحلیل تفاضل متناهی گسسته روی شبکه لگاریتمی $\lambda = \sqrt{2}$ تعریف شد:
+\begin{equation}
+    \Delta_D \mathcal{L}(N, D) = \mathcal{L}(N, D) - \mathcal{L}(N, \lambda D) \approx [V(D) - V(\lambda D)] + [H(N, D) - H(N, \lambda D)]
+\end{equation}
+نتایج نشان داد که $\Delta_D \mathcal{L}$ همبستگی قوی و منظمی با $N$ دارد ($R^2 = 0.9807$) که خطای برون‌یابی چینچیلا تا سقف ۴۳۳٪ را اثبات نمود. با بهره‌گیری از الگوریتم برازش تکه‌تکه‌ای تفاضلی (\en{Differential Piecewise Fitting}) در فضای توابع نمایی-کشیده (\en{Stretched-Exponential})، قانون نهایی \en{Farseer} به دست آمد:
+\begin{equation}
+    \mathcal{L}(N, D) = \exp\left(a_3 N^\gamma + b_3\right) + \exp\left(a_2 N^\beta + b_2\right) \cdot D^{-\exp\left(a_1 N^\alpha + b_1\right)}
+\end{equation}
+با مقادیر عددی برازش‌شده بر بستر معماری بهینه‌شده \en{LLaMA}:
+\begin{equation}
+    \mathcal{L}(N, D) = e^{-0.021 N^{0.169} - 0.091} + e^{88.01 N^{-0.1} - 6.287} \cdot D^{-e^{-0.124 N^{0.123} + 0.424}}
+\end{equation}
+
+\noindent
+\textbf{اثبات یکنوایی فیزیکی (\en{Monotonicity}):} مشتق نسبت به داده‌ها همواره اکیداً منفی است:
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial D} = - A(N) B(N) D^{-A(N) - 1} < 0, \quad \forall N, D > 0
+\end{equation}
+زیرا ضرایب $A(N) = \exp(a_1 N^\alpha + b_1)$ و $B(N) = \exp(a_2 N^\beta + b_2)$ همواره مثبت‌اند. بررسی عددی $\partial \mathcal{L}/\partial N$ نیز منفی بودن پایدار آن را در تمام بازه‌های پارامتری تأیید می‌کند. مهم‌تر از همه، قانون \en{Farseer} نشان می‌دهد که نسبت بهینه داده به پارامتر ($D/N$) برخلاف ادعای چینچیلا ثابت نیست، بلکه با رشد بودجه محاسباتی $C = 6ND$ روندی پیوسته صعودی دارد. همچنین حذف پارامترهای لایه جای‌گذاری (\en{Embedding}) از شمارش $N$، دقت برون‌یابی را تا ۴ برابر بهبود بخشید \cite{li2025farseer}.
+
+\paragraph*{پویایی‌های زمانی و قانون چندتوانی (\en{Multi-Power Law - MPL})}
+لو و همکاران \cite{luo2025multipower} مسئله پیش‌بینی پیوسته منحنی اتلاف $\mathcal{L}(t)$ در طول زمان را تحت هر برنامه زمانی دلخواه از نرخ یادگیری نزولی $E = \{\eta_1, \eta_2, \dots, \eta_T\}$ حل نمودند. 
+
+\noindent
+\textbf{اصل تطابق مجموع نرخ یادگیری (\en{LR Sum Matching}):} با نگاشت به‌روزرسانی گسسته \en{SGD} به جریان پیوسته گرادیان (\en{Gradient Flow}):
+\begin{equation}
+    \frac{d\theta(\tau)}{d\tau} = -\nabla \mathcal{L}(\theta(\tau)) \implies \theta_t \approx \theta\left(S_1(t)\right), \quad S_1(t) := \sum_{\tau=1}^t \eta_\tau
+\end{equation}
+منحنی اتلاف به دو ترم تجزیه می‌شود: اتلاف فرآیند مرجع با نرخ ثابت در گام معادل $Z(t) = S_1(t)/\eta_0$ منهای ترم افت اتلاف حاصل از کاهش نوسانات تصادفی ($LD(t)$):
+\begin{equation}
+    \mathcal{L}(t) = \mathcal{L}_{\text{const}}(Z(t)) - LD(t)
+\end{equation}
+با تحلیل تجربی زمان‌بندی‌های دوسطحی (\en{Two-stage}) و بسط تلسکوپی، قانون جامع چندتوانی (\en{MPL}) استخراج شد \cite{luo2025multipower}:
+\begin{equation}
+    \mathcal{L}(t) = L_0 + A \cdot \left(S_1(t) + S_W\right)^{-\alpha} - \sum_{k=1}^t B (\eta_{k-1} - \eta_k) \left[ 1 - \left( C \eta_k^{-\gamma} S_k(t) + 1 \right)^{-\beta} \right]
+\end{equation}
+که در آن $S_k(t) = \sum_{\tau=k}^t \eta_\tau$ و $S_W = \frac{1}{2}\eta_{\max} W$.
+
+\noindent
+\textbf{پایه تئوریک بر توابع اتلاف درجه دوم و ماتریس‌های تصادفی:} لو و همکاران نشان دادند برای تابع اتلاف درجه دوم $\mathcal{L}(\theta) = \frac{1}{2}(\theta - \theta_*)^\top H (\theta - \theta_*)$ با نویز گرادیان $\mathcal{N}(0, \Sigma)$، اگر چگالی مقادیر ویژه هسیان به صورت توانی $p(\lambda) \propto \lambda^{-\nu}$ و کوواریانس نویز مشروط به صورت $\mathbb{E}[\Sigma_{ii} \mid \lambda] \propto \lambda^{-\rho} e^{-r\lambda}$ باشد، امید ریاضی اتلاف دقیقاً ساختار چندتوانی فرمول بالا را بازتولید می‌کند و توان‌های $\alpha$ و $\beta$ از روابط زیر پیروی می‌کنند:
+\begin{equation}
+    \alpha = 2 - \nu - \kappa, \qquad \beta = 1 - \nu - \rho
+\end{equation}
+با بهینه‌سازی فرمول \en{MPL} بر بستر بردار گام‌ها، ساختار بهینه \en{Warmup-Stable-Decay (WSD)} خودبه‌خود پدیدار گشت و رگرسیون نمادین نشان داد واپاشی بهینه در فاز افت، از قانون جذر-مکعب (\en{WSDSC}) پیروی می‌کند:
+\begin{equation}
+    \eta_t \approx \eta_{\max} (1 - \tau)^{1.5}, \quad \tau \in [0, 1]
+\end{equation}
+در نقطه مقابل، با استفاده از شرایط بهینگی \en{KKT} اثبات گردید که مدل‌های رقیب نظیر \en{Momentum Law} \cite{tissue2024scaling} از نظر ریاضی دچار فروپاشی (\en{Collapse}) به زمان‌بندی‌های نامطلوب پله‌ای تک‌گامه در انتهای آموزش می‌شوند.
+
+\paragraph*{بازبینی اندازه دسته بحرانی و گرم‌کردن دسته (\en{Batch Size Warmup})}
+مریل و همکاران (\en{Critical Batch Size Revisited}) \cite{merrill2025cbs} نشان دادند که رویکرد متداول تخمین اندازه دسته بحرانی بر پایه مقیاس نویز ساده مک‌کندلیش \cite{mccandlish2018empirical}:
+\begin{equation}
+    B_{\text{simple}} = \frac{\text{tr}(\Sigma)}{\|G\|^2}
+\end{equation}
+به دلیل فرضیات ناصحیح (بهینه‌ساز \en{SGD} محض و هسیان همسانگرد $H \propto I$) در مدل‌های آموزش‌دیده با \en{AdamW} به شدت نامعتبر بوده و مقدار واقعی $B^*$ را تا چند مرتبه بزرگی کمتر برآورد می‌کند. 
+
+آن‌ها روش \textbf{آموزش شاخه‌ای محلی (\en{Local Branched Training})} را معرفی کردند که تحت فرض بازیابی موضعی (\en{Local Recovery})، اندازه دسته بحرانی موضعی $B^*_t$ را مستقیماً از چک‌پوینت‌های میانی با انشعاب شاخه‌های کوتاه $\Delta = 2\text{B tokens}$ اندازه می‌گیرد. نتایج نشان داد:
+\begin{itemize}
+    \item اندازه دسته بحرانی در آغاز آموزش بسیار کوچک ($B^* \approx 0$) است، در طول ۵۰ میلیارد توکن اول به شدت جهش می‌کند و سپس حول $B^* \approx 4096$ به فلات می‌رسد.
+    \item این رفتار، استراتژی \textbf{گرم‌کردن اندازه دسته (\en{Batch Size Warmup})} را توجیه می‌کند:
+    \begin{equation}
+        \text{If } B^*_t > 2 B_t \implies B_{t+1} = 2 B_t, \quad \eta_{t+1} = \sqrt{2} \eta_t
+    \end{equation}
+    اعمال این استراتژی بر مدل \en{OLMo-1B} موجب \textbf{کاهش ۴۳ درصدی گام‌های متوالی گرادیان} با حفظ کامل کیفیت و عملکرد پایین‌دستی شد \cite{merrill2025cbs}.
+\end{itemize}
+
+\paragraph*{زمان‌بند الاکلنگی (\en{Seesaw}): موازنه دقیق نرخ یادگیری و اندازه دسته}
+مترز و همکاران در چارچوب نظری \model{Seesaw} \cite{meterez2026seesaw}، نخستین اثبات شرایط متناهی هم‌ارزی تضعیف نرخ یادگیری و افزایش اندازه دسته را در بهینه‌ساز \en{SGD} نرمال‌شده (\en{NSGD} به عنوان پروکسی تحلیلی برای \en{Adam}) ارائه کردند:
+\begin{equation}
+    \theta_{t+1} = \theta_t - \eta \frac{g_t}{\sqrt{\mathbb{E}\|g_t\|^2}}
+\end{equation}
+تحت \textbf{رژیم تسلط واریانس (\en{Variance Dominated Regime})}:
+\begin{equation}
+    \mathbb{E}\|g_t\|^2 \approx \frac{\sigma^2}{B} \text{Tr}(H) \implies \theta_{t+1} = \theta_t - \tilde{\eta} \nabla \mathcal{L}(\theta_t), \quad \tilde{\eta} = \eta \frac{\sqrt{B}}{\sigma \sqrt{\text{Tr}(H)}}
+\end{equation}
+آن‌ها اثبات کردند (\en{Theorem 1 \& Corollary 1}) که هر دو زمان‌بند پله‌ای با ضرایب تضعیف نرخ یادگیری $\alpha_1, \alpha_2$ و ضرایب رشد دسته $\beta_1, \beta_2$، ریسک مازاد یکسانی در پایان مراحل تولید می‌کنند مشروط بر آنکه:
+\begin{equation}
+    \alpha_1 \sqrt{\beta_1} = \alpha_2 \sqrt{\beta_2}
+\end{equation}
+با احتساب مرز ناپایداری و واگرایی مجانبی که مستلزم $\alpha \ge \sqrt{\beta}$ است، تهاجمی‌ترین و سریع‌ترین برنامه زمانی بدون واگرایی در شرایط $\alpha = \sqrt{\beta}$ محقق می‌شود که ساختار الگوریتم \model{Seesaw} را تعیین می‌کند:
+\begin{equation}
+    \text{هر زمان زمان‌بند مرجع نرخ را با ضریب } \alpha \text{ کاهش دهد:} \quad \eta \leftarrow \frac{\eta}{\sqrt{\alpha}}, \quad B \leftarrow B \cdot \alpha
+\end{equation}
+
+\noindent
+\textbf{سقف شتاب نظری تحت واپاشی کسینوسی:} در حد پیوسته، تعداد گام‌های فرآیند متناظر با زمان‌بند کسینوسی پایه برابر است با:
+\begin{equation}
+    T_{\text{Seesaw}} = \int_0^T \frac{\eta(t)}{\eta_0} dt = \int_0^T \cos\left(\frac{\pi t}{2T}\right) dt = \frac{2T}{\pi}
+\end{equation}
+که حاکی از \textbf{کاهش بیشینه ۳۶.۳ درصدی در زمان دیواری آموزش} ($1 - \frac{2}{\pi} \approx 0.363$) در شرایط برابری کامل فلاپس است \cite{meterez2026seesaw}.
+
+\begin{center}
+\begin{tikzpicture}[
+    scale=0.9, every node/.style={transform shape},
+    state/.style={rectangle, rounded corners=5pt, draw=blue!70!black, fill=blue!8, thick, align=center, inner sep=6pt},
+    action/.style={rectangle, rounded corners=3pt, draw=red!70!black, fill=red!10, thick, align=center, inner sep=5pt, font=\small},
+    trans/.style={->, >={Stealth[scale=1.1]}, thick, draw=blue!80!black}
+]
+    \node[state] (start) at (0, 0) {گام زمان‌بندی پایه\\کاهش نرخ با ضریب $\alpha$};
+    \node[action] (seesaw) at (5.5, 0) {موازنه الگوریتم \model{Seesaw}:\\$\eta \leftarrow \eta / \sqrt{\alpha}$\\$B \leftarrow B \cdot \alpha$};
+    \node[state] (result) at (11.5, 0) {ثبات مسیر بهینه‌سازی\\کاهش گام‌ها تا سقف $36.3\%$};
+
+    \draw[trans] (start) -- node[above, font=\footnotesize, text=red!80!black] {جایگزینی} (seesaw);
+    \draw[trans] (seesaw) -- node[above, font=\footnotesize, text=green!50!black] {تسلط واریانس} (result);
+
+    \node[draw=gray, dashed, fill=gray!5, rounded corners=4pt, text width=11cm, align=center, font=\footnotesize] at (5.75, -1.8) {
+        \textbf{مرز فیزیکی و شکست فرضیه:} در دسته‌های فوق‌بزرگ، نویز گرادیان محو شده و مدل به رژیم \en{NGD} تک‌بعدی میل می‌کند؛ در این حالت چرخه پایدار $\mathcal{O}(\eta h)$ رخ می‌دهد و کاهش مستقیم $\eta$ الزامی است.
+    };
+\end{tikzpicture}
+\end{center}
+
+\paragraph*{پدیده جبران سریع و سوئیچ دیرهنگام دسته (\en{Fast Catch-Up \& Late Switching})}
+وانگ و همکاران \cite{wang2026fastcatchup} چارچوب \textbf{قوانین مقیاس تابعی (\en{Functional Scaling Laws - FSL})} را برای زمان‌بندی پویا بنیان نهادند. بر پایه تحلیل \en{SDE} رگرسیون تانسوری هسته، پویایی اتلاف پیوسته تحت زمان‌بندی دسته $b(t)$ به فرم معادلات ولترا استخراج شد:
+\begin{equation}
+    \mathbb{E}[\mathcal{E}(\bar{\theta}_t)] \approx \underbrace{t^{-s}}_{\text{یادگیری سیگنال}} + \underbrace{\eta \sigma^2 \int_0^t \frac{K(t - \tau)}{b(\tau)} d\tau}_{\text{انباشت نویز}}
+\end{equation}
+که در آن $K(t) = (t + 1)^{-(2 - 1/\beta)}$ هسته حافظه فراموشی نویز است ($s$ توان چشمه و بیانگر سختی وظیفه، و $\beta$ توان ظرفیت مدل است). تحلیل وردشی تحت قید بودجه کل داده $\int_0^T b(t) dt = D$ به نتایج شگرف زیر منتهی شد \cite{wang2026fastcatchup}:
+\begin{itemize}
+    \item \textbf{وظایف آسان ($s > 1 - 1/\beta$):} زمان‌بندی بهینه دسته پیوسته صعودی است و در حالت دوسطحی، باید از همان گام نخست از اندازه دسته بزرگ استفاده کرد ($P^*_D = 0$).
+    \item \textbf{وظایف سخت ($s \le 1 - 1/\beta$):} زمان‌بندی بهینه یک ساختار \textbf{رشد-پایدار (\en{Stable-Growth})} به خود می‌گیرد؛ به این معنا که مدل در بیشتر طول آموزش در حداقل اندازه دسته ($B_{\min}$) باقی می‌ماند و افزایش اندازه دسته به اواخر آموزش موکول می‌شود:
+    \begin{equation}
+        \frac{D - P^*_D}{D} \approx D^{-\frac{1 - 1/\beta - s}{2 - 1/\beta}} = o_D(1)
+    \end{equation}
+    \item \textbf{اثبات پدیده جبران سریع (\en{Fast Catch-Up Effect}):} به محض جهش از دسته کوچک $B_1$ به دسته بزرگ $B_2$ در زمان $t_*$، شکاف اتلاف $G_* = \eta \sigma^2(1/B_1 - 1/B_2)$ با سرعت بسیار زیاد میرا می‌شود:
+    \begin{equation}
+        \mathcal{E}_{B_1 \to B_2}(t_* + \delta) - \mathcal{E}_{B_2}(t_* + \delta) \approx G_* \, \delta^{-(1 - 1/\beta)}
+    \end{equation}
+    زمان لازم برای جبران ($\delta_\epsilon \approx t_*^{\frac{s}{1 - 1/\beta}}$) در مقایسه با زمان تحول پس‌زمینه مدل ($t_*$)، تفکیک مقیاس زمانی خیره‌کننده‌ای دارد: $\delta_\epsilon \ll t_*$. این اصل اثبات کرد که در مدل‌های زبانی سخت، اتلاف مدل دسته بزرگ را می‌توان با آموزش روی دسته کوچک و یک جهش دیرهنگام به دسته بزرگ دقیقاً بازتولید کرد، در حالی که حجم داده مصرفی به شدت صرفه‌جویی می‌شود \cite{wang2026fastcatchup}.
+\end{itemize}
+
+\paragraph*{انتقال همه‌جانبه ماژولار با \en{Complete$^{(d)}$P}}
+ملودوزنیک و همکاران \cite{mlodozeniec2025completed} چارچوب $\mu$P را در چهار بعد اصلی مدل، عمق، دسته و زمان آموزش یکپارچه ساختند:
+\begin{itemize}
+    \item \textbf{اصلاح لایه‌های نرمال‌سازی ترنسفورمر:} پارامترهای ضرب‌کننده لایه‌های \en{QK-Norm} بر خلاف لایه‌های عادی، در میان تمام هدهای توجه به اشتراک گذاشته می‌شوند؛ بنابراین با تکیه بر قانون قوی اعداد بزرگ (\en{SLLN})، گرادیان پس‌انتشاریافته در مقیاس $\Theta(1)$ باقی می‌ماند و پارامتر $\epsilon$ بهینه‌ساز \en{AdamW} نباید دچار تضعیف شود. در لایه جای‌گذاری ورودی، گرادیان دارای مقیاس $\Theta(1/N)$ است و $\epsilon$ باید با ضریب $\Theta(1/N)$ مقیاس شود \cite{mlodozeniec2025completed}.
+    \item \textbf{قواعد انتقال اندازه دسته و افق زمانی با \en{SDE}:} تحت گسسته‌سازی فرآیند اویلر-مارویاما با نویز نوسانی، قواعد پایدارسازی برای تغییر اندازه دسته با ضریب $\kappa$ به دست آمد:
+    \begin{equation}
+        \eta' = \sqrt{\kappa}\eta, \quad \lambda' = \sqrt{\kappa}\lambda, \quad k' = \kappa k
+    \end{equation}
+    همچنین در صورت افزایش طول آموزش در اندازه دسته ثابت، نرخ یادگیری اوج باید به فرم معکوس جذر مقیاس گردد: $\eta \propto 1/\sqrt{\kappa_{\text{tokens}}}$.
+    \item \textbf{بهینه‌سازی ابرپارامترهای به ازای هر ماژول (\en{Per-Module HPO}):} به دلیل نقش متفاوت لایه‌های گوناگون ترنسفورمر در جریان اطلاعات، ملودوزنیک و همکاران برای اولین بار ۷۹ ابرپارامتر مستقل را با فاکتورگیری کرونکر نوع-عمق بهینه‌سازی کردند:
+    \begin{equation}
+        \log \zeta_{m,\ell}(T, N, L, B) = \log \zeta^{\text{type}}_m + \log \zeta^{\text{depth}}_\ell + \log \text{SDE}(T, B) + \log \text{CP}_m(N, L)
+    \end{equation}
+    این رویکرد با الگوریتم جستجوی تصادفی ناحیه اعتماد (\en{TRRS}) توانست \textbf{شتاب چشمگیر ۲.۳۱ برابری در مقیاس ۵۰M و ۱.۳۲ برابری در مدل ۷.۲B} ایجاد کند \cite{mlodozeniec2025completed}.
+\end{itemize}
+
+\paragraph*{انتقال ابرپارامترها برای بهینه‌سازهای پیش‌شرطی‌شده ماتریسی}
+چیو و همکاران (\en{Matrix-Preconditioned Optimizers}) \cite{qiu2026matrix} قوانین $\mu$P را برای بهینه‌سازهای ماتریسی نظیر \en{Shampoo} \cite{gupta2018shampoo}، \en{SOAP} \cite{vyas2024soap} و \en{Muon} \cite{jordan2024muon} پایه‌گذاری کردند. با تحلیل گام اول گرادیان رنک-۱ ($G = \delta x^\top$) تحت شرط $\eta Q(G) x' = \Theta(1)$:
+\begin{align}
+    \textbf{Shampoo:} \quad & \eta = \Theta\left(\left(\frac{d_{\text{out}}}{d_{\text{in}}}\right)^{1 - (e_L + e_R)}\right) \\
+    \textbf{Muon (Newton-Schulz):} \quad & \eta = \Theta\left(\sqrt{\frac{d_{\text{out}}}{d_{\text{in}}}}\right), \quad \epsilon = \Theta\left(\sqrt{\frac{d_{\text{in}}}{d_{\text{out}}}}\right) \\
+    \textbf{SOAP (Eigenbasis Adam):} \quad & \eta = \Theta\left(\frac{T_{\text{blk}}(e_L, e_R)}{d_{\text{in}}}\right), \quad T_{\text{blk}} = b_{\text{out}}^{e_L/2} b_{\text{in}}^{e_R/2}
+\end{align}
+
+\noindent
+\textbf{انحرافات عرض متناهی و نرمال‌سازی طیفی:} در گام‌های پایانی آموزش، به دلیل افزایش رتبه پایا (\en{Stable Rank}) به‌روزرسانی ناشی از عمل پیش‌شرط‌سازها بر نویز تصادفی ($\text{srank}(U) \gg 1$)، نرخ‌های $\mu$P دچار شکست موضعی می‌شوند. چیو و همکاران اثبات کردند که اعمال \textbf{نرمال‌سازی طیفی برخط (\en{Online Spectral Normalization})} بر مبنای تکرار توانی (\en{Power Iteration})، با هزینه ناچیز تنها دو ضرب ماتریس-بردار در هر لایه، انحرافات عرض متناهی را به طور کامل مهار کرده و برتری ۱.۴ برابری \en{Muon} نسبت به \en{AdamW} را تا مقیاس ۱.۴B پارامتر تثبیت می‌نماید. همچنین اثبات شد کاهش وزن مستقل بهینه باید با عرض به فرم معکوس مقیاس شود ($\lambda_{\text{WD}} = \Theta(1/d_{\text{in}})$) و نسبت بهینه توکن به پارامتر در \en{Muon} ($7.4$) به دلیل بازدهی بالاتر کمتر از \en{AdamW} ($9.6$) است \cite{qiu2026matrix}.
+
+\paragraph*{نظریه انتقال در مدل‌های ترکیبی از متخصصان (\en{Complete-muE})}
+پنگ و همکاران \cite{peng2026completemue} بزرگ‌ترین چالش انتقال را حل نمودند: در مدل‌های \en{MoE}، تغییر ساختار لایه و تعداد متخصصان فعال همزمان بار کاری توکن‌های دریافتی هر متخصص را تغییر می‌دهد ($B_{\text{exp}} \approx B a/N$). چارچوب \model{Complete-muE} با یک سیستم دوپل این گره را گشود:
+\begin{itemize}
+    \item \textbf{پل اول (\en{Dense FFN $\leftrightarrow$ Dense MoE}):} برقراری انطباق با مدل چگال هم‌عرض فعال ($H = Nh$) با فعال‌سازی تمام متخصصان ($a = N$) و اعمال ضریب مقیاس مسیر نرمال‌شده $r_N = N$ جهت جبران میانگین‌گیری سافت‌مکس.
+    \item \textbf{پل دوم (\en{Dense MoE $\leftrightarrow$ Sparse MoE}):} گذار به حالت تنک ($a < N$) از طریق تحلیل \en{SDE} سهم هر متخصص. از آنجا که نسبت تغییر اندازه دسته و افق زمانی هر متخصص برابرند ($\rho_B^{\text{exp}} = \rho_D^{\text{exp}} = a'/a$)، ضریب تصحیح اویلر-مارویاما دقیقاً خنثی می‌شود:
+    \begin{equation}
+        \eta' \approx \eta \sqrt{\frac{\rho_B^{\text{exp}}}{\rho_D^{\text{exp}}}} = \eta \sqrt{\frac{a'/a}{a'/a}} = \eta
+    \end{equation}
+    این خنثی‌سازی تحلیلی اثبات نمود که ضرایب لایه متراکم به طور پایدار مستقیماً به مدل‌های تنک قابل انتقال هستند.
+    \item \textbf{فرمول عمومی بلاک‌های ترکیبی و هیبرید:} برای مدلی با شاخه‌های اشتراکی $\mathcal{D}$ و گروه‌های تنک $\mathcal{G}$، خروجی کلی لایه چنین متوازن می‌شود:
+    \begin{equation}
+        y(x) = \frac{d}{H_{\text{tot}}} \left[ \sum_{m \in \mathcal{D}} o_m(x) + a \sum_{g \in \mathcal{G}} \sum_{e=1}^{N_g} \pi_{g,e}(x) o_g^{(e)}(x) \right], \quad H_{\text{tot}} = \sum_{m \in \mathcal{D}} H_m + a \sum_{g \in \mathcal{G}} h_g
+    \end{equation}
+    این فرمول‌بندی قاعده طلایی \textbf{«یک‌بار چگال را تنظیم کن، مستقیماً به همه انواع \en{MoE} منتقل نما» (\en{Tune Dense Once, Transfer to All})} را به اثبات رساند که به شتاب همگرایی تا سقف ۵.۵ برابر در مدل‌های زبانی بدون صرف هزینه جستجوی مجدد انجامید \cite{peng2026completemue}.
+\end{itemize}
+
+\paragraph*{نظریه بهینه‌سازی مدرن اوراکل‌های خطی (\en{LMO})}
+شولگین و همکاران \cite{shulgin2026lmo} با به‌کارگیری کران‌های نوین همگرایی \en{LMO} بر پایه هندسه غیراقلیدسی کووالف برای بهینه‌سازهایی نظیر \en{SignSGD} و \en{Muon}:
+\begin{equation}
+    \min_{1 \le k \le K} \mathbb{E}\|\nabla f(x^k)\|_* \le \frac{\Delta_0}{\eta K} + \frac{2\rho\sigma}{\alpha\sqrt{bK}} + 2\rho\sigma\sqrt{\frac{\alpha}{b}} + \frac{7L\eta}{2} + \frac{2L\eta}{\alpha}
+\end{equation}
+روابط تحلیلی بسته‌ای را برای کمینه‌سازی توأم خطا استخراج کردند (جدول \ref{tab:lmo_scaling_summary}). این تحلیل نشان داد بر خلاف \en{SGD} استاندارد که در آن اندازه دسته هیچ نرخ بهینه مستقلی روی افق توکن تعریف نمی‌کند، در بهینه‌سازهای نرمال‌شده وجود ترم‌های کوپلینگ نویز و تحدید محدوده، یک اندازه دسته بهینه درون‌زا با توان $b^* \propto T^{1/2}$ (تحت مومنتوم ثابت) دیکته می‌نماید.
+
+\paragraph*{سنتز کلان و مقایسه جامع چارچوب‌های تنظیم و انتقال ابرپارامترها}
+جدول \ref{tab:lmo_scaling_summary} مقایسه تحلیلی جامعی از تمامی چارچوب‌های بررسی‌شده را بر حسب ابعاد بهینه‌سازی، مبانی ریاضی، مقیاس‌های اعتبارسنجی و دستاوردهای ثبت‌شده ارائه می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه و سنتز جامع چارچوب‌های نظری و تجربی تنظیم ابرپارامترها در مدل‌های زبانی بزرگ}
+\label{tab:lmo_scaling_summary}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{نام چارچوب / مقاله} & \textbf{مرجع} & \textbf{ابرپارامترهای هدف} & \textbf{مبنای ریاضی و ابزار تحلیلی} & \textbf{مقیاس مدل و داده} & \textbf{دستاورد یا شتاب گزارش‌شده} \\
+\midrule
+\model{Step Law} & \cite{li2025steplaw} & $\eta(N,D), B(D)$ & آزمون $F$ و اثبات تحدب چشم‌انداز زیان & ۳,۷۰۰ مدل، تا 6.5B MoE & خطای پیش‌بینی کمتر از ۰.۰۹۴٪ \\
+\model{Farseer} & \cite{li2025farseer} & $\mathcal{L}(N,D)$ و بهینگی داده & تفاضل متناهی، توابع نمایی-کشیده & ۱,۰۰۰ مدل تا 25.1B & کاهش ۴۳۳٪ خطای برون‌یابی چینچیلا \\
+\model{Multi-Power Law} & \cite{luo2025multipower} & منحنی پیوسته $\mathcal{L}(t)$ & تطابق مساحت نرخ، تجزیه طیفی هسیان & مدل‌های 25M تا 1B & کشف زمان‌بندی بهینه WSDSC ($\tau^{1.5}$) \\
+\model{CBS Revisited} & \cite{merrill2025cbs} & اندازه دسته بحرانی $B^*_t$ & آموزش شاخه‌ای محلی و فرض بازیابی & 1B و 7B تا 2T توکن & صرفه‌جویی ۴۳٪ گام‌های آموزش \\
+\model{Seesaw} & \cite{meterez2026seesaw} & موازنه $\eta$ و $B$ & هم‌ارزی ریسک NSGD با فرض تسلط واریانس & مدل‌های 150M تا 600M & کاهش ۳۶.۳٪ زمان دیواری (سقف نظری) \\
+\model{Late Switching} & \cite{wang2026fastcatchup} & زمان‌بندی پویا $b(t)$ & قوانین مقیاس تابعی (FSL)، معادلات ولترا & مدل‌های Dense/MoE تا 1.1B & اثبات سبقت سوئیچ دیرهنگام در وظایف سخت \\
+\model{Complete$^{(d)}$P} & \cite{mlodozeniec2025completed} & ابرپارامترهای ماژولار & فاکتورگیری کرونکر نوع-عمق و SDE & مدل‌های 50M تا 7.2B & شتاب آموزش ۲.۳۱ برابری در مقیاس پایه \\
+\model{Matrix $\mu$P} & \cite{qiu2026matrix} & $\eta, \lambda_{\text{WD}}, \epsilon$ بهینه‌ساز ماتریسی & $\mu$P رنک-۱ و نرمال‌سازی طیفی برخط & مدل‌های 190M تا 1.4B & تثبیت شتاب ۱.۴ برابری Muon بر AdamW \\
+\model{Complete-muE} & \cite{peng2026completemue} & انتقال Dense به انواع MoE & سیستم دوپل و خنثی‌سازی خطای مرتبه اول SDE & مدل‌های تا 6.29B کل & قاعده Tune Dense Once، شتاب تا ۵.۵× \\
+\model{LMO Theory} & \cite{shulgin2026lmo} & $\eta, \alpha, b$ در افق توکن & اوراکل حداقل‌سازی خطی و کران‌های تحلیلی & مدل‌های ترنسفورمر 160M & استخراج رابطه هذلولوی گام و اندازه دسته \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

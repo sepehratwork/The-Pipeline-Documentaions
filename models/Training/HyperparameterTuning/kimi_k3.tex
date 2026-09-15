@@ -1,0 +1,71 @@
+\item \model{Kimi K3}
+
+\paragraph*{مقدمه و پیکربندی ابعادی}
+مدل \model{Kimi K3} \cite{kimi2026k3} یک مدل چندوجهی بومی بر مبنای معماری مخلوط کارشناسان (\en{MoE}) با ۲.۸ تریلیون پارامتر کل و ۱۰۴ میلیارد پارامتر فعال است. ساختار لایه‌ها شامل ۶۹ لایه توجه خطی دلتا (\en{KDA}) و ۲۴ لایه \en{Gated MLA} است که در ۸۹۶ کارشناس با ۱۶ کارشناس فعال در هر توکن و ۲ کارشناس اشتراکی بهینه‌سازی می‌شود.
+
+\paragraph*{بهینه‌ساز \en{Per-Head Muon} و پویایی پیش‌آموزش}
+برای به‌روزرسانی ماتریس‌های وزن تصویرسازی توجه، بهینه‌ساز \en{Per-Head Muon} معرفی شده است. به‌جای اعمال تکرارهای نیوتن-شولتز بر روی کل ماتریس کوپل‌شده $W \in \mathbb{R}^{d \times d}$، ماتریس گشتاور به ازای تک‌تک سرهای توجه افراز شده و نرمال‌سازی به‌صورت مستقل انجام می‌شود تا از سرکوب سرهای کوچک‌تر توسط سرهای غالب جلوگیری گردد.
+\begin{itemize}
+    \item \textbf{برنامه زمانی نرخ یادگیری:} بررسی‌های قوانین مقیاس‌بندی مدل به صراحت زمان‌بندی کسینوسی (\en{Cosine Decay}) را بر روش \en{WSD} برتری داد.
+    \item \textbf{فراپارامترهای بهینه‌ساز:} گرم‌شدن خطی اولیه در ۱٪ از گام‌های کل آموزش، ضریب کاهش وزن $\lambda = 0.1$ در سراسر فرایند.
+    \item \textbf{بافت زمینه:} آموزش از ۸K آغاز، در طول پیش‌آموزش به ۶۴K، و در مرحله سردکردن پایانی به ۲۵۶K و سپس ۱M توکن توسعه یافت.
+\end{itemize}
+
+\paragraph*{استخراج ریاضیاتی تعادل بار چندکی (\en{Quantile Balancing - QB})}
+تخصیص کارشناسان به مسائل انتساب بهینه متوازن با قید برابری بار برمی‌گردد. برای دسته‌ای شامل $m$ توکن و $n$ کارشناس با انتخاب $k$ کارشناس برای هر توکن، بار هدف هر کارشناس برابر $q = \frac{mk}{n}$ است. با فرمول‌بندی دوگان خطی بر روی ضرایب لاگرانژ توکن ($\alpha_i$) و کارشناس ($\beta_j$)، تابع هدف دوگان تحدب به صورت زیر حاصل می‌شود:
+\begin{equation}
+    \min_{\alpha, \beta} \mathcal{L}(\alpha, \beta) = \sum_{i=1}^m \sum_{j=1}^n \max(0, s_{i,j} - \alpha_i - \beta_j) + k \sum_{i=1}^m \alpha_i + \frac{mk}{n} \sum_{j=1}^n \beta_j
+\end{equation}
+روش \en{Quantile Balancing} با کمینه‌سازی متناوب مختصاتی مسئله را حل می‌کند:
+\begin{equation}
+    \alpha_i^* = \text{quantile}_{1 - k/n}(s_i - \beta), \quad \beta_j^* = \text{quantile}_{1 - k/n}(s_{:,j} - \alpha)
+\end{equation}
+در مقیاس توزیع‌شده، گرادیان زیرمسئله کارشناس برابر است با:
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial \beta_j} = \frac{mk}{n} - \sum_{i=1}^m \mathbb{I}(s_{i,j} - \alpha_i - \beta_j > 0)
+\end{equation}
+برای مهار هزینه ارتباطی، تفاضل‌های $r_{i,j} = \alpha_i - s_{i,j}$ در $B = 1000$ سطل هیستوگرام با پهنای یکنواخت $w = \frac{b_{\max} - b_{\min} + 2}{B}$ نگاشت می‌شوند. این تقریب خطای عدم تعادل را به کمتر از $10^{-3}$ محدود ساخته و حجم تبادل اطلاعات را به یک \en{All-Reduce} ساده اعداد صحیح تنزل می‌دهد.
+
+\paragraph*{تحدید عددی هموار در لایه‌های کارشناس با \en{SiTU-GLU}}
+برای جلوگیری از انفجار مقادیر عددی ناشی از ضرب متوالی چهار ماتریس در فضای کارشناسان، تابع فعال‌ساز هموار \en{SiTU-GLU} با ساختار زیر فرمول‌بندی شد:
+\begin{equation}
+    \text{SiTU-GLU}(x) = \left[ \beta_1 \tanh\left(\frac{W_g x}{\beta_1}\right) \odot \text{Sigmoid}(W_g x) \right] \odot \left[ \beta_2 \tanh\left(\frac{W_u x}{\beta_2}\right) \right]
+\end{equation}
+فراپارامترهای برش هموار روی $\beta_1 = 4$ برای شاخه گیت و $\beta_2 = 25$ برای شاخه مقدار تنظیم شدند که خروجی لایه را اکیداً به کران جبری زیر مقید می‌سازد:
+\begin{equation}
+    \|\text{SiTU-GLU}(x)\|_\infty \le \beta_1 \beta_2 = 100
+\end{equation}
+
+\paragraph*{فراپارامترهای یادگیری تقویتی کارگزارمحور و کنترل بودجه}
+\begin{itemize}
+    \item \textbf{کنترل بودجه استدلال:} به ازای مسئله $x$ با بودجه پایه $b_0(x)$، چنانچه طول تولید $T(y) > \tau \cdot b_0(x)$ گردد، جریمه قطعی $-1$ اعمال می‌شود. ضریب $\tau$ در سه مد زمانی $\{\text{low}, \text{high}, \text{max}\}$ بازپخت می‌گردد.
+    \item \textbf{رول‌اوت‌های ناقص (\en{Partial Rollouts}):} فرایند تولید با تکمیل کسری از مسیرها ($\lambda \in (0, 1)$) متوقف شده و بهینه‌سازی خط‌مشی با اعمال بازدارنده بر توکن‌ها انجام می‌گیرد.
+    \item \textbf{تقطیر چندمعلمه (\en{MOPD}):} تابع پاداش تضادی چگال با کران پایدارساز $R_{\max}$:
+    \begin{equation}
+        r_{opd}^d(y_t \mid e, x, y_{<t}) = \text{clip}\left( \text{sg}\left[ \log \frac{\pi_{\text{teacher}}^{(d,e)}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid e, x, y_{<t})} \right], -R_{\max}, R_{\max} \right)
+    \end{equation}
+    \item \textbf{آموزش مدل پیش‌نویس \en{EAGLE-3}:} بهینه‌سازی مستقیم تابع زیان احتمالاتی \en{LK}:
+    \begin{equation}
+        \mathcal{L}_{\text{LK}} = -\log \sum_{x \in \mathcal{V}} \min(p(x), q(x))
+    \end{equation}
+    با آن‌رول ۷ مرحله‌ای در طول آموزش با وزن‌های کارشناسان در فرمت \en{MXFP4} و فعال‌سازهای \en{MXFP8}.
+\end{itemize}
+
+\paragraph*{دیاگرام ساختار تنظیم تعادل بار و تثبیت در \model{Kimi K3}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.4cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.85cm},
+    moe/.style={base, fill=blue!10, draw=blue!60},
+    qb/.style={base, fill=teal!10, draw=teal!60},
+    rl/.style={base, fill=orange!10, draw=orange!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[moe] (situglu) {\textbf{تثبیت لایه \en{LatentMoE}}\\فعال‌ساز \en{SiTU-GLU}: $\beta_1=4, \beta_2=25 \implies \|f(x)\|_\infty \le 100$\\نرمال‌سازی میانی: درج \en{RMSNorm} پیش از تصویر بالا};
+    \node[qb, below=of situglu] (qbnode) {\textbf{تعادل بار چندکی (\en{Quantile Balancing})}\\تفکیک دوگان بر پایه هیستوگرام $B=1000$ سطل\\خطای تقریب بار $< 10^{-3}$ بدون اتلاف کمکی};
+    \node[rl, below=of qbnode] (rlcurric) {\textbf{یادگیری تقویتی چندسطحی (\en{MOPD} \& Budget RL)}\\کنترل طول پاسخ با سقف $\tau \cdot b_0(x)$\\برش پاداش متراکم با آستانه $[-R_{\max}, R_{\max}]$};
+
+    \draw[arrow] (situglu) -- (qbnode);
+    \draw[arrow] (qbnode) -- (rlcurric);
+\end{tikzpicture}
+\end{center}

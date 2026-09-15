@@ -1,0 +1,61 @@
+\item \model{MiniMax-M2}
+
+\paragraph*{مقدمه و راهبرد بهینه‌سازی}
+خانواده مدل‌های \model{MiniMax-M2} \cite{minimax2026m2} با تمرکز بر فعال‌سازی حداقلی پارامترها (تنها ۹.۸ میلیارد پارامتر فعال از ۲۲۹.۹ میلیارد پارامتر کل در ۶۲ لایه) طراحی شده است. خط لوله پیش‌آموزش روی ۲۹.۲ تریلیون توکن و پس‌آموزش آن در بستر سیستم اختصاصی \en{Forge}، هماهنگی دقیقی میان بهینه‌سازی خط‌مشی، زمان‌بندی بافت و توابع زیان پاداش‌محور برقرار ساخته است.
+
+\paragraph*{فراپارامترهای پیش‌آموزش و ماژول \en{MTP}}
+\begin{itemize}
+    \item \textbf{طول زمینه و برنامه زمانی:} پیش‌آموزش در دو گام ثابت (۱۹.۹T توکن با بافت ۸K) و فاز سردکردن (۹.۳T توکن با بافت‌های ۳۲K و نهایتاً ۱۹۲K) انجام پذیرفت.
+    \item \textbf{ماژول پیش‌بینی چندتوکنی (\en{MTP}):} در پیش‌آموزش با عمق $K=1$ آغاز شد؛ وزن زیان کمکی $\lambda_{\text{MTP}}$ با مقدار اولیه $0.3$ شروع و در فاز واپاشی به $0.1$ تنزل یافت. در فاز ادامه آموزش، با تکنیک کپی‌برداری مستقیم وزن‌ها به $K=3$ توسعه یافت.
+\end{itemize}
+
+\paragraph*{فرمول‌بندی الگوریتم \en{CISPO}}
+برای مدیریت رول‌اوت‌های طولانی کارگزاران، الگوریتم بهینه‌سازی خط‌مشی با نمونه‌برداری اهمیت نامتقارن (\en{CISPO}) به کار گرفته شده است:
+\begin{equation}
+    \mathcal{J}_{\text{CISPO}}(\theta) = \mathbb{E} \left[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \text{sg}\left(\hat{r}_{i,t}(\theta)\right) \hat{A}_{i,t} \log \pi_\theta(o_{i,t} \mid q, o_{i,<t}) \right]
+\end{equation}
+نسبت اهمیت $\hat{r}_{i,t}(\theta)$ به‌صورت نامتقارن بریده می‌شود:
+\begin{equation}
+    \hat{r}_{i,t}(\theta) = \text{clip}\left( \frac{\pi_\theta(o_{i,t} \mid q, o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}, 0, 1 + \epsilon_{\text{high}}^{\text{IS}} \right)
+\end{equation}
+اعمال عملگر توقف گرادیان $\text{sg}(\cdot)$ از محاسبات مشتقات مرتبه دوم جلوگیری کرده و به‌روزرسانی مرتبه اول پایداری را شکل می‌دهد. حد بالای $1 + \epsilon_{\text{high}}^{\text{IS}}$ مانع جهش‌های فرین شده و حد پایین صفر به الگوریتم اجازه می‌دهد توکن‌های نامنطبق با خط‌مشی جاری را کاملاً بی‌اثر کند.
+
+\paragraph*{تفکیک زمانی پاداش و ارزیابی زمان اجرا}
+برای تخصیص بهینه اعتبار در توالی‌های تا سقف ۱۹۲K توکن، پاداش ترکیبی گام $t$ شامل سه مؤلفه زیر است:
+\begin{equation}
+    r_t = \alpha \cdot r_t^{\text{process}} + \beta \cdot r_t^{\text{speed}} + r_t^{\text{perf}}
+\end{equation}
+که در آن پاداش سرعت به صورت تابعی یکنوای کاهشی از زمان واقعی اجرا فرمول‌بندی می‌شود:
+\begin{equation}
+    r_t^{\text{speed}} = h\left(\frac{T_{\text{completion}}}{T_{\text{baseline}}}\right)
+\end{equation}
+تخمین مزیت از ترکیب پاداش بازگشتی (\en{Reward-to-Go}) با خط مبنای مسیر ($B_i$) محاسبه می‌شود:
+\begin{equation}
+    \hat{A}_{i,t} = \sum_{p=t}^T r_p - B_i
+\end{equation}
+
+\paragraph*{فراپارامترهای زمان‌بندی \en{Windowed FIFO}}
+جهت غلبه بر چالش مسدودسازی سرخط (\en{HoL Blocking}) ناشی از تاخیر وظایف ناهمگن، زمان‌بندی بر پایه پنجره لغزان $W$ روی صف کارها با طول $N$ تنظیم شد:
+\begin{equation}
+    W = 0.3 N
+\end{equation}
+درون پنجره، پردازش به صورت حریصانه صورت می‌گیرد و میان مرزهای پنجره ترتیب اکید \en{FIFO} برقرار است. در استنباط، نمونه‌برداری با دما $T=1.0$ و $Top\text{-}p=0.95$ اجرا می‌گردد.
+
+\paragraph*{دیاگرام خط لوله سیستم بهینه‌سازی \en{Forge} در \model{MiniMax-M2}}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.1cm and 1.3cm,
+    base/.style={draw, rounded corners=4pt, align=center, font=\small, thick, minimum height=0.85cm},
+    queue/.style={base, fill=blue!10, draw=blue!60},
+    sched/.style={base, fill=teal!10, draw=teal!60},
+    loss/.style={base, fill=purple!10, draw=purple!60},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, draw=gray!80}
+]
+    \node[queue] (rollout) {\textbf{صف تولید ناهمگام مسیرها}\\رول‌اوت کارگزاران تا سقف بافت ۱۹۲K توکن};
+    \node[sched, below=of rollout] (wfifo) {\textbf{زمان‌بندی پنجره‌ای (\en{Windowed FIFO})}\\اندازه پنجره: $W = 0.3N$\\تعادل میان ثبات توزیع و گذردهی سیستم};
+    \node[loss, below=of wfifo] (cispo) {\textbf{بهینه‌سازی \en{CISPO}}\\برش نامتقارن: $[0, 1 + \epsilon_{\text{high}}^{\text{IS}}]$\\توقف گرادیان بر نسبت وزن و ادغام پیشوند درختی ($40\times$)};
+
+    \draw[arrow] (rollout) -- (wfifo);
+    \draw[arrow] (wfifo) -- (cispo);
+\end{tikzpicture}
+\end{center}
