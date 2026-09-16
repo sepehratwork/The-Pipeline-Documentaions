@@ -3374,6 +3374,172 @@ Jiaxin Zhang, Xiangyu Peng, Qinglin Chen, Qinyuan Ye, Caiming Xiong, and
   on-policy distillation.
 \newblock {\em arXiv preprint arXiv:2604.16830}, 2026.
 
+\bibitem{han2024peft}
+Zeyu Han, Chao Gao, Jinyang Liu, Jeff Zhang, and Sai~Qian Zhang.
+\newblock Parameter-efficient fine-tuning for large models: A comprehensive
+  survey.
+\newblock {\em arXiv preprint arXiv:2403.14608}, 2024.
+
+\bibitem{zhang2025survey}
+Dan Zhang, Tao Feng, Lilong Xue, Yuandong Wang, Yuxiao Dong, and Jie Tang.
+\newblock Parameter-efficient fine-tuning for foundation models.
+\newblock {\em arXiv preprint arXiv:2501.13787}, 2025.
+
+\bibitem{prottasha2025pefta2z}
+Nusrat~Jahan Prottasha, Upama~Roy Chowdhury, Shetu Mohanto, Tasfia Nuzhat,
+  Abdullah~As Sami, Md~Shamol Ali, Md~Shohanur~Islam Sobuj, Hafijur Raman,
+  Md~Kowsher, and Ozlem~Ozmen Garibay.
+\newblock Peft a2z: Parameter-efficient fine-tuning survey for large language
+  and vision models.
+\newblock {\em arXiv preprint arXiv:2504.14117}, 2025.
+
+\bibitem{liu2025look}
+Yongkang Liu, Xingle Xu, Ercong Nie, Zijing Wang, Shi Feng, Daling Wang, Qian
+  Li, and Hinrich Sch{\"u}tze.
+\newblock Look within or look beyond? a theoretical comparison between
+  parameter-efficient and full fine-tuning.
+\newblock {\em arXiv preprint arXiv:2505.22355}, 2025.
+
+\bibitem{steele2026noise}
+Brady Steele.
+\newblock Why lora resists label noise: A theoretical framework for
+  noise-robust parameter-efficient fine-tuning.
+\newblock {\em arXiv preprint arXiv:2602.00084}, 2026.
+
+\bibitem{zindari2026lora}
+Ali Zindari, Rotem Mulayoff, and Sebastian~U Stich.
+\newblock Lora vs. full fine-tuning: A theoretical perspective.
+\newblock {\em arXiv preprint arXiv:2605.19018}, 2026.
+
+\bibitem{hu2022lora}
+Edward~J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+  Wang, Lu~Wang, and Weizhu Chen.
+\newblock Lora: Low-rank adaptation of large language models.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2022.
+
+\bibitem{houlsby2019parameter}
+Neil Houlsby, Andrei Giurgiu, Stanislaw Jastrzebski, Bruna Morrone, Quentin
+  De~Laroussilhe, Andrea Gesmundo, Mona Attariyan, and Sylvain Gelly.
+\newblock Parameter-efficient transfer learning for nlp.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  2790--2799, 2019.
+
+\bibitem{he2021towards}
+Junxian He, Chunting Zhou, Xuezhe Ma, Taylor Berg-Kirkpatrick, and Graham
+  Neubig.
+\newblock Towards a unified view of parameter-efficient transfer learning.
+\newblock {\em arXiv preprint arXiv:2110.04366}, 2021.
+
+\bibitem{li2021prefix}
+Xiang~Lisa Li and Percy Liang.
+\newblock Prefix-tuning: Optimizing continuous prompts for generation.
+\newblock In {\em Proceedings of the 59th Annual Meeting of the Association for
+  Computational Linguistics (ACL)}, pages 4582--4597, 2021.
+
+\bibitem{lester2021power}
+Brian Lester, Rami Al-Rfou, and Noah Constant.
+\newblock The power of scale for parameter-efficient prompt tuning.
+\newblock In {\em Proceedings of the 2021 Conference on Empirical Methods in
+  Natural Language Processing (EMNLP)}, pages 3045--3059, 2021.
+
+\bibitem{ben-zaken-etal-2022-bitfit}
+Elad Ben~Zaken, Yoav Goldberg, and Shauli Ravfogel.
+\newblock Bitfit: Simple parameter-efficient fine-tuning for transformer-based
+  masked language-models.
+\newblock In {\em Proceedings of the 60th Annual Meeting of the Association for
+  Computational Linguistics (ACL)}, pages 1--9, 2022.
+
+\bibitem{sung2021training}
+Yi-Lin Sung, Varun Nair, and Colin~A Raffel.
+\newblock Training neural networks with fixed sparse masks.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~34, pages 24193--24205, 2021.
+
+\bibitem{liu2024dora}
+Shih-Yang Liu, Chien-Yi Wang, Hongxu Yin, Pavlo Molchanov, Yu-Chiang~Frank
+  Wang, Kwang-Ting Cheng, and Min-Hung Chen.
+\newblock Dora: Weight-decomposed low-rank adaptation.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2024.
+
+\bibitem{zhao2024galore}
+Jiawei Zhao, Zhenyu Zhang, Beidi Chen, Zhangyang Wang, Anima Anandkumar, and
+  Yuandong Tian.
+\newblock Galore: Memory-efficient llm training by gradient low-rank
+  projection.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2024.
+
+\bibitem{liu2025optimization}
+Xu-Hui Liu, Yali Du, Jun Wang, and Yang Yu.
+\newblock On the optimization landscape of low rank adaptation methods for
+  large language models.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{mao2021unipelt}
+Yuning Mao, Lambert Mathias, Rui Hou, Amjad Almahairi, Hao Ma, Jiawei Han,
+  Wen-tau Yih, and Madian Khabsa.
+\newblock Unipelt: A unified framework for parameter-efficient language model
+  tuning.
+\newblock In {\em Annual Meeting of the Association for Computational
+  Linguistics (ACL)}, 2021.
+
+\bibitem{liu2023moelora}
+Qidong Liu, Xian Wu, Xiangyu Zhao, Yuanshao Zhu, Derong Xu, Feng Tian, and
+  Yefeng Zheng.
+\newblock Moelora: An moe-based parameter efficient fine-tuning method for
+  multi-task medical applications.
+\newblock {\em arXiv preprint arXiv:2310.18339}, 2023.
+
+\bibitem{rushka2026rank}
+Michael Rushka and Diego Klabjan.
+\newblock Rank-accuracy trade-off for lora: A gradient-flow analysis.
+\newblock {\em arXiv preprint arXiv:2602.10212}, 2026.
+
+\bibitem{xu2025understanding}
+Ziqing Xu, Hancheng Min, Lachlan~Ewen MacDonald, Jinqi Luo, Salma Tarmoun,
+  Enrique Mallada, and Ren{\'e} Vidal.
+\newblock Understanding the learning dynamics of lora: A gradient flow
+  perspective on low-rank adaptation in matrix factorization.
+\newblock In {\em International Conference on Artificial Intelligence and
+  Statistics (AISTATS)}, volume 258, pages 4636--4644, 2025.
+
+\bibitem{mu2026convergence}
+Siqiao Mu and Diego Klabjan.
+\newblock On the convergence rate of lora gradient descent.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2026.
+
+\bibitem{zhang2026hidden}
+Zicheng Zhang, Haoran Li, Jiaxing Wang, Guoqiang Gong, Anqi Li, Yudong Hu, Ting
+  Xiong, Yurong Gao, Junxing Hu, Zhida Jiang, et~al.
+\newblock The hidden power of scaling factor in lora optimization.
+\newblock {\em arXiv preprint arXiv:2606.12883}, 2026.
+
+\bibitem{kratsios2025sharp}
+Anastasis Kratsios, Tin~Sum Cheng, Aurelien Lucchi, and Haitz S{\'a}ez~de
+  Oc{\'a}riz~Borde.
+\newblock Sharp generalization bounds for foundation models with asymmetric
+  randomized low-rank adapters.
+\newblock {\em arXiv preprint arXiv:2506.14530}, 2025.
+
+\bibitem{duranthon2026high}
+Odilon Duranthon, Fabrizio Boncoraglio, and Lenka Zdeborov{\'a}.
+\newblock High-dimensional theory of lora fine-tuning in a solvable attention
+  model.
+\newblock {\em arXiv preprint arXiv:2606.05899}, 2026.
+
+\bibitem{zhang2026convergence}
+Dechen Zhang, Xuan Tang, and Difan Zou.
+\newblock On the convergence of low-precision lora training.
+\newblock In {\em 4th Workshop on High-dimensional Learning Dynamics (HiLD
+  2026)}, 2026.
+
+\bibitem{zhang2023lorafa}
+Longteng Zhang, Lin Zhang, Shaohuai Shi, Xiaowen Chu, and Bo~Li.
+\newblock Lora-fa: Memory-efficient low-rank adaptation for large language
+  models fine-tuning.
+\newblock {\em arXiv preprint arXiv:2308.03303}, 2023.
+
 \bibitem{chen2025revisiting}
 Zhengyu Chen, Siqi Wang, Teng Xiao, Yudong Wang, Shiqi Chen, Xunliang Cai,
   Junxian He, and Jingang Wang.
@@ -4452,5 +4618,10 @@ Dan Busbridge, Amitis Shidani, Floris Weers, Jason Ramapuram, Etai Littwin, and
   Russ Webb.
 \newblock Distillation scaling laws.
 \newblock In {\em International Conference on Machine Learning (ICML)}, 2025.
+
+\bibitem{kopiczko2024vera}
+Dawid~J Kopiczko, Tijmen Blankevoort, and Yuki~M Asano.
+\newblock Vera: Vector-based random matrix adaptation.
+\newblock {\em arXiv preprint arXiv:2310.11454}, 2024.
 
 \end{thebibliography}

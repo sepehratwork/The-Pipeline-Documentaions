@@ -1,1 +1,335 @@
-\item \textbf asd
+\item \textbf{مرور جامع پیشینه پژوهش: مبانی نظری و تکامل روش‌های تنظیم دقیق کارآمد از نظر پارامتر (\en{PEFT})}
+
+\paragraph*{مقدمه و ضرورت ظهور پارادایم \en{PEFT}}
+با افزایش تصاعدی ابعاد پارامتری در مدل‌های زبانی بزرگ (\en{LLMs}) و مدل‌های بنیادین چندوجهی (\en{MFMs})، روش سنتی «تنظیم دقیق تمام پارامترها» (\en{Full Fine-Tuning - FFT}) با موانع اساسی در زمینه زیرساخت‌های محاسباتی و منابع حافظه روبه‌رو شده است \cite{han2024peft, zhang2025survey, prottasha2025pefta2z}. در تنظیم دقیق استاندارد، به ازای هر پارامتر فعال در مدل، نه تنها وزن‌های شبکه بلکه گرادیان‌ها و متغیرهای حالت بهینه‌ساز (\en{Optimizer States}) نیز باید در حافظه \en{GPU} نگهداری شوند. برای نمونه، در بهینه‌ساز \en{AdamW}، به ازای هر پارامتر در فرمت ۱۶-بیتی، ذخیره‌سازی ممان‌های اول و دوم در دقت ۳۲-بیتی نیازمند حداقل ۱۶ تا ۲۰ بایت حافظه است که برای مدلی با مقیاس ۷۰ میلیارد پارامتر، فراتر از یک ترابایت حافظه ویدئویی (\en{VRAM}) را طلب می‌کند \cite{han2024peft, liu2025look}.
+
+علاوه بر تنگنای حافظه، آموزش تمام پارامترها در سناریوهایی با داده‌های محدود، خطر بیش‌برازش (\en{Overfitting}) و فراموشی فاجعه‌بار دانش عمومی پیش‌آموزش‌دیده (\en{Catastrophic Forgetting}) را به همراه دارد \cite{steele2026noise, zindari2026lora}. برای غلبه بر این موانع، رویکرد «تنظیم دقیق کارآمد از نظر پارامتر» (\en{Parameter-Efficient Fine-Tuning - PEFT}) مطرح گردید. راهبرد بنیادین در \en{PEFT}، منجمد نگه‌داشتن اکثریت قاطع وزن‌های پیش‌آموزش‌دیده و به‌روزرسانی یا تزریق کسر ناچیزی از پارامترهای جدید (غالباً کمتر از یک درصد) به معماری شبکه است \cite{hu2022lora, zhang2025survey}.
+
+\paragraph*{رده‌بندی ساختاری روش‌های \en{PEFT}}
+بر پایه سازوکار محاسباتی و نحوه مداخله در گراف محاسباتی مدل، تکنیک‌های \en{PEFT} به پنج خانواده بنیادین تقسیم می‌شوند \cite{han2024peft, zhang2025survey, prottasha2025pefta2z}:
+\begin{itemize}
+    \item \textbf{روش‌های افزایشی (\en{Additive PEFT}):} شامل افزودن ماژول‌های سبک بطری‌گردنی به صورت متوالی (\en{Serial Adapters}) \cite{houlsby2019parameter}، موازی (\en{Parallel Adapters}) \cite{he2021towards}، یا تزریق بردارهای پیوسته به فضای ورودی و لایه‌های توجه (\en{Prompt \& Prefix Tuning}) \cite{li2021prefix, lester2021power}.
+    \item \textbf{روش‌های انتخابی (\en{Selective PEFT}):} عدم افزودن پارامتر و محدود کردن آموزش به زیرمجموعه‌ای تنک از پارامترهای پیشین، نظیر آموزش انحصاری بایاس‌ها در \en{BitFit} \cite{ben-zaken-etal-2022-bitfit} یا ماسک‌گذاری فیشر در \en{FishMask} \cite{sung2021training}.
+    \item \textbf{روش‌های بازپارامترسازی (\en{Reparameterization PEFT}):} تعریف به‌روزرسانی وزن‌ها از طریق تجزیه کم‌رتبه ماتریسی در فاز آموزش و ادغام مجدد آن‌ها در فاز استنتاج، نظیر \en{LoRA} \cite{hu2022lora} و \en{DoRA} \cite{liu2024dora}.
+    \item \textbf{روش‌های فشرده‌سازی گرادیان (\en{Gradient Projection PEFT}):} آموزش تمام پارامترهای وزن اما فشرده‌سازی ماتریس گرادیان و حالت‌های بهینه‌ساز در زیرفضاهای کم‌رتبه، نظیر \en{GaLore} \cite{zhao2024galore} و \en{GaRare} \cite{liu2025optimization}.
+    \item \textbf{روش‌های ترکیبی و متخصصین (\en{Hybrid \& MoE-based}):} تلفیق مکانیزم‌های آداپتور، پیشوند و کم‌رتبه با گیت‌بندی پویا، نظیر \en{UniPELT} \cite{mao2021unipelt}، \en{MAM Adapter} \cite{he2021towards} و \en{MoE-LoRA} \cite{liu2023moelora}.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=1.6cm and 1.2cm,
+    every node/.style={font=\small, align=center},
+    base/.style={rectangle, rounded corners=6pt, draw=blue!70!black, fill=blue!8, thick, minimum width=2.4cm, minimum height=1cm, drop shadow},
+    sub/.style={rectangle, rounded corners=4pt, draw=teal!70!black, fill=teal!10, minimum width=2.6cm, minimum height=0.9cm, text width=2.6cm},
+    leaf/.style={rectangle, rounded corners=3pt, draw=gray!60, fill=gray!5, text width=2.4cm, font=\scriptsize},
+    arrow/.style={->, thick, draw=blue!60!black}
+]
+
+    % Main Taxonomy Root
+    \node[base, fill=blue!20] (root) {\textbf{خانواده‌های روش‌های \en{PEFT}}};
+
+    % Level 1 categories
+    \node[base, below left=1.8cm and 3.6cm of root] (add) {\textbf{افزایشی}\\\en{Additive}};
+    \node[base, below left=1.8cm and 1.0cm of root] (sel) {\textbf{انتخابی}\\\en{Selective}};
+    \node[base, below right=1.8cm and 1.0cm of root] (rep) {\textbf{بازپارامترسازی}\\\en{Reparameterized}};
+    \node[base, below right=1.8cm and 3.6cm of root] (proj) {\textbf{فشرده‌سازی گرادیان}\\\en{Gradient Proj.}};
+
+    % Connections from root
+    \draw[arrow] (root) -| (add);
+    \draw[arrow] (root) -| (sel);
+    \draw[arrow] (root) -| (rep);
+    \draw[arrow] (root) -| (proj);
+
+    % Level 2 sub-categories
+    \node[sub, below=1.2cm of add] (add_sub) {\en{Adapters} \cite{houlsby2019parameter}\\\en{Prefix/Prompt} \cite{li2021prefix}};
+    \node[sub, below=1.2cm of sel] (sel_sub) {\en{BitFit} \cite{ben-zaken-etal-2022-bitfit}\\\en{FishMask} \cite{sung2021training}};
+    \node[sub, below=1.2cm of rep] (rep_sub) {\en{LoRA} \cite{hu2022lora}\\\en{DoRA} \cite{liu2024dora}};
+    \node[sub, below=1.2cm of proj] (proj_sub) {\en{GaLore} \cite{zhao2024galore}\\\en{GaRare} \cite{liu2025optimization}};
+
+    \draw[arrow] (add) -- (add_sub);
+    \draw[arrow] (sel) -- (sel_sub);
+    \draw[arrow] (rep) -- (rep_sub);
+    \draw[arrow] (proj) -- (proj_sub);
+
+    % Characteristic descriptions
+    \node[leaf, below=0.8cm of add_sub] (add_desc) {افزودن ماژول سبک؛\\سربار کم حافظه؛\\افزایش زمان استنتاج};
+    \node[leaf, below=0.8cm of sel_sub] (sel_desc) {تطبیق زیرمجموعه وزن‌ها؛\\صفر بودن تأخیر؛\\ظرفیت بیانی محدود};
+    \node[leaf, below=0.8cm of rep_sub] (rep_desc) {تجزیه کم‌رتبه $\Delta W$;\\صفر بودن سربار استنتاج؛\\حساسیت به مقیاس $\alpha$};
+    \node[leaf, below=0.8cm of proj_sub] (proj_desc) {پروژکشن کم‌رتبه گرادیان؛\\حفظ بیش‌پارامتری؛\\کاربرد در پیش‌آموزش};
+
+    \draw[dotted, thick, draw=gray] (add_sub) -- (add_desc);
+    \draw[dotted, thick, draw=gray] (sel_sub) -- (sel_desc);
+    \draw[dotted, thick, draw=gray] (rep_sub) -- (rep_desc);
+    \draw[dotted, thick, draw=gray] (proj_sub) -- (proj_desc);
+
+\end{tikzpicture}
+\caption{رده‌بندی درختواره‌ای ساختارهای شاخص در حوزه \en{PEFT} و ویژگی‌های بنیادین هر خانواده.}
+\label{fig:peft_taxonomy}
+\end{figure}
+
+\paragraph*{سازوکارهای ریاضی روش‌های افزایشی و انتخابی}
+در خانواده آداپتورها (\en{Adapters})، ورودی لایه $x \in \mathbb{R}^{b \times d}$ از طریق یک نگاشت بطری‌گردنی به بعد کم‌رتبه $r \ll d$ فشرده شده و پس از اعمال تابع غیرخطی $\sigma(\cdot)$ مجدداً بازیابی می‌شود \cite{houlsby2019parameter, he2021towards}:
+\begin{equation}
+    h_{\text{adapt}} = \sigma(x W_{\text{down}} + b_{\text{down}}) W_{\text{up}} + b_{\text{up}}, \quad W_{\text{down}} \in \mathbb{R}^{d \times r}, \quad W_{\text{up}} \in \mathbb{R}^{r \times d}
+\end{equation}
+در آداپتورهای متوالی (\en{Serial})، این مقدار به صورت اتصال باقیمانده به لایه افزوده می‌شود ($y = x + h_{\text{adapt}}$)، در حالی که در آداپتورهای موازی (\en{Parallel})، به موازات لایه‌های توجه یا پیش‌خور محاسبه می‌شود:
+\begin{equation}
+    y = x W_0 + \alpha \cdot h_{\text{adapt}}
+\end{equation}
+
+در روش‌های تنظیم پرامپت (\en{Prompt Tuning}) و پیشوند (\en{Prefix Tuning})، به ازای طول پرامپت $l_p$، ماتریس‌های تعبیه کلید و مقدار با بردارهای پیوسته گسترش می‌یابند \cite{li2021prefix, lester2021power}:
+\begin{equation}
+    \tilde{K} = [P_K \,;\, K], \quad \tilde{V} = [P_V \,;\, V], \quad P_K, P_V \in \mathbb{R}^{l_p \times d}
+\end{equation}
+خروجی توجه با ضرب داخلی در این ماتریس‌های الحاق‌شده محاسبه می‌گردد:
+\begin{equation}
+    \text{Attention}(Q, \tilde{K}, \tilde{V}) = \text{softmax}\left( \frac{Q \tilde{K}^\top}{\sqrt{d_{\text{head}}}} \right) \tilde{V}
+\end{equation}
+
+در روش‌های انتخابی نظیر \en{BitFit} \cite{ben-zaken-etal-2022-bitfit}، وزن‌های لایه منجمد شده و بهینه‌سازی صرفاً بر بردار بایاس متمرکز است:
+\begin{equation}
+    b^{(t+1)} = b^{(t)} - \eta \nabla_b \mathcal{L}
+\end{equation}
+
+\paragraph*{فرمولاسیون تحلیلی بازپارامترسازی و خانواده \en{LoRA}}
+الگوریتم \en{LoRA} \cite{hu2022lora} تغییرات وزن لایه منجمد $W_0 \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$ را با دو ماتریس کم‌رتبه مدل‌سازی می‌کند:
+\begin{equation}
+    W = W_0 + \Delta W = W_0 + \frac{\alpha}{r} B A, \quad B \in \mathbb{R}^{d_{\text{out}} \times r}, \quad A \in \mathbb{R}^{r \times d_{\text{in}}}
+\end{equation}
+که در آن $r \ll \min(d_{\text{in}}, d_{\text{out}})$ رتبه انطباق و $\alpha$ ضریب مقیاس‌بندی است. ماتریس $A$ از توزیع گاوسی $\mathcal{N}(0, \sigma_A^2)$ و ماتریس $B$ با صفر مقداردهی اولیه می‌شوند تا در لحظه شروع آموزش $\Delta W = 0$ برقرار باشد.
+
+معماری \en{DoRA} \cite{liu2024dora} با هدف رفع محدودیت تفکیک‌ناپذیری اندازه و جهت در \en{LoRA}، وزن نهایی را به صورت زیر تجزیه می‌کند:
+\begin{equation}
+    W = m \odot \frac{W_0 + \frac{\alpha}{r}BA}{\|W_0 + \frac{\alpha}{r}BA\|_c}
+\end{equation}
+که در آن $m \in \mathbb{R}^{1 \times d_{\text{in}}}$ بردار اندازه ستون‌ها و $\|\cdot\|_c$ نرم اقلیدسی ستونی ماتریس است. این تجزیه موجب نزدیکی فوق‌العاده رفتار بهینه‌سازی مدل به \en{FFT} می‌گردد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=Stealth,
+    node distance=1.4cm and 2.0cm,
+    every node/.style={font=\small, align=center},
+    layer/.style={rectangle, draw=blue!80!black, fill=blue!10, rounded corners=4pt, thick, minimum width=2.8cm, minimum height=0.9cm, drop shadow},
+    frozen/.style={rectangle, draw=gray!80, fill=gray!15, rounded corners=4pt, thick, minimum width=2.4cm, minimum height=1.6cm, drop shadow},
+    loranode/.style={rectangle, draw=red!70!black, fill=red!10, rounded corners=4pt, thick, minimum width=1.8cm, minimum height=0.7cm, drop shadow},
+    sum/.style={circle, draw=black, fill=yellow!20, thick, inner sep=0pt, minimum size=0.7cm},
+    arrow/.style={->, thick, draw=blue!70!black}
+]
+
+    % Input
+    \node (input) {$x \in \mathbb{R}^{1 \times d_{\text{in}}}$};
+
+    % Split point
+    \node[coordinate, right=1.2cm of input] (split) {};
+
+    % Frozen Base Weight Path
+    \node[frozen, above right=0.3cm and 1.8cm of split] (w0) {\textbf{وزن منجمد}\\\en{Frozen Weight}\\$W_0 \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$};
+
+    % LoRA Low-Rank Path
+    \node[loranode, below right=0.8cm and 1.2cm of split] (lora_a) {\textbf{ماتریس}\\\en{Matrix} $A$\\$\mathcal{N}(0, \sigma_A^2)$};
+    \node[loranode, right=1.6cm of lora_a] (lora_b) {\textbf{ماتریس}\\\en{Matrix} $B$\\مقداردهی با صفر};
+    \node[layer, fill=red!5, draw=red!40, text width=2.2cm, below=0.5cm of lora_b] (scale) {ضریب مقیاس\\$\frac{\alpha}{r}$};
+
+    % Addition
+    \node[sum, right=6.2cm of split] (add) {$+$};
+
+    % Output
+    \node[right=1.2cm of add] (output) {$h \in \mathbb{R}^{1 \times d_{\text{out}}}$};
+
+    % Paths
+    \draw[thick] (input) -- (split);
+    \draw[arrow] (split) |- (w0.west);
+    \draw[arrow] (split) |- (lora_a.west);
+    \draw[arrow] (lora_a) -- node[above, font=\scriptsize] {$r \ll d$} (lora_b);
+    \draw[arrow] (w0.east) -| (add.north);
+    \draw[arrow] (lora_b.east) -| (add.south);
+    \draw[arrow] (add) -- (output);
+
+    % Equation annotation
+    \node[below=1.2cm of add, font=\footnotesize, text=blue!80!black] {
+        $h = x W_0^\top + \frac{\alpha}{r} x A^\top B^\top$
+    };
+
+\end{tikzpicture}
+\caption{سازوکار جریان داده و ساختار تجزیه کم‌رتبه در لایه \en{LoRA}.}
+\label{fig:lora_structure}
+\end{figure}
+
+\paragraph*{دینامیک بهینه‌سازی و تحلیل جریان گرادیان (\en{Gradient Flow Analysis})}
+تحلیل نحوه همگرایی پارامترهای کم‌رتبه \en{LoRA} از دیدگاه تئوری بهینه‌سازی پیوسته توسط روشکا و کلابجان \cite{rushka2026rank} و شو و همکاران \cite{xu2025understanding} فرمول‌بندی شده است. مسئله مینیمم‌سازی زیر را در نظر بگیرید:
+\begin{equation}
+    \min_{B \in \mathbb{R}^{n \times r}, A \in \mathbb{R}^{r \times m}} f(W_0 + BA)
+\end{equation}
+با تعریف متغیر ماتریسی الحاق‌شده $V \in \mathbb{R}^{(n+m) \times r}$:
+\begin{equation}
+    V = \begin{bmatrix} B \\ A^\top \end{bmatrix} \implies V V^\top = \begin{bmatrix} BB^\top & BA \\ A^\top B^\top & A^\top A \end{bmatrix}
+\end{equation}
+با استفاده از ماتریس‌های استخراج‌کننده بلوکی $E_1 = [I_n \,\, 0_{n \times m}]$ و $E_2 = [0_{m \times n} \,\, I_m]^\top$، حاصل‌ضرب به صورت $BA = E_1 V V^\top E_2$ بازنویسی می‌شود. تابع هدف در فضای جدید برابر است با $\mathcal{J}(V) = f(E_1 V V^\top E_2)$. جریان گرادیان پیوسته بر حسب زمان $t$ با قاعده زنجیره‌ای دیفرانسیل ماتریسی به دست می‌آید \cite{rushka2026rank}:
+\begin{equation}
+    \frac{dV(t)}{dt} = -\nabla_V \mathcal{J}(V) = -2 \, \text{Sym}\left( E_1^\top \nabla f(E_1 V V^\top E_2) E_2^\top \right) V
+\end{equation}
+که در آن $\text{Sym}(M) = \frac{M + M^\top}{2}$ عملگر متقارن‌ساز است.
+
+\textbf{قضیه هم‌ارزی به‌روزرسانی همزمان و متوالی \cite{rushka2026rank}:} اگر الگوریتم نزول گرادیان با گام متناهی $\alpha$ و با ضریب ترکیب محدب $\lambda \in [0, 1]$ به صورت زیر پیاده‌سازی شود:
+\begin{align}
+    B_{k+1} &= B_k - \alpha \nabla_B f(B_k A_k) \\
+    A_{k+1} &= A_k - \alpha \nabla_A f([\lambda B_k + (1-\lambda)B_{k+1}] A_k)
+\end{align}
+در حد پیوسته $\alpha \to 0$، درون‌یابی هر دو حالت متوالی ($\lambda = 0$) و همزمان ($\lambda = 1$) دقیقاً به دستگاه معادلات دیفرانسیل یکسانی همگرا می‌شوند.
+
+\paragraph*{فقدان همواری لیپشیتس و نرخ همگرایی غیراسلایبی $\mathcal{O}(1/\log T)$}
+مو و کلابجان \cite{mu2026convergence} اثبات نمودند که حتی اگر تابع ضرر اولیه $f(W)$ دارای خاصیت همواری لیپشیتس با ثابت $L$ باشد، تابع بازپارامترسازی‌شده $\mathcal{J}(V)$ به دلیل ساختار دوخطی درجه دوم، در کل فضای پارامتر فاقد همواری لیپشیتس سراسری است:
+\begin{equation}
+    \|\nabla \mathcal{J}(V_1) - \nabla \mathcal{J}(V_2)\|_F \propto \mathcal{O}(\|V\|^2) \|V_1 - V_2\|_F
+\end{equation}
+این نامحدود بودن عملگر هسیان منجر به اثبات «لم فرود اصلاح‌شده» (\en{Modified Descent Lemma}) گردید:
+\begin{equation}
+\begin{split}
+    \mathcal{J}(V_{t+1}) \le \mathcal{J}(V_t) - \eta_t \|\nabla \mathcal{J}(V_t)\|_F^2 &+ \sqrt{2}L\eta_t^3 \|\nabla \mathcal{J}(V_t)\|_F^3 \|V_t\|_F \\
+    &+ \eta_t^2 \|\nabla \mathcal{J}(V_t)\|_F^2 \left(\sqrt{2}L\|V_t\|_F^2 + \|\nabla f(E_1 V_t V_t^\top E_2)\|_F\right) \\
+    &+ \frac{\sqrt{2}L}{4} \eta_t^4 \|\nabla \mathcal{J}(V_t)\|_F^4
+\end{split}
+\end{equation}
+به منظور تضمین فرود قطعی تابع در هر گام، نرخ یادگیری باید به صورت معکوس با نرم پارامترها مقیاس شود:
+\begin{equation}
+    \eta_t = \min\left\{ \frac{1}{4\sqrt{2}L \left( \|V_t\|_F^2 + \|\nabla f(E_1 V_t V_t^\top E_2)\|_F \right)}, 1 \right\}
+\end{equation}
+از آنجا که در بدترین حالت، نرم پارامترها به صورت خطی رشد می‌کند ($\|V_t\|_F^2 = \mathcal{O}(t)$)، مجموع ضرایب گام به یک سری هارمونیک واگرا محدود می‌شود:
+\begin{equation}
+    \sum_{t=0}^{T-1} \eta_t = \Theta(\log T) \implies \min_{t=0,\dots,T-1} \|\nabla \mathcal{J}(V_t)\|_F^2 = \mathcal{O}\left(\frac{1}{\log T}\right)
+\end{equation}
+این نرخ بهینه‌سازی به وضوح کندتر از نرخ استاندارد $\mathcal{O}(1/T)$ در توابع هموار لیپشیتس است و وابستگی موقعیتی (\en{Position Dependency}) یادگیری در \en{LoRA} را نشان می‌دهد \cite{mu2026convergence}.
+
+\paragraph*{چشم‌انداز بهینه‌سازی، کمینه‌های محلی کاذب و شرط \en{PL$^*$}}
+لیو و همکاران \cite{liu2025optimization} با بررسی شرط تعمیم‌یافته پولیاک-لوجاسیویچ (\en{$\mu$-PL$^*$ Condition}) نشان دادند که برای تابع هزینه مربعات، برقراری شرط همگرایی نمایی به کوچک‌ترین مقدار ویژه ماتریس هسته تانژانت عصبی (\en{NTK}) وابسته است:
+\begin{equation}
+    \|\nabla \mathcal{L}(\Theta)\|_2^2 \ge \mu \mathcal{L}(\Theta) \iff \lambda_{\min}(K(\Theta)) \ge \mu > 0
+\end{equation}
+در روش‌های \en{FFT} و \en{GaLore}، ساختار بیش‌پارامتری حفظ شده و شعاع ناحیه ارضا‌کننده شرط $\text{PL}^*$ به صورت زیر است:
+\begin{equation}
+    w = \tilde{\Omega}\left( \frac{mn R^{6l+2}}{(\lambda_0 - \mu)^2} \right)
+\end{equation}
+اما در \en{LoRA}، به دلیل کاهش شدید رتبه، توان شعاع بهینه‌سازی به $12l+2$ می‌رسد:
+\begin{equation}
+    r = \tilde{\Omega}\left( \frac{mn R^{12l+2}}{(\lambda_0 - \mu)^2} \right)
+\end{equation}
+از این رو شعاع پایداری $R$ در \en{LoRA} به شدت منقبض شده و فضای چشم‌انداز بهینه‌سازی تنگ‌تر می‌گردد. همچنین بر اساس قضیه لدرر، در حالی که \en{GaLore} با شرط ساده $w \ge 2r$ عاری از هرگونه کمینه محلی کاذب است، در \en{LoRA} جلوگیری از کمینه‌های کاذب نیازمند شرط غیرممکن $r \ge 2m(n+1)^{2l}$ خواهد بود \cite{liu2025optimization}.
+
+\paragraph*{چارچوب سیگنال-رانش و قانون مقیاس‌بندی \en{LoRA-$\alpha$}}
+ژانگ و همکاران \cite{zhang2026hidden} رفتار مقیاس‌بندی $\alpha$ در برابر نرخ یادگیری $\eta$ را از طریق چارچوب تئوریک «سیگنال-رانش» (\en{Signal-Drift Framework}) تبیین کردند. با توجه به ساختار دوخطی، تغییر ماتریس وزن به صورت جبری تفکیک می‌شود:
+\begin{equation}
+    \Delta W = \underbrace{\frac{\alpha}{r}(B \Delta A + \Delta B A)}_{\Delta W_{\text{Signal}}} + \underbrace{\frac{\alpha}{r}(\Delta B \Delta A)}_{\Delta W_{\text{Drift}}}
+\end{equation}
+و به تبع آن، هسیان پارامتری به دو مؤلفه تجزیه می‌گردد:
+\begin{equation}
+    \mathcal{H}_{\text{LoRA}} = \underbrace{J(\theta)^\top H_\ell J(\theta)}_{\mathcal{H}_{\text{Signal}}} + \underbrace{\sum_{k=1}^D g_k \nabla_\theta^2 w_k}_{\mathcal{H}_{\text{Drift}}}
+\end{equation}
+ویژگی‌های قطعی این دو مؤلفه عبارتند از:
+\begin{itemize}
+    \item \textbf{هسیان سیگنال ($\mathcal{H}_{\text{Signal}}$):} تحت تحدب موضعی هسیان وظیفه ($H_\ell \succeq 0$)، همواره نیمه‌معین مثبت است ($\mathcal{H}_{\text{Signal}} \succeq 0$).
+    \item \textbf{هسیان رانش ساختاری ($\mathcal{H}_{\text{Drift}}$):} به دلیل صفر بودن مشتقات دوم درون‌متغیری، ماتریسی بلوکی با قطر صفر است و مقادیر ویژه آن به صورت متقارن $(\pm \lambda)$ ظاهر می‌شوند؛ در نتیجه $\mathcal{H}_{\text{Drift}}$ ذاتاً نامعین (\en{Indefinite}) بوده و هندسه زین‌اسبی مخرب ایجاد می‌کند.
+\end{itemize}
+
+تحت بهینه‌سازهای تطبیقی نظیر \en{Adam}:
+\begin{equation}
+    \|\Delta w_{\text{Signal}}\| = \Theta(\alpha \eta), \quad \|\Delta w_{\text{Drift}}\| = \Theta(\alpha \eta^2) \implies \frac{\|\Delta w_{\text{Signal}}\|}{\|\Delta w_{\text{Drift}}\|} = \Theta\left(\frac{1}{\eta}\right)
+\end{equation}
+افزایش نرخ یادگیری $\eta$ موجب غالب شدن نویز رانش و فروپاشی بهینه‌سازی می‌شود. در مقابل، افزایش $\alpha$ انحنای سیگنال را به صورت درجه دوم تقویت می‌کند ($\mathcal{H}_{\text{Signal}} = \Theta(\alpha^2)$) در حالی که رانش تنها به صورت خطی رشد می‌نماید ($\mathcal{H}_{\text{Drift}} = \Theta(\alpha)$).
+
+با تحلیل امید ریاضی رد هسیان در مقداردهی کایمینگ ($\sigma_A^2 = \frac{1}{3d_{\text{in}}}$):
+\begin{equation}
+    \mathbb{E}[\text{Tr}(\mathcal{H}_{\text{Signal}})] = \frac{\alpha^2 \sigma_A^2}{r} \text{Tr}(H_\ell) \implies \alpha^* = \Theta\left(\frac{\sqrt{r}}{\sigma_A}\right) = \Theta\left(\sqrt{3 d_{\text{in}} r}\right)
+\end{equation}
+این نتیجه قاعده تجربی کهنه $\alpha = r$ را ابطال نموده و اثبات می‌کند که $\alpha$ باید به صورت زیرخطی با $\sqrt{r}$ و متناسب با بعد لایه مقیاس‌بندی شود تا استفاده از نرخ یادگیری استاندارد \en{FFT} در \en{LoRA} میسر گردد \cite{zhang2026hidden}.
+
+\paragraph*{تحلیل تعمیم و ریسک اضافی در رگرسیون چندمتغیره}
+زینداری، مولایوف و اشتیش \cite{zindari2026lora} مسئله مقایسه \en{FFT} و \en{LoRA} را در قالب رگرسیون خطی با بعد ورودی $d_x$ و خروجی $d_y$ بررسی کردند ($y = A^\star x + \varepsilon$). با فرض تغییر واقعی مدل به صورت $\Delta^\star = A^\star - A_0$:
+\begin{itemize}
+    \item \textbf{ریسک اضافی \en{FFT} در رژیم نامعین ($n < d_x$):}
+    \begin{equation}
+        \mathbb{E}[\mathcal{R}(\hat{A}_{\text{FFT}})] - \mathcal{R}(A^\star) = \underbrace{\mathbb{E}\left[\|\Delta^\star P_X^\perp \Sigma_{xx}^{1/2}\|_F^2\right]}_{\text{بایاس}} + \underbrace{\frac{1}{n} \text{Tr}(\Sigma_{\varepsilon\varepsilon}) \mathbb{E}\left[\text{Tr}(\Sigma_{xx} \hat{\Sigma}_{xx}^\dagger)\right]}_{\text{واریانس}}
+    \end{equation}
+    در شرایط توزیع همسانگرد، واریانس به فرم $\text{Tr}(\Sigma_{\varepsilon\varepsilon}) \frac{n}{d_x - n - 1}$ درمی‌آید که با نزدیک شدن $n$ به $d_x$ منفجر می‌شود.
+    \item \textbf{ریسک اضافی \en{LoRA} در رژیم نامعین ($r < n < d_x$):}
+    \begin{equation}
+    \begin{split}
+        \mathbb{E}[\mathcal{R}(\hat{A}_{\text{LoRA}})] - \mathcal{R}(A^\star) &\lesssim \mathbb{E}\left[\|\Delta^\star P_X^\perp \Sigma_{xx}^{1/2}\|_F^2\right] \\
+        &\quad + \frac{r \max\{n, d_y\}}{n} \lambda_{\max}(\Sigma_{\varepsilon\varepsilon}) \mathbb{E}[\lambda_{\max}(\Sigma_{xx}\hat{\Sigma}_{xx}^\dagger)] \\
+        &\quad + \lambda_{\max}(\Sigma_{xx}) \sum_{i=r+1}^{\min\{n, d_y\}} \sigma_i^2(\Delta^\star)
+    \end{split}
+    \end{equation}
+\end{itemize}
+جمله واریانس در \en{LoRA} به جای بعد محیطی $d_x$ یا تعداد نمونه‌ها $n$، با رتبه $r$ کنترل می‌شود. بنابراین در صورتی که $\Delta^\star$ کم‌رتبه بوده یا مقادیر منفرد آن افت سریع داشته باشند ($\sigma_i(\Delta^\star) \to 0$)، \textbf{\en{LoRA} به دلیل کاهش چشمگیر واریانس، خطای تعمیم به مراتب کمتری نسبت به \en{FFT} ارائه می‌دهد} \cite{zindari2026lora}.
+
+\paragraph*{کران‌های تعمیم آماری تند در \en{LoRA} نامتقارن تصادفی}
+کراتسیوس و همکاران \cite{kratsios2025sharp} نشان دادند که انجماد تصادفی یک ماتریس و آموزش ماتریس دیگر، نگاشت پارامتر به تابع را از حالت درجه دوم $(A, B) \mapsto BA$ به حالت خطی $B \mapsto BA$ تقلیل داده و مانع از انفجار ثابت لیپشیتس نگاشت پارامتر می‌گردد. با استفاده از انتگرال آنتروپی دادلی (\en{Dudley's Entropy Integral})، کران بالای شکاف تعمیم بر روی $N$ نمونه آموزشی به دست می‌آید \cite{kratsios2025sharp}:
+\begin{equation}
+    \sup_{f \in \mathcal{F}} |\mathcal{R}(f) - \mathcal{R}_N(f)| \le \tilde{\mathcal{O}}\left( \sqrt{\frac{r}{N}} \right)
+\end{equation}
+همچنین با استفاده از نامساوی پاد-تمرکز لیتل‌وود-اوفورد اثبات گردید که کران پایین متناظر برابر با $\Omega(1/\sqrt{N})$ بوده و از این رو کران ارائه‌شده از حیث اندازه داده تند و بهینه است.
+
+\paragraph*{مقاومت ذاتی در برابر نوفه برچسب‌ها و الگوریتم \en{RACT}}
+استیل \cite{steele2026noise} نشان داد که ظرفیت حفظ‌کردن داده‌ها (\en{Memorization Capacity}) در \en{LoRA} با بعد منیفلد کم‌رتبه، یعنی $\mathcal{O}(r(d + k - r))$ محدود شده است؛ بنابراین زمانی که تعداد داده‌های نوفه‌ای فراتر از این کران رود، \en{LoRA} ساختاراً توانایی تطبیق با نوفه را از دست داده و صرفاً سیگنال تمیز غالب را برازش می‌کند.
+
+با فرض همواری سیگنال و نرخ نوفه $\eta \in [0, 1)$، رتبه بهینه متناسب با سطح نوفه استخراج می‌گردد:
+\begin{equation}
+    \mathbb{E}[\text{Error}] = \mathcal{O}(r^{-2\alpha}) + \mathcal{O}\left( \frac{(1+\eta)rd}{n} \right) \implies r^* = \mathcal{O}\left( \left( \frac{n}{d(1+\eta)} \right)^{\frac{1}{2\alpha + 1}} \right)
+\end{equation}
+تحلیل تفکیک زمانی اثبات می‌کند که یادگیری الگوهای تمیز در زمان $t < t^*/2$ و حفظ نوفه پس از زمان بحرانی رخ می‌دهد:
+\begin{equation}
+    t^* = \mathcal{O}\left( \frac{1}{\gamma \sigma_r} \log\left(\frac{1}{\eta}\right) \right)
+\end{equation}
+الگوریتم \en{RACT} با پایش اختلاف پیش‌بینی میان دو آداپتور با رتبه بالا و پایین ($d_i = \mathcal{L}_{r_H}(x_i) - \mathcal{L}_{r_L}(x_i)$)، نمونه‌های نوفه‌ای را با دقت بالای ۹۱٪ شناسایی و پالایش می‌کند \cite{steele2026noise}.
+
+\paragraph*{نظریه آماری ابعاد بالا در مدل توجه حل‌پذیر (\en{Solvable Attention Model})}
+دورانثون، بونکوراگلیو و زدبورووا \cite{duranthon2026high} با رویکرد فیزیک آماری سیستم‌های بی‌نظم، انطباق لایه توجه را با $N = \Theta(D^2)$ نمونه پیش‌آموزش گسترده‌رتبه و $N' = \Theta(D)$ نمونه تنظیم دقیق رتبه-یک مدل‌سازی کردند. اثر فاز پیش‌آموزش در این فضا به یک نوفه مؤثر اسکالر تقلیل می‌یابد:
+\begin{equation}
+    \Delta_{\text{eff}} = \frac{\Delta}{2} + Q_0 - 2M + Q
+\end{equation}
+که در آن $M$ و $Q$ پارامترهای نظم همپوشانی هستند. با تعریف ضریب کالیبراسیون $\beta_{\text{opt}} = M/Q$ و اعمال تغییر مقیاس $\hat{W} \to \sqrt{\beta}\hat{W}$، عملکرد انتقال بر روی وظیفه پایین‌دست به بیشینه مقدار تحلیلی می‌رسد.
+
+\paragraph*{همگرایی \en{LoRA} تحت کوانتیزاسیون با دقت پایین (\en{Low-Precision LoRA})}
+ژانگ، تانگ و زو \cite{zhang2026convergence} برای نخستین بار همگرایی \en{LoRA} را در شرایطی که کل گراف محاسباتی (وزن‌ها، فعال‌سازها و گرادیان‌ها) کوانتیزه شده‌اند، تحلیل نمودند. در این حالت، تفکیک رفتاری مشخصی میان دو رژیم رخ می‌دهد:
+\begin{itemize}
+    \item \textbf{رژیم رتبه دقیق ($r = r^\star$):} خطای کوانتیزاسیون به زیرفضای ارتوگونال نشت نکرده و کف خطا مستقل از افق زمانی است:
+    \begin{equation}
+        \|A_T B_T - \Delta\|_F \lesssim \sqrt{r^\star} \left[ (1 - \rho)^T + \epsilon_{\max} \sqrt{d} \right]
+    \end{equation}
+    \item \textbf{رژیم رتبه مازاد ($r > r^\star$):} جهات نامربوط مازاد منجر به انباشت رانش خطای کوانتیزاسیون در طول زمان می‌شوند:
+    \begin{equation}
+        \|A_T B_T - \Delta\|_F \lesssim \sqrt{r} \left[ (1 - \rho)^T + \epsilon_{\max} \sqrt{d} + \left( T \eta \epsilon_{\max} \sqrt{d} \right)^2 \right]
+    \end{equation}
+\end{itemize}
+این امر نشان می‌دهد که در آموزش کم‌دقت، برای رتبه‌های بزرگتر، طول مانتیس ممیز شناور ($M_{\min}$) باید به صورت لگاریتمی با افق آموزش افزایش یابد \cite{zhang2026convergence}.
+
+\paragraph*{مقایسه جامع مشخصات محاسباتی و الگوریتمی روش‌های شاخص \en{PEFT}}
+جدول \ref{tab:peft_comprehensive_comparison} مقایسه تحلیلی جامعی از روش‌های مورد بحث را بر اساس ابعاد پارامتری، ردپای حافظه، سربار استنتاج و ضمانت‌های بهینه‌سازی ارائه می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه تحلیلی و آماری روش‌های مطرح \en{PEFT} در مقایسه با \en{Full Fine-Tuning}.}
+\label{tab:peft_comprehensive_comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{روش بهینه‌سازی} & \textbf{خانواده ساختاری} & \textbf{پارامترهای قابل آموزش} & \textbf{حافظه آموزش} & \textbf{تأخیر استنتاج} & \textbf{نرخ همگرایی / چشم‌انداز} & \textbf{مقاومت به نوفه} \\
+\midrule
+\textbf{\en{Full Fine-Tuning (FFT)}} & کامل & $100\%$ ($d_{\text{in}} \times d_{\text{out}}$) & فوق‌العاده بالا ($16\times$) & صفر & $\mathcal{O}(1/T)$ / ارضای سراسری $\text{PL}^*$ & بسیار ضعیف (حفظ سریع نویز) \\
+\textbf{\en{BitFit}} \cite{ben-zaken-etal-2022-bitfit} & انتخابی & $\le 0.1\%$ & بسیار کم & صفر & محدود به تغییرات جزئی توزیع & متوسط \\
+\textbf{\en{Prefix Tuning}} \cite{li2021prefix} & افزایشی (پرامپت) & $0.1\% - 1.0\%$ & متوسط & غیرصفر (کاهش طول بافت) & حساسیت بالا به مقداردهی & متوسط \\
+\textbf{\en{Standard LoRA}} \cite{hu2022lora} & بازپارامترسازی & $0.05\% - 0.5\%$ & کم ($\sim 70\%$ نسبت به FFT) & صفر (قابلیت ادغام) & $\mathcal{O}(1/\log T)$ / زین‌اسبی ساختاری & بسیار بالا تا آستانه ظرفیت \\
+\textbf{\en{LoRA-FA}} \cite{zhang2023lorafa} & بازپارامترسازی & $0.02\% - 0.2\%$ & فوق‌العاده کم (انجماد فعال‌ساز) & صفر & خطی‌سازی نگاشت پارامتر به تابع & بسیار بالا \\
+\textbf{\en{DoRA}} \cite{liu2024dora} & بازپارامترسازی & اندکی بیش از LoRA & کم & صفر (پس از ادغام) & شبیه‌سازی جهت‌دار گرادیان FFT & بالا \\
+\textbf{\en{GaLore}} \cite{zhao2024galore} & فشرده‌سازی گرادیان & ۱۰۰٪ وزن‌ها ($2qr$ حالت بهینه‌ساز) & بسیار کم در بهینه‌ساز & صفر & بدون کمینه موضعی کاذب ($w \ge 2r$) & متوسط \\
+\textbf{\en{GaRare}} \cite{liu2025optimization} & فشرده‌سازی گرادیان & ۱۰۰٪ وزن‌ها ($2qr$ بدون ذخیره SVD) & مینیمال‌ترین در بهینه‌ساز & صفر & تداوم شرط $\text{PL}^*$ با ماتریس تصادفی & متوسط \\
+\textbf{\en{LoRA-$\alpha$}} \cite{zhang2026hidden} & بازپارامترسازی & مشابه LoRA & مشابه LoRA & صفر & تراز انحنای هسیان ($\alpha \propto \sqrt{r}$) & بسیار بالا \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{استقرار سیستمی، خدمت‌رسانی اشتراکی و حریم خصوصی}
+در سطح سیستم‌های توزیع‌شده، چالش‌های خدمت‌رسانی هم‌زمان به چند درخواست با ماژول‌های \en{PEFT} متفاوت بررسی شده است \cite{han2024peft, zhang2025survey}. چارچوب \en{Punica} با معرفی هسته محاسباتی \en{SGMV} (\en{Segmented Gather Matrix-Vector Multiplication}) امکان اجرای دسته‌ای ضرب ماتریسی وزن پایه مشترک با آداپتورهای کم‌رتبه مستقل را بدون اتلاف کارایی پردازنده‌های گرافیکی میسر می‌سازد. فریم‌ورک \en{S-LoRA} نیز با مکانیزم صفحه‌بندی یکپارچه (\en{Unified Paging})، تکه‌تکه شدن حافظه ناشی از کش‌های کلید-مقدار پویا را در مقیاس هزاران آداپتور هم‌زمان مهار می‌نماید \cite{han2024peft}. در حوزه حریم خصوصی، رویکردهای \en{Offsite-Tuning} و \en{DLoRA} با منجمد نگه‌داشتن مدل پایه روی سرور ابری و ارسال شبیه‌سازهای سبک به تجهیزات لبه، آموزش محلی آداپتورها را با تضمین حریم خصوصی داده‌های کاربران فراهم آورده‌اند \cite{han2024peft}.

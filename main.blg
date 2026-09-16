@@ -2,9 +2,13 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 19789 items from 5000.
+Reallocated field_info (elt_size=8) to 20387 items from 5000.
 Database file #1: references.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
+Reallocated cite_list (elt_size=8) to 1500 items from 750.
+Reallocated type_list (elt_size=8) to 1500 items from 750.
+Reallocated entry_exists (elt_size=4) to 1500 items from 750.
+Reallocated cite_info (elt_size=8) to 1500 items from 750.
 Reallocated str_pool (elt_size=1) to 195000 items from 130000.
 Warning--I didn't find a database entry for "nemotron_nano2_2025"
 Warning--I didn't find a database entry for "tieleman2012rmsprop"
@@ -25,45 +29,45 @@ Warning--empty journal in zhao2025small
 Warning--empty journal in su2026moe
 Warning--empty journal in chen2025olmix
 Warning--can't use both volume and number fields in ward1963hierarchical
-You've used 731 entries,
+You've used 758 entries,
             1791 wiz_defined-function locations,
-            3273 strings with 136811 characters,
-and the built_in function-call counts, 160657 in all, are:
-= -- 11500
-> -- 12094
-< -- 107
-+ -- 4320
-- -- 3589
-* -- 10048
-:= -- 27925
-add.period$ -- 2191
-call.type$ -- 731
-change.case$ -- 724
+            3380 strings with 142384 characters,
+and the built_in function-call counts, 167363 in all, are:
+= -- 11989
+> -- 12558
+< -- 115
++ -- 4484
+- -- 3726
+* -- 10464
+:= -- 29013
+add.period$ -- 2272
+call.type$ -- 758
+change.case$ -- 751
 chr.to.int$ -- 0
-cite$ -- 740
-duplicate$ -- 7229
-empty$ -- 13756
-format.name$ -- 3589
-if$ -- 34613
+cite$ -- 767
+duplicate$ -- 7559
+empty$ -- 14367
+format.name$ -- 3726
+if$ -- 36110
 int.to.chr$ -- 0
-int.to.str$ -- 731
-missing$ -- 696
-newline$ -- 3656
-num.names$ -- 731
-pop$ -- 2736
+int.to.str$ -- 758
+missing$ -- 723
+newline$ -- 3791
+num.names$ -- 758
+pop$ -- 2861
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 3546
+skip$ -- 3722
 stack$ -- 0
-substring$ -- 4255
-swap$ -- 1755
-text.length$ -- 107
+substring$ -- 4479
+swap$ -- 1859
+text.length$ -- 115
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 9
-while$ -- 1071
-width$ -- 734
-write$ -- 7473
+while$ -- 1116
+width$ -- 761
+write$ -- 7751
 (There were 19 warnings)
