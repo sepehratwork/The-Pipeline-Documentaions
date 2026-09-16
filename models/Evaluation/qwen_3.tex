@@ -1,1 +1,74 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{ارزیابی یکپارچه حالت‌های فکورانه و مستقیم}
+خانواده مدل‌های \model{Qwen3} \cite{qwen3team2025} در دو معماری متراکم و \en{MoE} در مقیاس‌های ۰.۶B تا ۲۳۵B پارامتر ارائه شده‌اند. مدل پرچمدار \en{Qwen3-235B-A22B} دارای ۲۲ میلیارد پارامتر فعال در هر توکن است. 
+جدول‌های \ref{tab:qwen3_eval_thinking} و \ref{tab:qwen3_eval_non_thinking} ارزیابی جامع عملکرد این مدل را در دو حالت تفکر عمیق (\en{Thinking}) و پاسخ‌دهی مستقیم (\en{Non-thinking}) نشان می‌دهند.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای \en{Qwen3-235B-A22B} در حالت تفکر (\en{Thinking Mode})}
+\label{tab:qwen3_eval_thinking}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{بنچمارک} & \textbf{\en{OpenAI-o1}} & \textbf{\en{DeepSeek-R1}} & \textbf{\en{Gemini 2.5-Pro}} & \textbf{\en{Qwen3-235B-A22B}} \\
+\midrule
+\en{MMLU-Redux} & \underline{92.8} & \textbf{92.9} & 93.7 & 92.7 \\
+\en{GPQA-Diamond} & 78.0 & 71.5 & \textbf{84.0} & 71.1 \\
+\en{MATH-500} & 96.4 & 97.3 & \textbf{98.8} & \underline{98.0} \\
+\en{AIME '24 (Avg 64)} & 74.3 & 79.8 & \textbf{92.0} & \underline{85.7} \\
+\en{AIME '25 (Avg 64)} & 79.2 & 70.0 & \textbf{86.7} & \underline{81.5} \\
+\en{LiveCodeBench v5} & 63.9 & 64.3 & \underline{70.4} & \textbf{70.7} \\
+\en{CodeForces (Rating)} & 1891 & \underline{2029} & 2001 & \textbf{2056} \\
+\en{BFCL v3} & \underline{67.8} & 56.9 & 62.9 & \textbf{70.8} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای \en{Qwen3-235B-A22B} در حالت پاسخ مستقیم (\en{Non-Thinking Mode})}
+\label{tab:qwen3_eval_non_thinking}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{بنچمارک} & \textbf{\en{GPT-4o}} & \textbf{\en{DeepSeek-V3}} & \textbf{\en{Qwen2.5-72B-Inst}} & \textbf{\en{Qwen3-235B-A22B}} \\
+\midrule
+\en{MMLU-Redux} & 87.0 & \underline{89.1} & 86.8 & \textbf{89.2} \\
+\en{GPQA-Diamond} & 46.0 & 59.1 & 49.0 & \textbf{62.9} \\
+\en{MATH-500} & 77.2 & 90.2 & 83.6 & \textbf{91.2} \\
+\en{Arena-Hard} & 85.3 & 85.5 & 81.2 & \textbf{96.1} \\
+\en{LiveCodeBench v5} & 32.7 & 33.1 & 30.7 & \textbf{35.3} \\
+\en{BFCL v3} & \textbf{72.5} & 57.6 & 63.4 & \underline{68.0} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{ارزیابی مقایسه‌ای تقطیر هم‌خط‌مشی در برابر \en{RL}}
+در ارزیابی بر روی مدل ۸B، مقایسه تقطیر برخط (\en{On-Policy Distillation}) با الگوریتم \en{RL} مستقیم نشان داد که تقطیر بر مبنای لاجیت‌های آموزگار، مصرف ساعت پردازنده گرافیکی را از \textbf{17,920 ساعت} به \textbf{1,800 ساعت} تقلیل داده و نمره \en{AIME '24 Pass@1} را از 67.6 به \textbf{74.4} (و \en{Pass@64} را از 90.0 به \textbf{93.3}) رسانده است. در زمینه چندزبانی، ارزیابی \en{Belebele} در ۸۰ زبان نشان‌دهنده برتری قطعی نسبت به نسخه پیشین است.
+
+\paragraph*{جریان تقطیر و یکپارچگی دوگانه}
+شکل \ref{fig:qwen3_eval_flow} نحوه ارزیابی و جریان تقطیر قوی‌به‌ضعیف را در سری \model{Qwen3} نمایش می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 2cm,
+    block/.style={rectangle, draw=blue!80!black, fill=blue!5, rounded corners, thick, align=center, minimum width=3.4cm, minimum height=1cm},
+    arrow/.style={-Latex, thick, draw=blue!80!black}
+]
+    \node[block] (flagship) {\textbf{مدل پرچمدار ۲۳۵B}\\\small آموزگار لاجیت‌ها};
+    \node[block, right=of flagship] (modes) {\textbf{ادغام حالت‌های تفکر}\\\small سوئیچینگ با \en{/think} و \en{/no\_think}};
+    \node[block, below=of flagship] (distill) {\textbf{تقطیر هم‌خط‌مشی}\\\small کاهش ۹۰٪ ساعت GPU};
+    \node[block, right=of distill] (eval) {\textbf{ارزیابی مقیاس‌پذیر}\\\small بودجه تفکر تا سقف ۳۲k};
+    
+    \draw[arrow] (flagship) -- (modes);
+    \draw[arrow] (flagship) -- (distill);
+    \draw[arrow] (distill) -- (eval);
+    \draw[arrow] (modes) -- (eval);
+\end{tikzpicture}
+\caption{جریان تقطیر و ارزیابی حالات پاسخ‌دهی در مدل‌های \model{Qwen3}}
+\label{fig:qwen3_eval_flow}
+\end{figure}

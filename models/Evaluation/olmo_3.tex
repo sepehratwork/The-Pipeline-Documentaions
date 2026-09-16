@@ -1,1 +1,76 @@
-\item \textbf asd
+\item \model{OLMo 3}
+
+\paragraph*{فلسفه ارزیابی جریان باز مدل و چارچوب \en{OlmoBaseEval}}
+خانواده مدل‌های \model{OLMo 3} \cite{olmo3team2025} در دو اندازه ۷B و ۳۲B به همراه جریان کامل ساخت (\en{Full Model Flow}) شامل تمامی مراحل، چک‌پوینت‌ها و کدهای داده منتشر شده‌اند.
+برای بهینه‌سازی فرآیند ارزیابی و پرهیز از سوگیری، متدولوژی \en{OlmoBaseEval} پیاده‌سازی شد:
+\begin{itemize}
+    \item \textbf{خوشه‌بندی کمترین واریانس وارد (\en{Ward's Hierarchical Clustering}):} بر پایه ۲۳ هزار ارزیابی از ۷۰ مدل متن‌باز، تسک‌ها بر مبنای کمترین تغییرات رتبه‌بندی به ۶ دسته مجزا دسته‌بندی شدند:
+    \begin{equation}
+        \Delta \text{ESS}_{AB} = \frac{n_A n_B}{n_A + n_B} \|\mu_A - \mu_B\|^2
+    \end{equation}
+    \item \textbf{سنجه بیت‌بربایت (\en{BPB}) در مقیاس‌های پایین:} برای مدل‌های کوچک (مانند مدل‌های ۱B در ۱۰۰B توکن) که عملکرد گسسته \en{Pass@1} نزدیک به حدس تصادفی است، سنجه پیوسته \en{BPB} بر روی پاسخ‌های انسانی محاسبه شد:
+    \begin{equation}
+        \text{BPB}(y \mid x) = \frac{-\sum_{t=1}^{|y|} \log_2 P(y_t \mid x, y_{<t})}{\text{Length}_{\text{bytes}}(y)}
+    \end{equation}
+    همبستگی رتبه‌ای بالای سنجه \en{BPB} با نتایج نهایی مدل‌ها، قابلیت اطمینان آن را اثبات کرد.
+    \item \textbf{تحلیل نسبت سیگنال به نویز (\en{SNR}):} با حذف ارزیابی‌های نوسانی و تجمیع تسک‌ها، نسبت $\text{SNR} = \frac{\Delta \mu_{\text{signal}}}{\sigma_{\text{noise}}}$ از ۳.۲ در \en{HumanEval} به \textbf{10.0} در شاخص چندتسکی ارتقا یافت.
+\end{itemize}
+
+\paragraph*{آزمون اعتبارسنجی پالایش آلودگی با پاداش‌های دروغین (\en{Spurious Rewards})}
+به منظور اثبات تجربی عدم آلودگی داده‌های پیش‌آموزش و میان‌آموزش با سوالات آزمون‌ها، یک آزمایش کنترل منفی اجرا شد: مدل پایه \en{OLMo 3 Base} با پاداش‌های باینری تصادفی تحت الگوریتم \en{RLVR} آموزش دید. نتایج نشان داد نمرات مدل در تمامی بنچمارک‌ها کاملاً بدون تغییر باقی ماند یا دچار پسرفت شد، که نشان‌دهنده عدم وجود حافظه‌سپاری داده‌های آزمون در مدل است.
+
+\paragraph*{نتایج ارزیابی مدل‌های فکور و دستورپذیر}
+جدول \ref{tab:olmo3_main_eval} نتایج ارزیابی پرچمدار متن‌باز \en{Olmo 3 Think-32B} را در برابر دیگر مدل‌های هم‌رده نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای \model{Olmo 3 Think-32B} در برابر مدل‌های ۳۲B متن‌باز}
+\label{tab:olmo3_main_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{بنچمارک} & \textbf{\en{Olmo 3 Think-32B}} & \textbf{\en{Qwen 3 32B}} & \textbf{\en{Qwen 2.5 32B}} & \textbf{\en{Gemma 3 27B}} & \textbf{\en{DeepSeek-R1-Distill-32B}} \\
+\midrule
+\en{MATH} & 96.1 & 95.4 & 80.2 & 87.4 & 92.6 \\
+\en{AIME 2024} & 76.8 & \textbf{80.8} & 15.7 & 28.9 & 70.3 \\
+\en{AIME 2025} & \underline{72.5} & 70.9 & 13.4 & 22.9 & 56.3 \\
+\en{LiveCodeBench v3} & 83.5 & \textbf{90.2} & 49.9 & 39.0 & 79.5 \\
+\en{HumanEvalPlus} & 91.4 & 91.2 & 82.6 & 79.2 & \textbf{92.3} \\
+\en{BigBenchHard} & 89.8 & \textbf{90.6} & 80.9 & 82.4 & 89.7 \\
+\en{IFEval} & \textbf{89.0} & 86.5 & 81.9 & 85.4 & 78.7 \\
+\en{MMLU} & 85.4 & \textbf{88.8} & 84.6 & 74.6 & 88.0 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{اثبات فرضیه یادگیری دلتا (\en{Delta Learning}) در \en{DPO}}
+در مرحله تنظیم ترجیحات (\en{DPO})، آموزش نظارت‌شده مستقیم روی پاسخ‌های تولیدی مدل قوی‌تر (\en{Qwen3-32B}) میانگین نمرات مدل را از ۷۰.۳ به ۶۴.۵ کاهش داد (اشباع تقلید)؛ اما با اعمال یادگیری تفاضلی دلتا (جفت‌کردن پاسخ ۳۲B با پاسخ ضعیف‌تر ۰.۶B) بر اساس تابع تلفات:
+\begin{equation}
+    \mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x, y_c, y_r)} \left[ \log \sigma \left( \frac{\beta}{|y_c|} \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} - \frac{\beta}{|y_r|} \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)} \right) \right]
+\end{equation}
+میانگین نمرات به \textbf{72.9} صعود کرد که مرز استدلال مدل را ارتقا بخشید.
+
+\paragraph*{چرخه چندسطحی ارزیابی و پالایش داده در \model{OLMo 3}}
+شکل \ref{fig:olmo3_eval_diagram} فرآیند اعتبارسنجی، تحلیل نویز و آزمون شاهد را نشان می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 2cm,
+    stepnode/.style={rectangle, draw=teal!80!black, fill=teal!5, rounded corners, thick, align=center, minimum width=3.4cm, minimum height=1cm},
+    arrow/.style={-Latex, thick, draw=teal!90!black}
+]
+    \node[stepnode] (pool) {\textbf{مجموعه \en{OlmoBaseEval}}\\\small خوشه‌بندی کمترین واریانس وارد};
+    \node[stepnode, right=of pool] (snr) {\textbf{تحلیل سیگنال به نویز}\\\small حذف بنچمارک‌های باینری};
+    \node[stepnode, below=of snr] (decon) {\textbf{آزمون شاهد پاداش تصادفی}\\\small اثبات عدم آلودگی داده‌ها};
+    \node[stepnode, left=of decon] (post) {\textbf{ارزیابی پساآموزش}\\\small (\en{SFT $\rightarrow$ DPO $\rightarrow$ RLVR})};
+    
+    \draw[arrow] (pool) -- (snr);
+    \draw[arrow] (snr) -- (decon);
+    \draw[arrow] (decon) -- (post);
+    \draw[arrow] (post) -- (pool);
+\end{tikzpicture}
+\caption{چارچوب پایش کیفیت و عدم آلودگی داده‌ها در ارزیابی \model{OLMo 3}}
+\label{fig:olmo3_eval_diagram}
+\end{figure}

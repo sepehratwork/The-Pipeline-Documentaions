@@ -1,1 +1,86 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{صورت‌بندی ریاضی الگوریتم \en{GRPO} در آموزش استدلال ناب}
+مدل‌های \model{Magistral} \cite{magistral2025} (نسخه ۲۴B و نسخه \en{Medium}) با بهره‌گیری از الگوریتم بهینه‌سازی نسبی گروهی (\en{GRPO}) \cite{shao2024deepseekmath} بدون هیچ‌گونه داده راه‌انداز اولیه‌ای آموزش دیده‌اند. تابع هدف بهینه‌سازی بدون جریمه واگرایی \en{KL} به صورت زیر تعریف شده است:
+\begin{equation}
+\begin{aligned}
+    \mathcal{J}(\theta) = \mathbb{E}_{\substack{q \sim P(Q) \\ \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}}} \Bigg[ \frac{1}{\sum_{i=1}^G |o_i|} \sum_{i=1}^G \sum_{t=1}^{|o_i|} \min \Big( & r_{i,t} \hat{A}^{\text{norm}}_{i,t}, \\
+    & \text{clip}(r_{i,t}, 1 - \varepsilon_{\text{low}}, 1 + \varepsilon_{\text{high}}) \hat{A}^{\text{norm}}_{i,t} \Big) \Bigg]
+\end{aligned}
+\end{equation}
+که در آن کران بالای برش به $\varepsilon_{\text{high}} \in [0.26, 0.28]$ افزایش یافته تا از افت آنتروپی جلوگیری کند و مزیت نرمال‌شده در سطح مینی‌بچ از رابطه زیر پیروی می‌کند:
+\begin{equation}
+    \hat{A}^{\text{norm}}_{i,t} = \frac{(r_i - \mu) - \hat{A}_{\text{mean}}}{\hat{A}_{\text{std}}}
+\end{equation}
+
+\paragraph*{هندسه فضای وزن‌ها و رابطه مقیاس‌پذیری طول با پاداش}
+با اجرای الگوریتم ویژه‌مقدار لانچوش-آرنولدی (\en{Lanczos-Arnoldi}) بر روی ماتریس وزن‌های چک‌پوینت‌های میانی $X \in \mathbb{R}^{T \times W}$، دو مؤلفه اصلی اول $c_1$ و $c_2$ استخراج شدند:
+\begin{equation}
+    w(\alpha_1, \alpha_2) = w^* + \alpha_1 c_1 + \alpha_2 c_2
+\end{equation}
+ارزیابی پاداش خام نشان داد که با جابه‌جایی در این ابرصفحه، پاداش مدل با طول استدلال رابطه لگاریتمی دارد:
+\begin{equation}
+    \text{Raw Reward} = a \cdot \ln(\text{Output Length}) + b
+\end{equation}
+
+\paragraph*{نتایج ارزیابی مدل \en{Magistral Medium}}
+همان‌طور که در جدول \ref{tab:magistral_eval} مشخص است، اجرای \en{RL} خالص بدون نیاز به داده‌های تقطیر از پیش‌موجود، به جهش‌های بزرگ منجر شده است:
+\begin{itemize}
+    \item در \en{AIME 2024}، نرخ موفقیت \en{Pass@1} از 26.8\% در مدل پایه به \textbf{73.6\%} (و در رای‌گیری ۶۴ تایی به \textbf{90.0\%}) ارتقا یافت.
+    \item در \en{LiveCodeBench v5}، ارتقای ۳۰.۳+ درصدی حاصل شد و امتیاز به \textbf{59.4\%} رسید.
+    \item در آزمون \en{HLE (Text)}، عملکرد مدل به \textbf{9.0\%} رسید که بالاتر از \en{DeepSeek-R1} ($8.6\%$) است.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مدل \model{Magistral Medium} در مقایسه با مبناهای استدلالی}
+\label{tab:magistral_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{تسک ارزیابی} & \textbf{\en{Mistral Medium 3}} & \textbf{\en{Magistral Medium}} & \textbf{\en{DeepSeek-V3}} & \textbf{\en{DeepSeek-R1-Zero}} & \textbf{\en{DeepSeek-R1}} \\
+\midrule
+استفاده از \en{Reasoning SFT} & - & $\times$ & - & $\times$ & $\checkmark$ \\
+\midrule
+\en{AIME '24 (Pass@1 / maj@64)} & 26.8 / 43.4 & \textbf{73.6 / 90.0} & 39.2 & 71.0 & 79.8 \\
+\en{AIME '25 (Pass@1 / maj@64)} & 21.2 / 30.0 & \textbf{64.9 / 83.3} & 28.8 & - & 70.0 \\
+\en{MATH-500} & 91.0 & \textbf{94.3} & 90.2 & 95.9 & 97.3 \\
+\en{GPQA} & 59.6 & \textbf{70.8} & 59.1 & 73.3 & 71.5 \\
+\en{LiveCodeBench (v5)} & 29.1 & \textbf{59.4} & 36.2 & 50.0 & 65.9 \\
+\en{Humanity's Last Exam} & 4.4 & \textbf{9.0} & - & - & 8.6 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{ظهور رایگان توانایی چندوجهی و آزمون‌های ناموفق}
+اگرچه آموزش مدل صرفاً متنی بود، ارزیابی روی بنچمارک‌های چندوجهی نشان داد توانایی بینایی نه تنها افت نکرده، بلکه بهبود یافته است: نمره \en{MMMU} به \textbf{70.0\%} (۵+ درصد رشد) و \en{MMMU-Pro} \en{Vision} به \textbf{52.1\%} (۱۲+ درصد رشد) رسید.
+از سوی دیگر، تجربیات زیر به عنوان رهیافت‌های ناموفق گزارش شدند:
+\begin{itemize}
+    \item \textbf{پاداش جزئی در کدنویسی:} پاداش‌دهی بر اساس درصد پاس شدن تست‌ها، دقت نهایی \en{LiveCodeBench} را ۲٪ کاهش داد.
+    \item \textbf{بونس آنتروپی:} اضافه کردن ترم آنتروپی در تابع تلفات منجر به ناپایداری و انفجار گرادیان گردید.
+\end{itemize}
+
+\paragraph*{گردش کار آموزش و ارزیابی \en{RL} برخط}
+شکل \ref{fig:magistral_eval_flow} نحوه جمع‌آوری داده‌ها، اعتبارسنجی و ارسال به توابع گرادیان را نمایش می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    block/.style={rectangle, draw=red!70!black, fill=red!5, rounded corners, thick, align=center, minimum width=3.2cm, minimum height=1cm},
+    arrow/.style={-Latex, thick, draw=red!80!black}
+]
+    \node[block] (gen) {تولید پیوسته پاسخ‌ها\\\small (\en{Generators})};
+    \node[block, right=of gen] (verif) {اعتبارسنجی متقارن\\\small (\en{Verifiers})};
+    \node[block, below=of verif] (loss) {محاسبه مزیت و تلفات\\\small (\en{Minibatch Adv.})};
+    \node[block, left=of loss] (update) {به‌روزرسانی وزن‌ها\\\small (\en{NCCL Broadcast})};
+    
+    \draw[arrow] (gen) -- (verif);
+    \draw[arrow] (verif) -- (loss);
+    \draw[arrow] (loss) -- (update);
+    \draw[arrow] (update) -- (gen);
+\end{tikzpicture}
+\caption{خط لوله بازخورد بلادرنگ در ارزیابی مدل \model{Magistral}}
+\label{fig:magistral_eval_flow}
+\end{figure}

@@ -1,1 +1,78 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{قوانین مقیاس‌پذیری و ارزیابی معماری پایه}
+مدل چندوجهی بومی \model{Kimi K3} \cite{kimik3team2026} با ۲.۸ تریلیون پارامتر کل و ۱۰۴ میلیارد پارامتر فعال در هر توکن، بر مبنای ترکیبی از توجه دلتا (\en{KDA}) و \en{Gated MLA} توسعه یافته است. برازش قانون مقیاس‌پذیری تلفات برحسب محاسبات پیش‌آموزش:
+\begin{equation}
+    L(C) = \left(\frac{C_c}{C}\right)^{\alpha_C} + L_\infty
+\end{equation}
+نشان داد که معماری نوین K3 بازدهی مقیاس‌پذیری را به میزان \textbf{۲.۵ برابر} نسبت به نسل \en{Kimi K2} ارتقا داده است. 
+
+\paragraph*{ارزیابی نتایج در بنچمارک‌های مرزی}
+جدول \ref{tab:kimi_k3_benchmark_results} نتایج رسمی عملکرد \model{Kimi K3} را در برابر مدل‌های رده‌اول جهانی نمایش می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای عملکرد \model{Kimi K3} در برابر مدل‌های تجاری مرزی}
+\label{tab:kimi_k3_benchmark_results}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{بنچمارک} & \textbf{\en{Kimi K3 Max}} & \textbf{\en{Claude Fable 5}} & \textbf{\en{GPT-5.6 Sol}} & \textbf{\en{Claude Opus 4.8}} & \textbf{\en{GPT-5.5}} & \textbf{\en{GLM-5.2}} \\
+\midrule
+\multicolumn{7}{c}{\textbf{استدلال، کدنویسی و امنیت سایبری (\en{Reasoning \& Coding})}} \\
+\midrule
+\en{GPQA Diamond} & \underline{93.5} & 92.6 & \textbf{94.1} & 91.0 & \underline{93.5} & 91.2 \\
+\en{CritPt} & 23.4 & \underline{28.6} & \textbf{32.3} & 20.9 & 27.1 & 20.9 \\
+\en{AA-LCR} & \textbf{74.7} & 70.0 & \underline{73.7} & 67.7 & 74.3 & 71.3 \\
+\en{DeepSWE} & 67.5 & \underline{70.0} & \textbf{73.0} & 59.0 & 67.0 & 46.2 \\
+\en{ProgramBench} & \textbf{77.8} & 76.8 & \underline{77.6} & 71.9 & 70.8 & 63.7 \\
+\en{SWE-Marathon} & \textbf{42.0} & 35.0 & 39.0 & \underline{40.0} & 14.0 & 13.0 \\
+\en{Terminal-Bench 2.1} & \underline{88.3} & 88.0 & \textbf{88.8} & 84.6 & 83.4 & 82.7 \\
+\midrule
+\multicolumn{7}{c}{\textbf{عامل‌ها و وظایف اداری (\en{Agentic Workflows})}} \\
+\midrule
+\en{BrowseComp} & \textbf{91.2} & 88.0 & \underline{90.4} & 84.3 & 84.4 & - \\
+\en{DeepSearchQA (F1)} & \textbf{95.0} & \underline{94.2} & - & 93.1 & - & - \\
+\en{GDPval-AA v2 (Elo)} & 1686 & \textbf{1747} & \underline{1736} & 1593 & 1491 & 1510 \\
+\en{MCPMark-Verified} & \textbf{94.5} & 87.4 & \underline{92.9} & 76.4 & \underline{92.9} & - \\
+\en{Harvey Lab-AA} & \textbf{94.6} & \underline{93.6} & 87.2 & 91.1 & 86.3 & 91.0 \\
+\en{Video-MME (w/ sub)} & \textbf{90.0} & - & \underline{89.5} & 86.0 & 89.3 & - \\
+\en{OmniDocBench} & \textbf{91.1} & \underline{89.8} & 85.8 & 87.9 & 89.4 & - \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{ارزیابی قابلیت‌های بهره‌برداری سایبری (\en{Cybersecurity})}
+آزمون‌های امنیت در دو سطح انجام شد:
+\begin{itemize}
+    \item \textbf{کشف آسیب‌پذیری (\en{Tier 1}):} مدل صدها آسیب‌پذیری کاندید را در کرنل سیستم‌عامل‌ها شناسایی کرد که پس از تأیید کارشناسان، \textbf{70\%} آن‌ها معتبر شناخته شدند و منجر به کشف ۱۶ آسیب‌پذیری ناشناخته \en{Zero-Day} گردید.
+    \item \textbf{توسعه اکسپلویت (\en{Tier 2}):} در ۳۶ تسک حمله کامل، مدل با نرخ قبولی \textbf{38.9\%} در برابر \en{GLM-5.2} ($22.2\%$) به برتری رسید. در بنچمارک مستقل \en{ExploitBench} از مراجع دولتی بریتانیا و آمریکا (\en{UK AISI / US CAISI})، امتیاز \textbf{32\%} در برابر 24\% مدل رقیب ثبت گردید.
+\end{itemize}
+
+\paragraph*{کارایی هزینه استنتاج (\en{Cost-Efficiency Frontier})}
+در ارزیابی هزینه‌ای \en{BrowseComp}، مدل \model{Kimi K3} با هزینه \textbf{\$2.03} برای هر تسک، ضمن کسب نمره ۹۱.۲٪، نصف هزینه \en{GPT-5.6 Sol} ($90.4\%$) و یک مرتبه بزرگی ارزان‌تر از سری مدل‌های \en{Claude} در رژیم حداکثری ارزیابی شد. در \en{GDPval-AA v2} نیز با ریتینگ ۱۶۸۶، بیش از ۲.۶ برابر ارزان‌تر از \en{Claude Fable 5} به اجرا درآمد.
+
+\paragraph*{معماری خط لوله ارزیابی عاملی}
+شکل \ref{fig:kimi_k3_eval_pipeline} تعامل چندسطحی مدل را با ماشین‌های مجازی ایزوله و محیط‌های ارزیابی نمایش می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.4cm and 1.6cm,
+    box/.style={rectangle, draw=purple!80!black, fill=purple!5, rounded corners, thick, align=center, minimum width=3.2cm, minimum height=1cm},
+    arrow/.style={-Latex, thick, draw=purple!90!black}
+]
+    \node[box] (agent) {\textbf{\en{Kimi K3 Core}}\\\small بافت ۱M توکن};
+    \node[box, right=of agent] (microvm) {\textbf{محیط \en{AgentENV}}\\\small جعبه‌شنی \en{MicroVM}};
+    \node[box, below=of microvm] (verifiers) {\textbf{ارزیاب‌های مستقل}\\\small کرنل، وب و تست واحد};
+    \node[box, below=of agent] (metrics) {\textbf{سنجش مرز کارایی}\\\small نمره برحسب هزینه (\$)};
+    
+    \draw[arrow] (agent) -- node[above, font=\footnotesize] {کنش و کد} (microvm);
+    \draw[arrow] (microvm) -- node[right, font=\footnotesize] {خروجی اجرای زنده} (verifiers);
+    \draw[arrow] (verifiers) -- node[below, font=\footnotesize] {پاداش و سیگنال} (metrics);
+    \draw[arrow] (metrics) -- (agent);
+\end{tikzpicture}
+\caption{چارچوب ارزیابی جعبه‌شنی و سنجش کارایی هزینه در \model{Kimi K3}}
+\label{fig:kimi_k3_eval_pipeline}
+\end{figure}

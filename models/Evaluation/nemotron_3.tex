@@ -1,1 +1,52 @@
-\item \textbf asd
+\item \model{Nemotron 3}
+
+\paragraph*{ارزیابی معماری هیبرید مامبا-ترنسفورمر و \en{LatentMoE}}
+خانواده مدل‌های \model{Nemotron 3} \cite{nemotron3team2025} بر پایه معماری هیبرید \en{Mamba-2} و \en{Transformer MoE} با هدف ارتقای بازده استنتاج توسعه یافته است. در ارزیابی مقایسه‌ای معماری نوین \en{LatentMoE} در برابر \en{MoE} استاندارد (هر دو با ۸B پارامتر فعال و ۷۳B کل)، با نگاشت توکن‌ها به فضای نهفته با بعد $\ell=1024$ و افزایش متخصصان فعال به ۲۲، عملکرد در تمام تسک‌ها ارتقا یافت: سنجه \en{MMLU-Pro} از ۴۸.۳۰٪ به \textbf{۵۲.۸۷\%} و تسک‌های کدنویسی از ۵۱.۹۵٪ به \textbf{۵۵.۱۴\%} جهش کردند. همچنین ماژول پیش‌بینی چندتوکنی (\en{MTP}) به نرخ پذیرش پیش‌نویس \textbf{97\%} در دو توکن اول دست یافت.
+
+\paragraph*{ارزیابی آموزش عددی \en{NVFP4}}
+ارزیابی‌های آموزشی نشان دادند که استفاده از فرمت عددی فوق‌پایین \en{NVFP4} بر روی پردازنده‌های \en{GB300}، سرعت اجرای ضرب ماتریسی را ۳ برابر افزایش می‌دهد. شکاف خطای اعتبارسنجی در مقایسه با \en{BF16} در مدل \en{Nano} کمتر از ۱٪ و در مدل بزرگتر (A8B) به کمتر از \textbf{0.6\%} تقلیل یافت، در حالی که در تمام بنچمارک‌های نهایی نتایج کاملاً بر هم منطبق شدند.
+
+\paragraph*{برون‌یابی بافتار تا ۱ میلیون توکن بدون نیاز به \en{RoPE}}
+به برکت خاصیت ذاتی لایه‌های \en{Mamba-2} در کدگذاری ترتیبی، لایه‌های توجه فاقد کدگذاری موقعیت دورانی (\en{RoPE}) هستند. جدول \ref{tab:nemotron_ruler_eval} عملکرد فوق‌العاده مدل در تعمیم به توالی‌های طولانی در بنچمارک \en{RULER} را در مقایسه با نسخه متراکم نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای بنچمارک \en{RULER} در طول‌های بافتار گوناگون}
+\label{tab:nemotron_ruler_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{مدل} & \textbf{معماری} & \textbf{128k} & \textbf{256k} & \textbf{512k} & \textbf{1M (برون‌یابی)} \\
+\midrule
+\en{Nemotron-Nano-12B-v2-Base} & هیبرید متراکم (\en{Dense Hybrid}) & \textbf{85.13} & \textbf{79.85} & \textbf{75.12} & 23.43 (افت شدید) \\
+\en{Nemotron-3-Nano-30B-A3B-Base} & هیبرید تنک (\en{MoE Hybrid}) & 74.48 & 71.67 & 66.02 & \textbf{54.19 (حفظ پیوستگی)} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+برازش توان منفی درست‌نمایی لگاریتمی (\en{NLL}) روی کدهای بالای ۱ میلیون توکن با ضریب تبیین $R^2 = 0.883$ ثابت کرد که مدل توانایی پردازش کامل توالی ۱M را دارد. همچنین مدل \en{Nano} در مقایسه با \en{Qwen3-30B-A3B} به \textbf{۳.۳ برابر} توان عملیاتی بیشتر در توالی‌های ۱۶k دست یافته است.
+
+\paragraph*{سازوکار کنترل بودجه استدلال در زمان استنتاج}
+شکل \ref{fig:nemotron_budget_diagram} سازوکار تنظیم پویا و بلادرنگ تفکر در \model{Nemotron 3} را نمایش می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 2cm,
+    block/.style={rectangle, draw=green!70!black, fill=green!5, rounded corners, thick, align=center, minimum width=3.4cm, minimum height=1cm},
+    arrow/.style={-Latex, thick, draw=green!80!black}
+]
+    \node[block] (input) {ورودی کاربر + بودجه توکن\\\small (\en{Token Budget $B$})};
+    \node[block, right=of input] (gen) {تولید استدلال در لایه‌های هیبرید\\\small (\en{Mamba-2 + MoE})};
+    \node[block, below=of gen] (check) {بررسی مصرف بودجه\\\small ($\text{Count} \ge B$)};
+    \node[block, left=of check] (inject) {تزریق نشانه \en{</think>}\\\small توقف تفکر و تولید پاسخ نهایی};
+    
+    \draw[arrow] (input) -- (gen);
+    \draw[arrow] (gen) -- (check);
+    \draw[arrow] (check) -- node[right, font=\footnotesize] {بلی} (inject);
+    \draw[arrow] (check) -- node[above, font=\footnotesize] {خیر} ++(2,0) |- (gen);
+\end{tikzpicture}
+\caption{الگوریتم کنترل بودجه تفکر زمان استنتاج در \model{Nemotron 3}}
+\label{fig:nemotron_budget_diagram}
+\end{figure}

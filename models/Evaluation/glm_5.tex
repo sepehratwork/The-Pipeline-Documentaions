@@ -1,1 +1,67 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{گذار از کدنویسی حسی به مهندسی عاملی (\en{Agentic Engineering})}
+مدل \model{GLM-5} \cite{glm5team2026} با معماری \en{MoE} (شامل ۷۴۴ میلیارد پارامتر کل و ۴۰ میلیارد پارامتر فعال) با هدف ارتقای استقلال عامل‌ها در محیط‌های واقعی ارزیابی شده است. در بعد معماری، بررسی مکانیزم‌های توجه نشان داد که استفاده از الگوریتم جستجوی پرتو (\en{Beam Search}) با اندازه پرتو ۸ بر روی طول بافت ۱۶k جهت کشف چینش بهینه لایه‌های پنجره لغزان (\en{SWA})، افت دقت در سنجه \en{RULER@128K} را از ۳۰.۳۵- درصد به ۵.۶۹- درصد کاهش می‌دهد. همچنین ارزیابی توجه تنک \en{DSA} اثبات کرد که می‌توان محاسبات را بدون افت در بازیابی بلندمدت تا ۲ برابر کاهش داد.
+
+\paragraph*{نتایج ارزیابی بنچمارک‌های \en{ARC}}
+جدول \ref{tab:glm5_arc_eval} عملکرد \model{GLM-5} را در مقایسه با مدل‌های تجاری و متن‌باز شاخص نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی عملکرد \model{GLM-5} در آزمون‌های استدلال، کدنویسی و عامل‌ها}
+\label{tab:glm5_arc_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{بنچمارک} & \textbf{\en{GLM-5}} & \textbf{\en{GLM-4.7}} & \textbf{\en{DeepSeek-V3.2}} & \textbf{\en{Kimi K2.5}} & \textbf{\en{Claude Opus 4.5}} & \textbf{\en{GPT-5.2 (xhigh)}} \\
+\midrule
+\en{Humanity's Last Exam (HLE)} & 30.5 & 24.8 & 25.1 & \underline{31.5} & 28.4 & \textbf{35.4} \\
+\en{HLE (w/ Tools)} & \underline{50.4} & 42.8 & 40.8 & \textbf{51.8} & 43.4 & 45.5 \\
+\en{AIME 2026 I} & 92.7 & 92.9 & 92.7 & 92.5 & \textbf{93.3} & - \\
+\en{HMMT Feb. 2025} & \underline{97.9} & 97.1 & 92.5 & 95.4 & 92.9 & \textbf{99.4} \\
+\en{SWE-bench Verified} & \underline{77.8} & 73.8 & 73.1 & 76.8 & \textbf{80.9} & 80.0 \\
+\en{SWE-bench Multilingual} & \underline{73.3} & 66.7 & 70.2 & 73.0 & \textbf{77.5} & 72.0 \\
+\en{Terminal-Bench 2.0 (Verified)} & \textbf{60.7} & 41.0 & 39.3 & 50.8 & \underline{59.3} & 54.0 \\
+\en{BrowseComp (w/ Context Manage)} & \textbf{75.9} & 67.5 & 67.6 & \underline{74.9} & 57.8 & 65.8 \\
+\en{Vending-Bench 2} & \underline{\$4,432} & \$2,377 & \$1,034 & \$1,198 & \$4,967 & \textbf{\$5,478} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{ارزیابی مهندسی واقعی: چارچوب \en{CC-Bench-V2}}
+این مجموعه ارزیابی درون‌سازمانی، آزمون‌های فرانت‌اند، بک‌اند و افق‌های طولانی را بدون دخالت انسان پوشش می‌دهد:
+\begin{itemize}
+    \item \textbf{داوری فرانت‌اند با عامل (\en{Agent-as-a-Judge}):} ۲۲۰ تسک در قالب \en{HTML, React, Vue}. یک عامل هوشمند مجهز به \en{Playwright} به آزمون پویا و تعامل بصری با وب اپلیکیشن می‌پردازد. تطابق قضاوت این عامل با داوران متخصص انسانی به ضریب همبستگی اسپیرمن \textbf{85.7\%} و توافق نقطه‌ای \textbf{94\%} رسید:
+    \begin{equation}
+        \rho = 1 - \frac{6 \sum_{i=1}^n d_i^2}{n(n^2 - 1)} = 0.857
+    \end{equation}
+    نرخ بیلد موفق (\en{BSR}) در React و Vue برای \en{GLM-5} به عدد کامل \textbf{100\%} رسید.
+    \item \textbf{اکتشاف مخازن عظیم (\en{Large Repo Exploration}):} در پیمایش سلسله‌مراتبی فایل‌ها در گیت‌هاب بدون داشتن نام فایل، \en{GLM-5} با امتیاز \textbf{65.6\%} از \en{Claude Opus 4.5} ($64.5\%$) پیشی گرفت.
+    \item \textbf{تسک‌های زنجیره‌ای چندمرحله‌ای (\en{Multi-step Chained Tasks}):} در ارزیابی گام‌به‌گام پول‌ریکوئست‌های متوالی، مدل به نرخ موفقیت \textbf{52.3\%} دست یافت.
+\end{itemize}
+
+\paragraph*{چرخه داوری تعاملی عامل‌ها در \model{GLM-5}}
+فرآیند اعتبارسنجی فرانت‌اند با معماری بسته در شکل \ref{fig:glm5_eval_diagram} تشریح شده است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    stepbox/.style={rectangle, draw=teal!80!black, fill=teal!5, rounded corners, thick, align=center, minimum width=3.4cm, minimum height=1cm},
+    judgebox/.style={rectangle, draw=orange!80!black, fill=orange!5, rounded corners, thick, align=center, minimum width=3.6cm, minimum height=1cm},
+    arrow/.style={-Latex, thick, draw=teal!90!black}
+]
+    \node[stepbox] (spec) {توصیف تسک و چک‌لیست\\\small (\en{Task \& Checklist})};
+    \node[stepbox, right=of spec] (build) {تأیید استاتیک بیلد\\\small (\en{Static Build Verification})};
+    \node[judgebox, below=of build] (gui) {عامل تعاملی داور\\\small (\en{Playwright} + \en{Vision-LLM})};
+    \node[judgebox, left=of gui] (eval) {ارزیابی و امتیازدهی\\\small (\en{BSR, ISR, CSR})};
+    
+    \draw[arrow] (spec) -- (build);
+    \draw[arrow] (build) -- node[right, font=\footnotesize] {موفق} (gui);
+    \draw[arrow] (gui) -- (eval);
+    \draw[arrow] (eval) -- (spec);
+\end{tikzpicture}
+\caption{چرخه بسته ارزیابی \en{Agent-as-a-Judge} در ارزیابی فرانت‌اند \model{GLM-5}}
+\label{fig:glm5_eval_diagram}
+\end{figure}

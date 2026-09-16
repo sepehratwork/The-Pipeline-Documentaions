@@ -1,1 +1,92 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مبانی نظری و صورت‌بندی ریاضی معیارهای ارزیابی}
+ارزیابی قابلیت‌های مدل‌های سری \model{DeepSeek-V4} \cite{deepseek2026v4} بر دو سطح بنیادین استوار است: ارزیابی مدل‌های پایه (\en{Base Models}) و ارزیابی ترازسازی پساآموزش (\en{Post-Training}) تحت رژیم‌های مختلف تلاش فکری (\en{Reasoning Effort}). 
+
+برای ارزیابی نااریب کارایی در مسائل کدنویسی، از برآوردگر بدون تورش \en{Pass@k} \cite{chen2021evaluating} استفاده می‌شود. فرض کنید برای پرامپت ورودی $x$، تعداد $n$ مسیر محاسباتی مستقل نمونه‌برداری شود ($n \ge k$) و $c$ پاسخ ارزیابی‌های اعتبارسنجی را با موفقیت پاس کنند ($c \le n$). احتمال ریاضی اینکه در یک زیرمجموعه تصادفی به حجم $k$ حداقل یک پاسخ درست موجود باشد، بر مبنای توزیع فوق‌هندسی به دست می‌آید:
+\begin{equation}
+    \text{Pass}@k = \mathbb{E}\left[ 1 - \frac{\binom{n-c}{k}}{\binom{n}{k}} \right] = 1 - \prod_{i=0}^{k-1} \left(1 - \frac{c}{n - i}\right)
+\end{equation}
+
+در مسابقات برنامه‌نویسی الگوریتمی \en{Codeforces}، ارزیابی بر روی ۱۱۴ مسئله از ۱۴ مسابقه \en{Division 1} اجرا شد. با تولید ۳۲ پاسخ برای هر مسئله و انتخاب تصادفی ۱۰ پاسخ، رتبه مسابقه بر مبنای جریمه زمانی و ارسال‌های ناموفق محاسبه شده و امتیاز \en{Elo} بر اساس مدل برتری احتمالاتی بردلی-تری (\en{Bradley-Terry}) استخراج گردید:
+\begin{equation}
+    P(A \succ B) = \frac{1}{1 + 10^{(R_B - R_A)/400}}
+\end{equation}
+مدل \en{DeepSeek-V4-Pro-Max} با این روش موفق به ثبت ریتینگ خارق‌العاده \textbf{3206} شد که آن را در چارک برتر ۲۳ نفر نخست جهان قرار می‌دهد.
+
+\paragraph*{ارزیابی جامع مدل‌های پس‌آموزش‌دیده در مقایسه با رقبا}
+جدول \ref{tab:ds_v4_posttrain_eval} ارزیابی مدل \en{DeepSeek-V4-Pro-Max} را در مقایسه با مدل‌های مرزی متن‌بسته و متن‌باز در بالاترین سطح تلاش فکری نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای \en{DeepSeek-V4-Pro-Max} در برابر مدل‌های مرزی}
+\label{tab:ds_v4_posttrain_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{بنچمارک (متریک)} & \textbf{\en{Opus-4.6 Max}} & \textbf{\en{GPT-5.4 xHigh}} & \textbf{\en{Gemini-3.1-Pro High}} & \textbf{\en{K2.6 Thinking}} & \textbf{\en{GLM-5.1 Thinking}} & \textbf{\en{DS-V4-Pro Max}} \\
+\midrule
+\multicolumn{7}{c}{\textbf{دانش و استدلال (\en{Knowledge \& Reasoning})}} \\
+\midrule
+\en{MMLU-Pro (EM)} & 89.1 & 87.5 & \textbf{91.0} & 87.1 & 86.0 & \underline{87.5} \\
+\en{SimpleQA-Verified (Pass@1)} & 46.2 & 45.3 & \textbf{75.6} & 36.9 & 38.1 & \underline{57.9} \\
+\en{Chinese-SimpleQA (Pass@1)} & 76.4 & 76.8 & \textbf{85.9} & 75.9 & 75.0 & \underline{84.4} \\
+\en{GPQA Diamond (Pass@1)} & 91.3 & 93.0 & \textbf{94.3} & 90.5 & 86.2 & 90.1 \\
+\en{HLE (Pass@1)} & 40.0 & \underline{39.8} & \textbf{44.4} & 36.4 & 34.7 & 37.7 \\
+\en{LiveCodeBench (Pass@1)} & 88.8 & - & \underline{91.7} & 89.6 & - & \textbf{93.5} \\
+\en{Codeforces (Rating)} & - & \underline{3168} & 3052 & - & - & \textbf{3206} \\
+\en{HMMT 2026 Feb (Pass@1)} & 96.2 & \textbf{97.7} & 94.7 & 92.7 & 89.4 & \underline{95.2} \\
+\en{IMOAnswerBench (Pass@1)} & 75.3 & \textbf{91.4} & 81.0 & 86.0 & 83.8 & \underline{89.8} \\
+\en{Apex Shortlist (Pass@1)} & 85.9 & 78.1 & \underline{89.1} & 75.5 & 72.4 & \textbf{90.2} \\
+\midrule
+\multicolumn{7}{c}{\textbf{وظایف عاملی و بافتار بلند (\en{Agentic \& Long Context})}} \\
+\midrule
+\en{MRCR 1M (MMR)} & \textbf{92.9} & - & 76.3 & - & - & \underline{83.5} \\
+\en{CorpusQA 1M (ACC)} & \textbf{71.7} & - & 53.8 & - & - & \underline{62.0} \\
+\en{SWE-Verified (Resolved)} & \textbf{80.8} & - & \underline{80.6} & 80.2 & - & \underline{80.6} \\
+\en{Terminal Bench 2.0 (Acc)} & 65.4 & \textbf{75.1} & \underline{68.5} & 66.7 & 63.5 & 67.9 \\
+\en{Toolathlon (Pass@1)} & 47.2 & \textbf{54.6} & 48.8 & 50.0 & 40.7 & \underline{51.8} \\
+\en{GDPval-AA (Elo)} & 1619 & \textbf{1674} & 1314 & 1482 & 1535 & \underline{1554} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{استدلال صوری و وظایف دنیای واقعی}
+در استدلال ریاضی صوری بر بستر اثبات‌کننده قضایای \en{Lean 4}:
+\begin{itemize}
+    \item \textbf{رژیم کاربردی (\en{Putnam-200 Pass@8}):} مدل \en{Flash-Max} با ابزارهای حداقلی به نرخ \textbf{81.00\%} در برابر رقبایی چون \en{Seed-2.0-Pro} ($35.50\%$) دست یافت.
+    \item \textbf{رژیم مرزی (\en{Putnam-2025}):} مدل با تلفیق تفکر شهودی و اثبات صوری موفق به حل صددرصدی و ثبت امتیاز بی‌نظیر \textbf{120/120} گردید.
+\end{itemize}
+در وظایف دنیای واقعی، ارزیابی ۳۱۷۰ پرامپت نگارش چینی در برابر \en{Gemini-3.1-Pro} نشان داد که مدل به نرخ برد \textbf{62.65\%} در نگارش اداری و \textbf{77.48\%} در کیفیت نگارش خلاقانه دست یافته است. در وظایف تخصصی اداری، ارزیابان انسانی نرخ عدم شکست (\en{Non-loss rate}) \textbf{63\%} را در مقایسه با \en{Claude Opus 4.6} گزارش نمودند.
+
+\paragraph*{ساختار کلی خط لوله ارزیابی}
+شکل \ref{fig:deepseek_v4_eval_pipeline} ساختار ارزیابی سلسله‌مراتبی \model{DeepSeek-V4} را نمایش می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2cm,
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners, thick, align=center, minimum width=3.8cm, minimum height=1.1cm},
+    leaf/.style={rectangle, draw=green!60!black, fill=green!5, rounded corners, thick, align=center, minimum width=3.4cm, minimum height=0.9cm},
+    arrow/.style={-Latex, thick, draw=blue!80!black}
+]
+    \node[box] (root) {\textbf{چارچوب ارزیابی \en{DeepSeek-V4}}};
+    
+    \node[box, below left=of root] (base) {\textbf{ارزیابی مدل‌های پایه}\\\small (فاز پیش‌آموزش ۳۳T)};
+    \node[box, below right=of root] (post) {\textbf{ارزیابی پساآموزش}\\\small (رژیم‌های مختلف \en{Thinking})};
+    
+    \node[leaf, below=0.8cm of base] (base_bench) {دانش جهان، کد، بافت ۱M\\\small (\en{MMLU-Pro}, \en{FACTS}, \en{DROP})};
+    
+    \node[leaf, below=0.6cm of post] (modes) {حالت‌های تفکر\\\small (\en{Non-think}, \en{High}, \en{Max})};
+    \node[leaf, below=0.6cm of modes] (agent) {تسک‌های عاملی و صوری\\\small (\en{Codeforces}, \en{Lean 4}, \en{SWE})};
+    
+    \draw[arrow] (root) -- (base);
+    \draw[arrow] (root) -- (post);
+    \draw[arrow] (base) -- (base_bench);
+    \draw[arrow] (post) -- (modes);
+    \draw[arrow] (modes) -- (agent);
+\end{tikzpicture}
+\caption{جریان ساختار ارزیابی چندبعدی در مدل \model{DeepSeek-V4}}
+\label{fig:deepseek_v4_eval_pipeline}
+\end{figure}

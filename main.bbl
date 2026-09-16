@@ -1418,6 +1418,113 @@ A.~Pich{\'e}, E.~Kamaloo, R.~Pardinas, and D.~Bahdanau.
   generation.
 \newblock {\em arXiv preprint arXiv:2509.19128}, 2025.
 
+\bibitem{shulgin2026lmo}
+Egor Shulgin, Dimitri von R{\"u}tte, Tianyue~H. Zhang, Niccol{\`o} Ajroldi,
+  Bernhard Sch{\"o}lkopf, and Antonio Orvieto.
+\newblock Deriving hyperparameter scaling laws via modern optimization theory.
+\newblock {\em arXiv preprint arXiv:2603.15958}, 2026.
+
+\bibitem{kaplan2020scaling}
+Jared Kaplan, Sam McCandlish, Tom Henighan, Tom~B. Brown, Benjamin Chess, Rewon
+  Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei.
+\newblock Scaling laws for neural language models.
+\newblock {\em arXiv preprint arXiv:2001.08361}, 2020.
+
+\bibitem{hoffmann2022chinchilla}
+Jordan Hoffmann, Sebastian Borgeaud, Arthur Mensch, Elena Buchatskaya, Trevor
+  Cai, Eliza Rutherford, Diego de~Las~Casas, Lisa~Anne Hendricks, Johannes
+  Welbl, Aidan Clark, et~al.
+\newblock Training compute-optimal large language models.
+\newblock {\em arXiv preprint arXiv:2203.15556}, 2022.
+
+\bibitem{li2025steplaw}
+Houyi Li, Wenzhen Zheng, Qiufeng Wang, Hanshan Zhang, Zili Wang, Shijie Xuyang,
+  Yuantao Fan, Zhenyu Ding, Haoying Wang, Ning Ding, Shuigeng Zhou, Xiangyu
+  Zhang, and Daxin Jiang.
+\newblock Predictable scale: Part i, step law -- optimal hyperparameter scaling
+  law in large language model pre-training.
+\newblock {\em arXiv preprint arXiv:2503.04715}, 2025.
+
+\bibitem{li2025farseer}
+Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
+  Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
+\newblock Predictable scale: Part ii, farseer--a refined scaling law in large
+  language models.
+\newblock {\em arXiv preprint arXiv:2506.10972}, 2025.
+
+\bibitem{luo2025multipower}
+Kairong Luo, Haodong Wen, Shengding Hu, Zhenbo Sun, Zhiyuan Liu, Maosong Sun,
+  Kaifeng Lyu, and Wenguang Chen.
+\newblock A multi-power law for loss curve prediction across learning rate
+  schedules.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{tissue2024scaling}
+Howe Tissue, Venus Wang, and Lu~Wang.
+\newblock Scaling law with learning rate annealing.
+\newblock {\em arXiv preprint arXiv:2408.11029}, 2024.
+
+\bibitem{merrill2025cbs}
+William Merrill, Shane Arora, Dirk Groeneveld, and Hannaneh Hajishirzi.
+\newblock Critical batch size revisited: A simple empirical approach to
+  large-batch language model training.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+
+\bibitem{mccandlish2018empirical}
+Sam McCandlish, Jared Kaplan, Dario Amodei, and OpenAI~Dota Team.
+\newblock An empirical model of large-batch training.
+\newblock {\em arXiv preprint arXiv:1812.06162}, 2018.
+
+\bibitem{meterez2026seesaw}
+Alexandru Meterez, Depen Morwani, Jingfeng Wu, Costin-Andrei Oncescu, Cengiz
+  Pehlevan, and Sham Kakade.
+\newblock Seesaw: Accelerating training by balancing learning rate and batch
+  size scheduling.
+\newblock {\em arXiv preprint arXiv:2510.14717}, 2026.
+
+\bibitem{wang2026fastcatchup}
+Jinbo Wang, Binghui Li, Zhanpeng Zhou, Mingze Wang, Yuxuan Sun, Jiaqi Zhang,
+  Xunliang Cai, and Lei Wu.
+\newblock Fast catch-up, late switching: Optimal batch size scheduling via
+  functional scaling laws.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{mlodozeniec2025completed}
+Bruno Mlodozeniec, Pierre Ablin, Louis B{\'e}thune, Dan Busbridge, Michal
+  Klein, Jason Ramapuram, and Marco Cuturi.
+\newblock Completed hyperparameter transfer across modules, width, depth, batch
+  \& duration.
+\newblock {\em arXiv preprint arXiv:2512.22382}, 2025.
+
+\bibitem{qiu2026matrix}
+Shikai Qiu, Zixi Chen, Hoang Phan, Qi~Lei, and Andrew~Gordon Wilson.
+\newblock Hyperparameter transfer enables consistent gains of
+  matrix-preconditioned optimizers across scales.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+
+\bibitem{gupta2018shampoo}
+Vineet Gupta, Tomer Koren, and Yoram Singer.
+\newblock Shampoo: Preconditioned stochastic tensor optimization.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  1842--1850, 2018.
+
+\bibitem{vyas2024soap}
+Nikhil Vyas, Depen Morwani, Rosie Zhao, Itai Shapira, David Brandfonbrener,
+  Lucas Janson, and Sham Kakade.
+\newblock Soap: Improving and stabilizing shampoo using adam.
+\newblock {\em arXiv preprint arXiv:2409.11321}, 2024.
+
+\bibitem{peng2026completemue}
+Hongwu Peng, Ohiremen Dibua, Yuanjun Xiong, Yifan Gong, Jianming Zhang, and Yan
+  Kang.
+\newblock Complete-mue: Optimal hyperparameter transfer and scaling for moe
+  models.
+\newblock {\em arXiv preprint arXiv:2605.23893}, 2026.
+
 \bibitem{deepseek2025v4}
 {DeepSeek-AI}.
 \newblock {DeepSeek-V4 Technical Report: Pushing Context and Sparsity
@@ -2688,12 +2795,6 @@ John Duchi, Elad Hazan, and Yoram Singer.
   optimization.
 \newblock {\em Journal of Machine Learning Research}, 12:2121--2159, 2011.
 
-\bibitem{gupta2018shampoo}
-Vineet Gupta, Tomer Koren, and Yoram Singer.
-\newblock Shampoo: Preconditioned stochastic tensor optimization.
-\newblock In {\em International Conference on Machine Learning (ICML)}, pages
-  1842--1850, 2018.
-
 \bibitem{vyas2025soap}
 Nikhil Vyas, Depen Morwani, Rosie Zhao, Mujin Kwun, Itai Shapira, David
   Brandfonbrener, Lucas Janson, and Sham Kakade.
@@ -2806,14 +2907,6 @@ Prasanna Mayilvahanan, Thadd{\"a}us Wiedemer, Sayak Mallick, Matthias Bethge,
 \newblock In {\em Proceedings of the 42nd International Conference on Machine
   Learning (ICML)}, 2025.
 
-\bibitem{luo2025multipower}
-Kairong Luo, Haodong Wen, Shengding Hu, Zhenbo Sun, Zhiyuan Liu, Maosong Sun,
-  Kaifeng Lyu, and Wenguang Chen.
-\newblock A multi-power law for loss curve prediction across learning rate
-  schedules.
-\newblock In {\em International Conference on Learning Representations (ICLR)},
-  2025.
-
 \bibitem{javanmard2026theoretical}
 Adel Javanmard, Baharan Mirzasoleiman, and Vahab Mirrokni.
 \newblock Theoretical perspectives on data quality and synergistic effects in
@@ -2895,13 +2988,6 @@ Jialun Zhong, Wei Shen, Yanzeng Li, Songyang Gao, Hua Lu, Yicheng Chen, Yang
 {Olmo Team}.
 \newblock Olmo 3: Open language models with complete model flow.
 \newblock {\em Technical Report, Allen Institute for AI}, 2025.
-
-\bibitem{li2025farseer}
-Houyi Li, Wenzhen Zheng, Qiufeng Wang, Zhenyu Ding, Haoying Wang, Zili Wang,
-  Shijie Xuyang, Ning Ding, Shuigeng Zhou, Xiangyu Zhang, et~al.
-\newblock Predictable scale: Part ii, farseer--a refined scaling law in large
-  language models.
-\newblock {\em arXiv preprint arXiv:2506.10972}, 2025.
 
 \bibitem{chen2025revisiting}
 Zhengyu Chen, Siqi Wang, Teng Xiao, Yudong Wang, Shiqi Chen, Xunliang Cai,
@@ -3010,6 +3096,27 @@ Chaojun Xiao, Jie Cai, Weilin Zhao, Biyuan Lin, Guoyang Zeng, Jie Zhou, Zhi
   Zheng, Xu~Han, Zhiyuan Liu, and Maosong Sun.
 \newblock Densing law of llms.
 \newblock {\em Nature Machine Intelligence}, pages 1--11, 2025.
+
+\bibitem{kimik3team2026}
+{Kimi Team} and Moonshot AI.
+\newblock Kimi k3: Open frontier intelligence.
+\newblock {\em arXiv preprint arXiv:2607.24653}, 2026.
+
+\bibitem{minimaxm22026}
+{MiniMax Team}.
+\newblock The minimax-m2 series: Mini activations unleashing max real-world
+  intelligence.
+\newblock {\em arXiv preprint arXiv:2605.26494}, 2026.
+
+\bibitem{qwen3team2025}
+{Qwen Team}.
+\newblock Qwen3 technical report.
+\newblock {\em arXiv preprint arXiv:2505.09388}, 2025.
+
+\bibitem{olmo3team2025}
+{OLMo Team} and Allen~Institute for AI.
+\newblock Olmo 3: Open language model flow.
+\newblock {\em arXiv preprint}, 2025.
 
 \bibitem{sutton2018reinforcement}
 Richard~S. Sutton and Andrew~G. Barto.
@@ -3579,81 +3686,6 @@ Jordan Hoffmann, Sebastian Borgeaud, Arthur Mensch, Elena Buchatskaya, Trevor
 \newblock Training compute-optimal large language models.
 \newblock {\em arXiv preprint arXiv:2203.15556}, 2022.
 
-\bibitem{kaplan2020scaling}
-Jared Kaplan, Sam McCandlish, Tom Henighan, Tom~B. Brown, Benjamin Chess, Rewon
-  Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei.
-\newblock Scaling laws for neural language models.
-\newblock {\em arXiv preprint arXiv:2001.08361}, 2020.
-
-\bibitem{li2025steplaw}
-Houyi Li, Wenzhen Zheng, Qiufeng Wang, Hanshan Zhang, Zili Wang, Shijie Xuyang,
-  Yuantao Fan, Zhenyu Ding, Haoying Wang, Ning Ding, Shuigeng Zhou, Xiangyu
-  Zhang, and Daxin Jiang.
-\newblock Predictable scale: Part i, step law -- optimal hyperparameter scaling
-  law in large language model pre-training.
-\newblock {\em arXiv preprint arXiv:2503.04715}, 2025.
-
-\bibitem{merrill2025cbs}
-William Merrill, Shane Arora, Dirk Groeneveld, and Hannaneh Hajishirzi.
-\newblock Critical batch size revisited: A simple empirical approach to
-  large-batch language model training.
-\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
-  2025.
-
-\bibitem{meterez2026seesaw}
-Alexandru Meterez, Depen Morwani, Jingfeng Wu, Costin-Andrei Oncescu, Cengiz
-  Pehlevan, and Sham Kakade.
-\newblock Seesaw: Accelerating training by balancing learning rate and batch
-  size scheduling.
-\newblock {\em arXiv preprint arXiv:2510.14717}, 2026.
-
-\bibitem{wang2026fastcatchup}
-Jinbo Wang, Binghui Li, Zhanpeng Zhou, Mingze Wang, Yuxuan Sun, Jiaqi Zhang,
-  Xunliang Cai, and Lei Wu.
-\newblock Fast catch-up, late switching: Optimal batch size scheduling via
-  functional scaling laws.
-\newblock In {\em International Conference on Learning Representations (ICLR)},
-  2026.
-
-\bibitem{mlodozeniec2025completed}
-Bruno Mlodozeniec, Pierre Ablin, Louis B{\'e}thune, Dan Busbridge, Michal
-  Klein, Jason Ramapuram, and Marco Cuturi.
-\newblock Completed hyperparameter transfer across modules, width, depth, batch
-  \& duration.
-\newblock {\em arXiv preprint arXiv:2512.22382}, 2025.
-
-\bibitem{qiu2026matrix}
-Shikai Qiu, Zixi Chen, Hoang Phan, Qi~Lei, and Andrew~Gordon Wilson.
-\newblock Hyperparameter transfer enables consistent gains of
-  matrix-preconditioned optimizers across scales.
-\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
-  2025.
-
-\bibitem{peng2026completemue}
-Hongwu Peng, Ohiremen Dibua, Yuanjun Xiong, Yifan Gong, Jianming Zhang, and Yan
-  Kang.
-\newblock Complete-mue: Optimal hyperparameter transfer and scaling for moe
-  models.
-\newblock {\em arXiv preprint arXiv:2605.23893}, 2026.
-
-\bibitem{shulgin2026lmo}
-Egor Shulgin, Dimitri von R{\"u}tte, Tianyue~H. Zhang, Niccol{\`o} Ajroldi,
-  Bernhard Sch{\"o}lkopf, and Antonio Orvieto.
-\newblock Deriving hyperparameter scaling laws via modern optimization theory.
-\newblock {\em arXiv preprint arXiv:2603.15958}, 2026.
-
-\bibitem{hoffmann2022chinchilla}
-Jordan Hoffmann, Sebastian Borgeaud, Arthur Mensch, Elena Buchatskaya, Trevor
-  Cai, Eliza Rutherford, Diego de~Las~Casas, Lisa~Anne Hendricks, Johannes
-  Welbl, Aidan Clark, et~al.
-\newblock Training compute-optimal large language models.
-\newblock {\em arXiv preprint arXiv:2203.15556}, 2022.
-
-\bibitem{mccandlish2018empirical}
-Sam McCandlish, Jared Kaplan, Dario Amodei, and OpenAI~Dota Team.
-\newblock An empirical model of large-batch training.
-\newblock {\em arXiv preprint arXiv:1812.06162}, 2018.
-
 \bibitem{yang2022tensor5}
 Greg Yang, Edward~J. Hu, Igor Babuschkin, Szymon Sidor, Xiaodong Liu, David
   Farhi, Nick Ryder, Jakub Pachocki, Weizhu Chen, and Jianfeng Gao.
@@ -3674,15 +3706,269 @@ Nolan Dey, Bin~Claire Zhang, Lorenzo Noci, Mufan Li, Blake Bordelon, Shane
 \newblock Don't be lazy: Completep enables compute-efficient deep transformers.
 \newblock {\em arXiv preprint arXiv:2505.01618}, 2025.
 
-\bibitem{vyas2024soap}
-Nikhil Vyas, Depen Morwani, Rosie Zhao, Itai Shapira, David Brandfonbrener,
-  Lucas Janson, and Sham Kakade.
-\newblock Soap: Improving and stabilizing shampoo using adam.
-\newblock {\em arXiv preprint arXiv:2409.11321}, 2024.
+\bibitem{zaghouani2026position}
+Wajdi Zaghouani.
+\newblock Position: What are we measuring? rethinking evaluation in natural
+  language generation.
+\newblock {\em Proceedings of the Fifth Workshop on Generation, Evaluation and
+  Metrics (GEM)}, pages 1021--1028, 2026.
 
-\bibitem{tissue2024scaling}
-Howe Tissue, Venus Wang, and Lu~Wang.
-\newblock Scaling law with learning rate annealing.
-\newblock {\em arXiv preprint arXiv:2408.11029}, 2024.
+\bibitem{li2024evaluating}
+Yuan Li, Yue Huang, Hongyi Wang, Ying Cheng, Xiangliang Zhang, James Zou, and
+  Lichao Sun.
+\newblock Evaluating large language models with psychometrics.
+\newblock {\em arXiv preprint arXiv:2406.17675}, 2024.
+
+\bibitem{alaa2025medical}
+Ahmed Alaa, Thomas Hartvigsen, Niloufar Golchini, Shiladitya Dutta, Frances
+  Dean, Inioluwa~Deborah Raji, and Travis Zack.
+\newblock Medical large language model benchmarks should prioritize construct
+  validity.
+\newblock {\em arXiv preprint arXiv:2503.10694}, 2025.
+
+\bibitem{kreutzer2025deja}
+Julia Kreutzer, Eleftheria Briakou, Sweta Agrawal, Marzieh Fadaee, and Kocmi
+  Tom.
+\newblock D{\'e}j{\`a} vu: Multilingual llm evaluation through the lens of
+  machine translation evaluation.
+\newblock {\em arXiv preprint arXiv:2504.11829}, 2025.
+
+\bibitem{ye2025large}
+Haoran Ye, Jing Jin, Yuhang Xie, Xin Zhang, and Guojie Song.
+\newblock Large language model psychometrics: A systematic review of
+  evaluation, validation, and enhancement.
+\newblock {\em arXiv preprint arXiv:2505.08245}, 2025.
+
+\bibitem{salaudeen2025measurement}
+Olawale Salaudeen, Anka Reuel, Ahmed Ahmed, Suhana Bedi, Zachary Robertson,
+  Sudharsan Sundar, Ben Domingue, Angelina Wang, and Sanmi Koyejo.
+\newblock Measurement to meaning: A validity-centered framework for ai
+  evaluation.
+\newblock {\em arXiv preprint arXiv:2505.10573}, 2025.
+
+\bibitem{boughorbel2025beyond}
+Sabri Boughorbel, Fahim Dalvi, Nadir Durrani, and Majd Hawasly.
+\newblock Beyond the leaderboard: Understanding performance disparities in
+  large language models via model diffing.
+\newblock {\em arXiv preprint arXiv:2509.18792}, 2025.
+
+\bibitem{bean2025measuring}
+Andrew~M. Bean, Ryan~Othniel Kearns, Angelika Romanou, Franziska~Sofia Hafner,
+  Harry Mayne, Jan Batzner, Negar Foroutan, Chris Schmitz, Karolina Korgul,
+  Hunar Batra, et~al.
+\newblock Measuring what matters: Construct validity in large language model
+  benchmarks.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)
+  Track on Datasets and Benchmarks}, 2025.
+
+\bibitem{xu2026latency}
+Zhiyu Xu, Jia Liu, Yixin Wang, and Yuqi Gu.
+\newblock Latency-response theory model: Evaluating large language models via
+  response accuracy and chain-of-thought length.
+\newblock {\em arXiv preprint arXiv:2512.07019}, 2026.
+
+\bibitem{freiesleben2026establishing}
+Timo Freiesleben.
+\newblock Establishing construct validity in llm capability benchmarks requires
+  nomological networks.
+\newblock {\em arXiv preprint arXiv:2603.15121}, 2026.
+
+\bibitem{truong2026item}
+Sang Truong, Yuheng Tu, Rylan Schaeffer, and Sanmi Koyejo.
+\newblock Item response scaling laws: A measurement theory approach for
+  efficient and generalizable neural scaling estimation.
+\newblock {\em Proceedings of the 43rd International Conference on Machine
+  Learning (ICML)}, 2026.
+
+\bibitem{uluirmak2026evalsafetygap}
+Bu{\u{g}}ra~Alperen Ulu{\i}rmak and Rifat Kurban.
+\newblock Evalsafetygap: A hybrid survey and conceptual framework for llm
+  evaluation-safety failures.
+\newblock {\em arXiv preprint arXiv:2606.30219}, 2026.
+
+\bibitem{song2026benchmarking}
+Kiwon Song, James M.~Jennings III, and Clintin~P. Davis-Stober.
+\newblock Benchmarking large language model rationality using measurement
+  axioms.
+\newblock {\em Research Square Preprint}, 2026.
+
+\bibitem{gu2024olmes}
+Yuling Gu, Oyvind Tafjord, Bailey Kuehl, Dany Haddad, Jesse Dodge, and Hannaneh
+  Hajishirzi.
+\newblock Olmes: A standard for language model evaluations.
+\newblock {\em arXiv preprint arXiv:2406.08446}, 2024.
+
+\bibitem{truong2026roadmap}
+Sang Truong, Noah Goodman, Emma Brunskill, Ben Domingue, Nick Haber, and Sanmi
+  Koyejo.
+\newblock A measurement science roadmap: From human assessment to ai
+  evaluation.
+\newblock {\em White Paper / Technical Report, Stanford University}, 2026.
+
+\bibitem{anonymous2026beyond}
+Anonymous Authors.
+\newblock Beyond benchmarks: Toward causally faithful evaluation of large
+  language models.
+\newblock {\em Under review at ICLR 2026}, 2026.
+
+\bibitem{cronbach1955construct}
+Lee~J. Cronbach and Paul~E. Meehl.
+\newblock Construct validity in psychological tests.
+\newblock {\em Psychological Bulletin}, 52(4):281--302, 1955.
+
+\bibitem{messick1989meaning}
+Samuel Messick.
+\newblock {\em Meaning and Values in Test Validation: The Science and Ethics of
+  Assessment}.
+\newblock Educational Researcher, 1989.
+
+\bibitem{messick1995standards}
+Samuel Messick.
+\newblock Standards of validity and the validity of standards in performance
+  assessment.
+\newblock {\em Educational Measurement: Issues and Practice}, 14(4):5--8, 1995.
+
+\bibitem{messick1998test}
+Samuel Messick.
+\newblock {\em Test validity: A matter of consequence}, volume~45.
+\newblock Social Indicators Research, 1998.
+
+\bibitem{borsboom2004concept}
+Denny Borsboom, Gideon~J. Mellenbergh, and Jaap~Van Heerden.
+\newblock The concept of validity.
+\newblock {\em Psychological Review}, 111(4):1061--1071, 2004.
+
+\bibitem{kane2013validating}
+Michael~T. Kane.
+\newblock Validating the interpretations and uses of test scores.
+\newblock {\em Journal of Educational Measurement}, 50(1):1--73, 2013.
+
+\bibitem{jacobs2021measurement}
+Abigail~Z. Jacobs and Hanna Wallach.
+\newblock Measurement and fairness.
+\newblock In {\em Proceedings of the 2021 ACM Conference on Fairness,
+  Accountability, and Transparency (FAccT)}, pages 375--385, 2021.
+
+\bibitem{lord1980applications}
+Frederic~M. Lord.
+\newblock {\em Applications of Item Response Theory to Practical Testing
+  Problems}.
+\newblock Routledge, 1980.
+
+\bibitem{rasch1993probabilistic}
+Georg Rasch.
+\newblock {\em Probabilistic Models for Some Intelligence and Attainment
+  Tests}.
+\newblock MESA Press, 1993.
+
+\bibitem{hambleton1991fundamentals}
+Ronald~K. Hambleton, Hariharan Swaminathan, and H.~Jane Rogers.
+\newblock {\em Fundamentals of Item Response Theory}.
+\newblock Sage Publications, 1991.
+
+\bibitem{vonneumann1947theory}
+John von Neumann and Oskar Morgenstern.
+\newblock {\em Theory of Games and Economic Behavior}.
+\newblock Princeton University Press, 1947.
+
+\bibitem{tversky1969intransitivity}
+Amos Tversky.
+\newblock Intransitivity of preferences.
+\newblock {\em Psychological Review}, 76(1):31--48, 1969.
+
+\bibitem{grotschel1985facets}
+Martin Gr{\"o}tschel, Michael J{\"u}nger, and Gerhard Reinelt.
+\newblock Facets of the linear ordering polytope.
+\newblock {\em Mathematical Programming}, 33:43--60, 1985.
+
+\bibitem{manheim2019categorizing}
+David Manheim and Scott Garrabrant.
+\newblock Categorizing variants of goodhart's law.
+\newblock {\em arXiv preprint arXiv:1803.04585}, 2019.
+
+\bibitem{hendrycks2020measuring}
+Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn
+  Song, and Jacob Steinhardt.
+\newblock Measuring massive multitask language understanding.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2020.
+
+\bibitem{zheng2023judging}
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao
+  Zhuang, Zi~Lin, Zhuohan Li, Dacheng Li, Eric~P. Xing, et~al.
+\newblock Judging llm-as-a-judge with mt-bench and chatbot arena.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  36:46595--46623, 2023.
+
+\bibitem{rein2024gpqa}
+David Rein, Betty~Li Hou, Asa~Cooper Stickland, Jackson Petty, Richard~Yuanzhe
+  Pang, Julien Dirani, Julian Michael, and Samuel~R. Bowman.
+\newblock Gpqa: A graduate-level google-proof q\&a benchmark.
+\newblock {\em First Conference on Language Modeling (COLM)}, 2024.
+
+\bibitem{sclar2023quantifying}
+Melanie Sclar, Yejin Choi, Yulia Tsvetkov, and Alane Suhr.
+\newblock Quantifying language models' sensitivity to spurious features in
+  prompt design or: How i learned to start worrying about prompt formatting.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2023.
+
+\bibitem{papineni2002bleu}
+Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu.
+\newblock Bleu: a method for automatic evaluation of machine translation.
+\newblock {\em Proceedings of the 40th Annual Meeting of the Association for
+  Computational Linguistics (ACL)}, pages 311--318, 2002.
+
+\bibitem{lin2004rouge}
+Chin-Yew Lin.
+\newblock Rouge: A package for automatic evaluation of summaries.
+\newblock In {\em Text Summarization Branches Out}, pages 74--81, 2004.
+
+\bibitem{devlin2019bert}
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+\newblock Bert: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock {\em Proceedings of NAACL-HLT}, pages 4171--4186, 2019.
+
+\bibitem{weizenbaum1966eliza}
+Joseph Weizenbaum.
+\newblock Eliza---a computer program for the study of natural language
+  communication between man and machine.
+\newblock {\em Communications of the ACM}, 9(1):36--45, 1966.
+
+\bibitem{winograd1972understanding}
+Terry Winograd.
+\newblock Understanding natural language.
+\newblock {\em Cognitive Psychology}, 3(1):1--191, 1972.
+
+\bibitem{ullman2023large}
+Tomer Ullman.
+\newblock Large language models fail on trivial alterations to theory-of-mind
+  tasks.
+\newblock {\em arXiv preprint arXiv:2302.08399}, 2023.
+
+\bibitem{suhr2023challenging}
+Tom S{\"u}hr, Florian~E. Dorner, Samira Samadi, and Augustin Kelava.
+\newblock Challenging the validity of personality tests for large language
+  models.
+\newblock {\em arXiv preprint arXiv:2311.00049}, 2023.
+
+\bibitem{salecha2024large}
+Aadesh Salecha, Molly~E. Ireland, Shashanka Subrahmanya, Jo{\~a}o Sedoc,
+  Lyle~H. Ungar, and Johannes~C. Eichstaedt.
+\newblock Large language models show human-like social desirability biases in
+  survey responses.
+\newblock {\em arXiv preprint arXiv:2405.06058}, 2024.
+
+\bibitem{nemotron3team2025}
+{NVIDIA Team}.
+\newblock Nvidia nemotron 3: Efficient and open intelligence.
+\newblock {\em arXiv preprint arXiv:2512.20856}, 2025.
+
+\bibitem{ward1963hierarchical}
+Joe~H Ward~Jr.
+\newblock Hierarchical grouping to optimize an objective function.
+\newblock In {\em Journal of the American Statistical Association}, volume~58,
+  pages 236--244, 1963.
 
 \end{thebibliography}

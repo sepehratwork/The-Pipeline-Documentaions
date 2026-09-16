@@ -2,7 +2,7 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 17857 items from 5000.
+Reallocated field_info (elt_size=8) to 18248 items from 5000.
 Database file #1: references.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
 Warning--I didn't find a database entry for "nemotron_nano2_2025"
@@ -16,45 +16,46 @@ Warning--empty journal in ikeda2025layerwise
 Warning--empty journal in zhao2025small
 Warning--empty journal in su2026moe
 Warning--empty journal in chen2025olmix
-You've used 608 entries,
+Warning--can't use both volume and number fields in ward1963hierarchical
+You've used 656 entries,
             1791 wiz_defined-function locations,
-            2752 strings with 113643 characters,
-and the built_in function-call counts, 133203 in all, are:
-= -- 9368
-> -- 10260
-< -- 88
-+ -- 3659
-- -- 3051
-* -- 8298
-:= -- 23252
-add.period$ -- 1818
-call.type$ -- 608
-change.case$ -- 607
+            2958 strings with 121453 characters,
+and the built_in function-call counts, 143097 in all, are:
+= -- 10182
+> -- 10818
+< -- 96
++ -- 3867
+- -- 3211
+* -- 8878
+:= -- 24916
+add.period$ -- 1962
+call.type$ -- 656
+change.case$ -- 649
 chr.to.int$ -- 0
-cite$ -- 616
-duplicate$ -- 5973
-empty$ -- 11389
-format.name$ -- 3051
-if$ -- 28663
+cite$ -- 665
+duplicate$ -- 6449
+empty$ -- 12290
+format.name$ -- 3211
+if$ -- 30828
 int.to.chr$ -- 0
-int.to.str$ -- 608
-missing$ -- 565
-newline$ -- 3037
-num.names$ -- 608
-pop$ -- 2334
+int.to.str$ -- 656
+missing$ -- 619
+newline$ -- 3277
+num.names$ -- 656
+pop$ -- 2490
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 2929
+skip$ -- 3154
 stack$ -- 0
-substring$ -- 3213
-swap$ -- 1446
-text.length$ -- 88
+substring$ -- 3611
+swap$ -- 1556
+text.length$ -- 96
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 8
-while$ -- 862
-width$ -- 611
-write$ -- 6192
-(There were 11 warnings)
+warning$ -- 9
+while$ -- 946
+width$ -- 659
+write$ -- 6689
+(There were 12 warnings)

@@ -1,1 +1,61 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{تقطیر موقعیتی ضمنی (\en{Implicit Positional Distillation})}
+مدل \model{MobileLLM-Pro} \cite{mobilellmpro2025} با مقیاس ۱ میلیارد پارامتر برای اجرا بر روی پردازنده‌ها و شتاب‌دهنده‌های موبایل بهینه‌سازی شده است. به منظور بسط بافت مدل تا ۱۲۸ هزار توکن بدون مواجهه با تغییر شدید توزیع داده‌ها، از تقطیر موقعیتی ضمنی استفاده گردید. با شرط‌بندی روی لاجیت‌های مدل آموزگار (\en{Llama 4-Scout}) بر مبنای واگرایی \en{KL} پیش‌رو:
+\begin{equation}
+    \mathcal{L}_{\mathrm{KD}} = \mathbb{E}_{x \sim \mathcal{D}} \left[ \sum_{v \in \mathcal{V}} P_{\text{teacher}}(v \mid x) \ln \left(\frac{P_{\text{teacher}}(v \mid x)}{P_\theta(v \mid x)}\right) \right]
+\end{equation}
+اطلاعات زوایای دورانی \en{RoPE} مستقیماً به دانش‌آموز منتقل شد. نتایج جدول ارزیابی بافت بلند نشان داد که در تسک بازیابی سوزن در انبار کاه (\en{Needle in Haystack - NIH})، مدل به امتیاز کامل \textbf{99.78\%} دست یافت در حالی که نمرات عمومی پیش‌آموزش آن بدون افت روی \textbf{53.57\%} حفظ گردید.
+
+\paragraph*{ارزیابی کوانتایزاسیون ۴ بیتی آگاه از آموزش (\en{4-Bit QAT})}
+برای آماده‌سازی اجرای مدل بر روی پردازنده‌های موبایل (\en{xnnpack}) و شتاب‌دهنده‌های سخت‌افزاری (\en{ANE/HTP})، وزن‌ها به صورت متقارن در بازه $[-8, 7]$ کوانتایز شدند:
+\begin{equation}
+    Q(W_g) = s_w \times \text{clip}\left( \text{round}\left(\frac{W_g}{s_w}\right), -8, 7 \right), \quad s_w = \frac{1}{7.5} \max(-w_{\min}, w_{\max})
+\end{equation}
+استفاده از بازه‌های یادگیرنده (\en{Learnable Quantization Ranges}) میانگین دقت مدل شتاب‌دهنده را به میزان ۴.۷۹+ درصد بهبود بخشید. 
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای نسخه‌های کوانتایز‌شده \model{MobileLLM-Pro}}
+\label{tab:mobilellm_qat_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{بنچمارک} & \textbf{دقت کامل (\en{BF16})} & \textbf{نسخه پردازنده (\en{Quant-CPU})} & \textbf{نسخه شتاب‌دهنده (\en{Quant-HTP})} & \textbf{کاهش حجم} \\
+\midrule
+\en{HellaSwag} & 67.11 & 64.89 & 65.10 & \multirow{5}{*}{\textbf{از ۲.۲ گیگابایت}} \\
+\en{BoolQ} & 76.24 & 77.49 & 76.36 & \textbf{به ۵۹۰ مگابایت} \\
+\en{ARC-Challenge} & 52.62 & 52.45 & 51.24 & \textbf{(برای پردازنده)} \\
+\en{Needle In Haystack} & 100.00 & 96.44 & 98.67 & \\
+\midrule
+\textbf{میانگین کل} & \textbf{61.81} & \textbf{61.08 (-0.73\%)} & \textbf{60.42 (-1.39\%)} & \textbf{حفظ کامل کارایی} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{ارزیابی سرعت و تأخیر استنتاج بر روی دستگاه واقعی}
+در تست سخت‌افزاری بر روی گوشی \en{Samsung Galaxy S25} (پردازنده) و \en{S24} (شتاب‌دهنده \en{HTP}) با پرامپت‌های ۸K، تأخیر پیش‌پرکردن پردازنده ۶۳.۵ ثانیه و تأخیر شتاب‌دهنده تنها \textbf{۹.۸ ثانیه} با سرعت تولید \textbf{۲۲.۸ توکن در ثانیه} اندازه‌گیری شد. در ارزیابی کیفی انسانی بر روی ۱۰۰ نمونه تسک دستیار (خلاصه‌سازی، بازنویسی، بازیابی و فراخوانی ابزار)، مدل در برابر \en{Llama 3.2-1B} در هر چهار محور با فاصله معنادار پیروز شد.
+
+\paragraph*{خط لوله آموزش و ارزیابی ۴ مرحله‌ای}
+شکل \ref{fig:mobilellm_pipeline} خط لوله فشرده‌سازی و ارزیابی مدل را نشان می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.6cm,
+    stepnode/.style={rectangle, draw=teal!70!black, fill=teal!5, rounded corners, thick, align=center, minimum width=3.3cm, minimum height=0.9cm},
+    arrow/.style={-Latex, thick, draw=teal!80!black}
+]
+    \node[stepnode] (phase1) {\textbf{اکتساب زبان (۱.۴T)}\\\small تقطیر از \en{Llama 4-Scout}};
+    \node[stepnode, right=of phase1] (phase2) {\textbf{بسط بافتار (۲۰B)}\\\small تقطیر موقعیتی ضمنی};
+    \node[stepnode, below=of phase2] (phase3) {\textbf{ادغام متخصصان}\\\small میانگین‌گیری نامتقارن وزن‌ها};
+    \node[stepnode, left=of phase3] (phase4) {\textbf{کوانتایزاسیون ۴ بیتی}\\\small یادگیری بازه + ارزیابی \en{HTP}};
+    
+    \draw[arrow] (phase1) -- (phase2);
+    \draw[arrow] (phase2) -- (phase3);
+    \draw[arrow] (phase3) -- (phase4);
+\end{tikzpicture}
+\caption{چهار فاز ارزیابی و تطبیق سخت‌افزاری در \model{MobileLLM-Pro}}
+\label{fig:mobilellm_pipeline}
+\end{figure}

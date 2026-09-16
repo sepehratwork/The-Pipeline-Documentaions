@@ -1,1 +1,66 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{فرضیه اکتیویشن حداقلی و ارزیابی لایه‌های توجه}
+سری \model{MiniMax-M2} \cite{minimaxm22026} بر پایه این اصل طراحی شده است که فعال‌سازی تعداد اندکی از پارامترها (تنها ۹.۸B از مجموع ۲۲۹.۹B) می‌تواند بازدهی فوق‌العاده‌ای در مسائل دنیای واقعی بیافریند. 
+در فاز مطالعات ابطال معماری، ارزیابی ترکیبات توجه پنجره لغزان (\en{Hybrid SWA}) در مقایسه با توجه کامل نشان داد که اگرچه \en{SWA} در بافت‌های زیر ۳۲k رقابتی است، اما در بافت‌های بلندتر سبب افت شدید می‌شود: در بنچمارک \en{RULER 128K CWE} عملکرد از ۹۰.۰ به \textbf{۷۲.۰} سقوط کرد و در ارزیابی‌های عاملی بافت بلند نظیر $\tau^2$\en{-Bench telecom} افت شدید از ۳۲.۵ به \textbf{۲۱.۰} ثبت گردید؛ لذا توجه کامل در تمامی لایه‌ها تثبیت شد.
+
+\paragraph*{نتایج ارزیابی مدل \en{MiniMax-M2.7}}
+جدول \ref{tab:minimax_m27_eval} نتایج ارزیابی مدل مرزی \en{M2.7} را در حوزه‌های مهندسی عاملی، آفیس و استدلال نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{ارزیابی مقایسه‌ای \model{MiniMax-M2.7} در برابر مدل‌های مرزی}
+\label{tab:minimax_m27_eval}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{بنچمارک} & \textbf{\en{M2.7}} & \textbf{\en{M2.5}} & \textbf{\en{Opus 4.6}} & \textbf{\en{Sonnet 4.6}} & \textbf{\en{GPT 5.4}} & \textbf{\en{Gemini 3.1 Pro}} \\
+\midrule
+\en{SWE-bench Pro} & \underline{56.2} & 55.4 & 57.3 & 57.2 & \textbf{57.7} & 54.2 \\
+\en{SWE-bench Multilingual} & \underline{76.5} & 74.1 & \textbf{77.8} & 75.9 & 70.5 & - \\
+\en{Multi-SWE-bench} & \textbf{52.7} & 51.3 & 50.3 & \underline{51.0} & 49.0 & - \\
+\en{Terminal-Bench 2.0} & 57.0 & 51.7 & 65.4 & 59.1 & \textbf{75.1} & \underline{68.5} \\
+\en{MLE Bench Lite} & \underline{66.6} & 51.5 & \textbf{75.7} & 72.7 & 71.2 & \underline{66.6} \\
+\en{VIBE-Pro} & 55.6 & 54.2 & 55.6 & \textbf{56.1} & - & 41.0 \\
+\en{BrowseComp} & 77.8 & 76.3 & \underline{84.0} & 74.7 & 82.7 & \textbf{85.9} \\
+\en{GDPval-AA} & 50.0 & 35.0 & 55.0 & \underline{57.0} & \textbf{58.0} & 41.0 \\
+\en{MEWC v2 (Excel)} & 63.3 & 49.8 & 62.0 & \textbf{77.2} & \underline{76.5} & 42.2 \\
+\en{AIME 2026} & \underline{94.2} & 87.2 & 92.5 & 92.7 & \textbf{97.0} & 88.7 \\
+\en{GPQA-Diamond} & 89.8 & 85.2 & 89.6 & 87.5 & \underline{92.0} & \textbf{94.1} \\
+\en{IFBench} & \underline{76.0} & 72.0 & 53.1 & 56.6 & 73.9 & \textbf{77.1} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{مطالعه موردی خودتکاملی (\en{Self-Evolution}) در \en{MLE Bench Lite}}
+در یک آزمایش کنترل‌شده جهت سنجش استقلال در ارتقای خطوط لوله یادگیری ماشین:
+\begin{itemize}
+    \item مدل \en{M2.7} در ۲۲ رقابت مهندسی یادگیری ماشین به مدت ۲۴ ساعت بدون کدنویسی انسانی در یک جعبه‌شنی خودمختار فعالیت کرد.
+    \item در سه اجرای مستقل، مدل به نرخ مدال‌آوری میانگین \textbf{66.6\%} (هم‌سطح با \en{Gemini 3.1 Pro}) با کسب ۹ طلا، ۵ نقره و ۱ برنز دست یافت.
+    \item این فرآیند نشان داد که مدل قادر است اسکلت یادگیری تقویتی خود را دیباگ کند و خطاهای پیکربندی سیستم‌های توزیع‌شده را اصلاح نماید.
+\end{itemize}
+
+\paragraph*{خط لوله یادگیری و تکامل خودمختار}
+شکل \ref{fig:minimax_m2_diagram} چرخه تکاملی مدل \model{MiniMax-M2.7} را نمایش می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.4cm and 1.8cm,
+    stepnode/.style={rectangle, draw=cyan!80!black, fill=cyan!5, rounded corners, thick, align=center, minimum width=3.4cm, minimum height=1cm},
+    arrow/.style={-Latex, thick, draw=cyan!90!black}
+]
+    \node[stepnode] (harness) {\textbf{محیط جعبه‌شنی}\\\small حافظه، اسکریپت، ابزار};
+    \node[stepnode, right=of harness] (agent) {\textbf{عامل \en{M2.7}}\\\small اجرای مستقل کد};
+    \node[stepnode, below=of agent] (reflect) {\textbf{بازخورد و نقد خود}\\\small (\en{Self-Reflection})};
+    \node[stepnode, left=of reflect] (scaffold) {\textbf{بازنویسی اسکلت‌بندی}\\\small (\en{Scaffold Mutation})};
+    
+    \draw[arrow] (harness) -- (agent);
+    \draw[arrow] (agent) -- (reflect);
+    \draw[arrow] (reflect) -- (scaffold);
+    \draw[arrow] (scaffold) -- (harness);
+\end{tikzpicture}
+\caption{چرخه بازگشتی خودتکاملی و ارزیابی در مدل \model{MiniMax-M2.7}}
+\label{fig:minimax_m2_diagram}
+\end{figure}

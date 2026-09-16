@@ -1,0 +1,386 @@
+\subsection*{پیش‌درآمد: پارادایم نوین علم سنجش در مدل‌های زبانی بزرگ}
+ارزیابی سامانه‌های هوش مصنوعی، به‌ویژه مدل‌های زبانی بزرگ (\en{Large Language Models - LLMs})، در نقطه عطف تاریخی خود قرار گرفته است. رویکرد کلاسیک ارزیابی که مبتنی بر بنچمارک‌گذاری تکلیفی ایستا (\en{Static Task-Oriented Benchmarking}) و مقایسه نمرات خام بر روی لیدربوردهای عمومی بود، با بحرانی چندوجهی مواجه شده است: اشباع سریع آزمون‌ها (\en{Benchmark Saturation})، نشت و آلودگی داده‌های آزمون در پیش‌آموزش (\en{Data Contamination})، حساسیت غیرقابل پیش‌بینی مدل‌ها به تغییرات جزئی قالب پرامپت (\en{Prompt Brittleness})، و خلط میان حافظه طوطی‌وار و استدلال اصیل \cite{bean2025measuring, uluirmak2026evalsafetygap, anonymous2026beyond}.
+
+در مواجهه با این چالش‌ها، جامعه هوش مصنوعی ناگزیر از گذار از شیوه‌های موقت و ابزارمحور (\en{Ad-hoc Metrics}) به سمت **«علم سنجش و روان‌سنجی هوش مصنوعی»** (\en{AI Measurement Science \& LLM Psychometrics}) است \cite{zaghouani2026position, ye2025large, truong2026roadmap}. این پارادایم نوین، با وام‌گیری از هفتاد سال پیشینه نظریه اندازه‌گیری در علوم شناختی و روان‌سنجی کمی، ارزیابی مدل زبانی را به عنوان سنجش «سازه‌های پنهان» (\en{Latent Constructs}) صورت‌بندی می‌کند. در این چارچوب، عملکرد مدل تابعی از ویژگی‌های درونی سامانه، ساختار ریاضیاتی گویه‌ها و بستر اجرایی آزمون تلقی شده و اعتبارسنجی آن مستلزم اثبات صریح **روایی سازه** (\en{Construct Validity})، پایایی آماری و تفکیک علّی متغیرها است \cite{salaudeen2025measurement, freiesleben2026establishing}.
+
+\subsection*{سیر تحول تاریخی ارزیابی مدل‌های زبانی: از سامانه‌های نمادین تا بحران کنونی}
+بررسی تاریخی فرآیند سنجش در پردازش زبان طبیعی، پنج دوره متمایز را آشکار می‌سازد که هر یک بازتاب‌دهنده فرضیات معرفت‌شناختی غالب در زمان خود بوده‌اند \cite{salaudeen2025measurement, bean2025measuring}:
+
+\paragraph*{۱. عصر جهان بلوکی (\en{Blocks World Era: 1960--1980}):}
+در این دوره، سامانه‌هایی نظیر \en{ELIZA} \cite{weizenbaum1966eliza} و \en{SHRDLU} \cite{winograd1972understanding} بر مبنای تحلیل کیفی و نمایش‌های روایتی (\en{Demonstration-based}) در دامنه‌های به‌شدت محصور و قواعد دستوری صلب سنجیده می‌شدند. مفهوم کمّی‌سازی و اندازه‌گیری آماری وجود نداشت و ارزیابی صرفاً مشاهده تعامل موفق کاربر با رایانه در انجام اموری چون جابجایی نمادین اجسام بود.
+
+\paragraph*{۲. عصر ستاره قطبی و پردازش آماری (\en{North Star Era: 1990--2000}):}
+با شکل‌گیری کنفرانس‌های درک پیام (\en{MUC})، پیکره‌های درختی (\en{Penn Treebank}) و کنفرانس سالانه ترجمه ماشینی (\en{WMT})، نخستین استانداردهای کمی تثبیت شدند \cite{kreutzer2025deja}. جداسازی داده‌ها به مجموعه‌های آموزش، اعتبارسنجی و آزمون الزام‌آور شد و متریک‌های مقایسه $n$-گرام‌های سطحی مانند \en{BLEU} \cite{papineni2002bleu} و \en{ROUGE} \cite{lin2004rouge} به عنوان سنجه‌های قطعی حاکم گشتند. اگرچه این دوران پایه‌های روایی ملاکی را بنا نهاد، اما شاخص‌ها کاملاً سطحی‌نگر و فاقد درک ساختار معنایی عمیق بودند \cite{zaghouani2026position}.
+
+\paragraph*{۳. عصر یادگیری عمیق و انطباق با محک انسانی (\en{Deep Learning Era: 2010--2019}):}
+با ظهور شبکه‌های عصبی و ترنسفورمرهای انکودری نظیر \en{BERT} \cite{devlin2019bert}، بنچمارک‌های درک مطلب مانند \en{SQuAD} \cite{rajpurkar2016squad} و استلزام متن نظیر \en{SNLI} \cite{bowman2015large} شکل گرفتند. تمرکز اصلی بر رقابت برای عبور از امتیاز عملکرد انسان (\en{Human Parity}) قرار گرفت. در اواخر این دهه، سوئیت‌های چندتکلیفی نظیر \en{GLUE} \cite{wang2018glue} و \en{SuperGLUE} \cite{wang2019superglue} برای ارزیابی توانایی‌های همه‌منظوره ساخته شدند، هرچند پژوهش‌ها به زودی نشان دادند که مدل‌ها بیشتر میانبرهای همبستگی‌های آماری کاذب را یاد می‌گیرند تا استدلال اصیل.
+
+\paragraph*{۴. عصر دانش جامع و مدل‌های زبانی مقیاس‌بزرگ (\en{LLM Era: 2020--2024}):}
+با پیشرفت ترنسفورمرهای خودرگرسیو دیکودری (\en{GPT-3, GPT-4, LLaMA})، بنچمارک‌های چندموضوعی عظیم مانند \en{MMLU} \cite{hendrycks2020measuring} با ۵۷ موضوع درسی، \en{BIG-Bench} \cite{srivastava2022beyond}، \en{GSM8K} \cite{cobbe2021training} و \en{GPQA} \cite{rein2024gpqa} استانداردهای اصلی ارزیابی شدند. همزمان با باز شدن فضای تعاملی، ارزیابی ترجیح انسانی در قالب چت‌بات‌های مقایسه‌ای (\en{Chatbot Arena}) با مدل‌های آماری برادلی-تری (\en{Bradley-Terry}) و رتبه‌بندی الو (\en{Elo}) و ارزیابی خودکار توسط مدل دیگر (\en{LLM-as-a-Judge}) رواج یافت \cite{zheng2023judging}.
+
+\paragraph*{۵. عصر فراسوی بنچمارک و سنجش علّی (\en{Beyond Benchmarks Era: 2024 به بعد}):}
+تراکم مدل‌های زبانی در سقف بنچمارک‌ها نشان داد که افزایش نمرات لیدربوردی لزوماً به معنای بهبود توانمندی واقعی در جهان خارج نیست. رویکردهای نوین، ارزیابی را نه صرفاً مقایسه پاسخ نهایی، بلکه فرآیند مدل‌سازی متغیرهای پنهان آماری، ارزیابی پویای مسیر یادگیری (\en{Dynamic Trajectory})، آزمون اصول موضوعه نظریه تصمیم و کالبدشکافی مکانیکی بازنمایی‌های درونی می‌دانند \cite{xu2026latency, song2026benchmarking, boughorbel2025beyond}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    box/.style={rectangle, draw=#1!70!black, fill=#1!10, rounded corners=3pt, line width=1pt, minimum width=2.4cm, minimum height=1.1cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.1]}, line width=1.2pt, draw=gray!70!black},
+    labelnode/.style={font=\footnotesize\bfseries, text=blue!80!black}
+]
+    \node[box=gray] (p1) {\textbf{عصر جهان بلوکی}\\\en{1960--1980}\\\footnotesize کیفی و نمادین};
+    \node[box=blue, right=of p1] (p2) {\textbf{عصر ستاره قطبی}\\\en{1990--2000}\\\footnotesize متریک‌های \en{n-gram}};
+    \node[box=teal, right=of p2] (p3) {\textbf{عصر یادگیری عمیق}\\\en{2010--2019}\\\footnotesize محک انسانی (\en{SQuAD})};
+    \node[box=orange, below=1.8cm of p3] (p4) {\textbf{عصر دانش جامع}\\\en{2020--2024}\\\footnotesize \en{MMLU} و لیدربوردها};
+    \node[box=purple, left=of p4] (p5) {\textbf{عصر سنجش علّی}\\\en{2024+} \\\footnotesize روان‌سنجی و \en{IRT}};
+
+    \draw[arrow] (p1) -- node[above, labelnode] {\en{TREC/WMT}} (p2);
+    \draw[arrow] (p2) -- node[above, labelnode] {\en{BERT/GLUE}} (p3);
+    \draw[arrow] (p3) -- node[right, labelnode] {\en{Scale \& RLHF}} (p4);
+    \draw[arrow] (p4) -- node[above, labelnode] {بحران ارزیابی} (p5);
+\end{tikzpicture}
+\caption{سیر تحول تاریخی پارادایم‌های ارزیابی سامانه‌های زبانی هوش مصنوعی.}
+\label{fig:history_timeline}
+\end{figure}
+
+\subsection*{مبانی فلسفی و نظری روایی سازه (\en{Construct Validity})}
+یکی از مهم‌ترین شکاف‌های نظری در ادبیات فعلی، تلقی آزمون‌ها به عنوان آینه‌های بی‌واسطه واقعیت بدون اتکا به **نظریه اندازه‌گیری** (\en{Measurement Theory}) است \cite{zaghouani2026position}. در روان‌سنجی، سنجش همواره فرآیندی غیرمستقیم است: ما شاخص‌های مشاهده‌پذیر را ثبت می‌کنیم تا به صفات غیرقابل مشاهده پی ببریم.
+
+\paragraph*{زنجیره مدل‌سازی اندازه‌گیری (\en{Measurement Modeling Chain}):}
+به تصریح زغوانی \cite{zaghouani2026position} و جیکوبز و والاک \cite{jacobs2021measurement}، ارزیابی علمی نباید سطوح زیر را با یکدیگر خلط نماید:
+\begin{equation}
+    \text{سازه پنهان (\en{Latent Construct})} \xrightarrow{\quad\text{نظریه‌پردازی}\quad} \text{عملیاتی‌سازی (\en{Operationalization})} \xrightarrow{\quad\text{ابزارسازی}\quad} \text{سنجه و سناریو (\en{Metric})} \xrightarrow{\quad\text{مشاهده}\quad} \text{نمره خام (\en{Score})}
+\end{equation}
+به عنوان مثال، هنگام ارزیابی «وفاداری» (\en{Faithfulness}) در خلاصه‌سازی:
+\begin{itemize}
+    \item \textbf{سازه پنهان:} عدم اشتقاق اطلاعات کذب نسبت به منبع اصلی.
+    \item \textbf{عملیاتی‌سازی:} سازگاری گزاره‌های حقیقت‌بنیان (\en{Factual Consistency}).
+    \item \textbf{سنجه:} بررسی تطابق گزاره‌ها با مدل‌های پرسش و پاسخ (\en{QA-based Evaluation}).
+    \item \textbf{نمره خام:} نسبت پرسش‌های تایید شده در متن تولیدی ($0.88$).
+\end{itemize}
+خلط این سطوح باعث می‌شود که مثلاً ضریب همبستگی سطحی میان خروجی دو مدل، به عنوان سندی بر درک شهودی یا تفکر عمیق تعبیر گردد.
+
+\paragraph*{سه رویکرد فلسفی به روایی سازه در مدل‌های زبانی:}
+فرایس‌لبن \cite{freiesleben2026establishing} با بررسی مناقشات بنیادین فلسفه روان‌سنجی، سه مکتب فکری اصلی را در ارزیابی قابلیت‌های هوش مصنوعی مقایسه می‌کند:
+\begin{itemize}
+    \item \textbf{دیدگاه علّی بورس‌بوم (\en{Causal Account - Borsboom 2004}):} آزمون تنها زمانی رواست که سازه مورد نظر دارای «واقعیت عینی» (\en{Realist Ontology}) باشد و تغییر در آن سازه، «علت فیزیکی/زیستی» تغییر در پاسخ‌های آزمون باشد \cite{borsboom2004concept}. این موضع برای مدل‌های زبانی قابل دفاع نیست؛ چرا که مدل‌ها فاقد حالات درونی ذهنی، اراده یا هوشیاری زیستی هستند و مطالعات تفسیرپذیری مکانیکی هنوز موفق به اثبات مدارهای فیزیکی علّی مستقل برای سازه‌های کلان استدلالی نشده‌اند.
+    \item \textbf{دیدگاه استنتاجی مسیک و کین (\en{Inferential Account - Messick 1989; Kane 2013}):} روایی، ویژگی خود آزمون نیست، بلکه توجیه زنجیره استنتاجی از نمره به کاربرد نهایی و ارزیابی شواهد عملیاتی است \cite{messick1989meaning, kane2013validating}. با وجود پرهیز از تعهدات انتولوژیک سنگین، این دیدگاه ابزار مفهومی ناچیزی برای نظریه‌پردازی چیستی خود سازه قبل از آزمون ارائه می‌دهد.
+    \item \textbf{دیدگاه شبکه‌های نام‌شناختی کرونباخ و میل (\en{Nomological Account - Cronbach \& Meehl 1955}):} این دیدگاه \textbf{مطلوب‌ترین حد وسط معرفتی} برای هوش مصنوعی است \cite{cronbach1955construct, freiesleben2026establishing}. سازه نیاز به واقعیت جسمانی ندارد، بلکه معنای خود را از طریق جایگاهی که درون یک **شبکه قانون‌مند از روابط، همبستگی‌های مورد انتظار با سازه‌های مجاور و تمایز از سازه‌های ناخواسته** اشغال می‌کند، به دست می‌آورد.
+\end{itemize}
+
+\paragraph*{پیاده‌سازی مدل نظریه \en{CHC} برای استدلال مدل‌های زبانی:}
+فرایس‌لبن \cite{freiesleben2026establishing} نشان می‌دهد که سازه پیچیده‌ای مانند «استدلال» (\en{Reasoning}) را می‌توان ذیل نظریه سلسله‌مراتبی سه‌لایه کتل-هورن-کارول (\en{CHC}) تبیین نمود:
+\begin{itemize}
+    \item \textbf{لایه سوم (\en{Stratum III}):} هوش عام و توانایی انتزاع سراسری ($g$).
+    \item \textbf{لایه دوم (\en{Stratum II}):} مؤلفه‌های کلان نظیر استدلال سیال ($G_f$)، حافظه فعال ($G_{wm}$)، و سرعت پردازش ($G_s$).
+    \item \textbf{لایه اول (\en{Stratum I}):} تکالیف جزئی شامل حل قضایای قیاسی، الگوهای استقرایی و جستجوی فضای حالت.
+\end{itemize}
+اگر مدلی در لایه استدلال نمره بسیار بالا کسب کند اما در حافظه فعال دچار فروپاشی شود، با تضاد نظری-تجربی روبرو می‌شویم که بر اساس تز دوئم-کوآین (\en{Duhem-Quine Thesis}) نشان‌دهنده نقص در ابزار اندازه‌گیری یا عدم انطباق ساختار سازه‌ای است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.2cm,
+    layer3/.style={rectangle, draw=purple!80!black, fill=purple!10, rounded corners=4pt, line width=1.2pt, minimum width=4.5cm, minimum height=1cm, align=center, font=\bfseries},
+    layer2/.style={rectangle, draw=blue!70!black, fill=blue!10, rounded corners=3pt, line width=1pt, minimum width=3.2cm, minimum height=0.9cm, align=center, font=\small\bfseries},
+    layer1/.style={rectangle, draw=teal!70!black, fill=teal!10, rounded corners=2pt, line width=0.8pt, minimum width=2.2cm, minimum height=0.8cm, align=center, font=\footnotesize},
+    conn/.style={-{Stealth[scale=1]}, line width=1pt, draw=gray!80!black}
+]
+    \node[layer3] (g) {لایه سوم: هوش عام محاسباتی (\en{g-factor})};
+    
+    \node[layer2, below left=1.4cm and 0.8cm of g] (gf) {استدلال سیال (\en{$G_f$})};
+    \node[layer2, below=1.4cm of g] (gwm) {حافظه فعال (\en{$G_{wm}$})};
+    \node[layer2, below right=1.4cm and 0.8cm of g] (gs) {سرعت و بهره‌وری (\en{$G_s$})};
+    
+    \node[layer1, below left=1.2cm and -0.2cm of gf] (t1) {استلزام قیاسی};
+    \node[layer1, below right=1.2cm and -0.2cm of gf] (t2) {تکمیل توالی ریاضی};
+    \node[layer1, below=1.2cm of gwm] (t3) {ردیابی حالت بافت};
+    \node[layer1, below=1.2cm of gs] (t4) {طول بهینه \en{CoT}};
+
+    \draw[conn] (g) -- (gf);
+    \draw[conn] (g) -- (gwm);
+    \draw[conn] (g) -- (gs);
+    
+    \draw[conn] (gf) -- (t1);
+    \draw[conn] (gf) -- (t2);
+    \draw[conn] (gwm) -- (t3);
+    \draw[conn] (gs) -- (t4);
+\end{tikzpicture}
+\caption{شبکه نام‌شناختی سازه استدلال در مدل‌های زبانی بر پایه نظریه روان‌سنجی \en{CHC}.}
+\label{fig:nomological_chc}
+\end{figure}
+
+\paragraph*{گونه‌شناسی انواع روایی در مدل‌های زبانی (\en{Validity Taxonomy}):}
+بر پایه تحلیل‌های سالودین و همکاران \cite{salaudeen2025measurement} و علاء و همکاران \cite{alaa2025medical}، ارزیابی بدون آزمودن پنج رکن اصلی زیر فاقد اعتبار است:
+\begin{itemize}
+    \item \textbf{روایی محتوا (\en{Content Validity}):} تضمین اینکه گویه‌ها تمام فضای مسائل مربوط به سازه را پوشش داده و فاقد متغیرهای زائد تحمیل‌شده باشند.
+    \item \textbf{روایی ملاکی (\en{Criterion Validity}):} توانایی نمره در پیش‌بینی شواهد تجربی مستقل، شامل روایی پیش‌بین (\en{Predictive}) و روایی همزمان (\en{Concurrent}). در پژوهش علاء و همکاران \cite{alaa2025medical}، معیار پیش‌بینی عملکرد تصمیم‌گیری بالینی با پرونده‌های سلامت واقعی (\en{EHR}) با رابطه زیر صورت‌بندی شد:
+    \begin{equation}
+        \alpha = P(\text{درستی در پرونده واقعی} \mid \text{پاسخ صحیح در \en{MedQA}})
+    \end{equation}
+    آن‌ها اثبات کردند که $\alpha$ برای مدل‌هایی چون \en{GPT-4} کمترین تمایز را با دقت پایه دارد، که گواه نقض شدید روایی پیش‌بین بنچمارک‌های متنی پزشکی است.
+    \item \textbf{روایی سازه (\en{Construct Validity}):} شامل روایی ساختاری (اثبات ساختار عاملی)، روایی همگرا (همبستگی بالا با آزمون‌های هم‌سازه)، و روایی واگرا یا تمایز (عدم همبستگی با سازه‌های نامرتبط نظیر طول پاسخ یا روانی بیان).
+    \item \textbf{روایی بیرونی و بوم‌شناختی (\en{External \& Ecological Validity}):} میزان پایایی ارزیابی فراتر از شرایط آزمایشگاهی و در جریان کارهای پیچیده و استقرار واقعی.
+    \item \textbf{روایی پیامدی (\en{Consequential Validity}):} بررسی اثرات سوء اجتماعی و سیاستی حاصل از تفسیر نمرات؛ جلوگیری از بهینه‌سازی مدل‌ها برای معیارهایی که شایستگی واقعی ایجاد نمی‌کنند (مسئله قانون گودهارت).
+\end{itemize}
+
+\subsection*{آسیب‌شناسی تجربی بنچمارک‌ها و استانداردهای اندازه‌گیری}
+
+\paragraph*{ممیزی جامع ۴۴۵ بنچمارک یادگیری ماشین (\en{Bean et al., 2025}):}
+بین و همکاران در بزرگ‌ترین مطالعه متاروش‌شناختی، ۴۴۵ مقاله معتبر کنفرانس‌های برتر هوش مصنوعی (\en{NeurIPS, ICML, ICLR, ACL, EMNLP, NAACL}) را بررسی کردند. نتایج شوکه‌کننده این ممیزی نشان داد:
+\begin{itemize}
+    \item $21.7\%$ مقالات هیچ تعریفی از پدیده و قابلیت مورد سنجش ارائه نکرده‌اند.
+    \item از میان مقالاتی که تعریف ارائه کرده‌اند، $47.8\%$ از تعاریف مناقشه‌برانگیز و غیرعملیاتی (مانند «بی‌ضرری» یا «استدلال همه‌منظوره») استفاده نموده‌اند.
+    \item $27.0\%$ از بنچمارک‌ها به نمونه‌گیری در دسترس (\en{Convenience Sampling}) متکی بوده‌اند که منجر به سوگیری‌های ناشناخته در توزیع نمونه‌ها می‌شود.
+    \item تنها **$16.0\%$** از مقالات از آزمون‌های معناداری آماری، خطای استاندارد یا فواصل اطمینان برای مقایسه مدل‌ها بهره برده‌اند.
+\end{itemize}
+پژوهشگران بر مبنای این یافته‌ها، چک‌لیست هشت‌گانه زیر را تدوین نمودند:
+\begin{enumerate}
+    \item تعریف دقیق و عملیاتی پدیده مورد سنجش (\en{Define the phenomenon}).
+    \item اندازه‌گیری تنها سازه هدف و حذف متغیرهای اخلال‌گر (\en{Measure only the phenomenon}).
+    \item تدوین دیتاست معرف از طریق نمونه‌گیری تصادفی یا طبقه‌ای (\en{Representative dataset}).
+    \item مستندسازی و تحلیل محدودیت‌های بازاستفاده از داده‌های قدیمی (\en{Reuse limitations}).
+    \item پایش و مقابله پیش‌دستانه با آلودگی و نشت داده (\en{Prepare for contamination}).
+    \item بهره‌گیری از آزمون‌های فرضیه و ارزیابی توان آماری (\en{Statistical methods}).
+    \item تحلیل کیفی و تفکیکی خطاها و تعیین ریشه‌های شکست (\en{Error analysis}).
+    \item توجیه صریح زنجیره روایی سازه در گزارش‌های نهایی (\en{Justify construct validity}).
+\end{enumerate}
+
+\paragraph*{استانداردسازی ارزیابی و چالش‌های فنی: چارچوب \en{OLMES} (\en{Gu et al., 2024}):}
+گو و همکاران با معرفی استاندارد \en{OLMES} نشان دادند که چگونه جزئیات فنی ناگفته در مقالات باعث ایجاد مغایرت‌های فاحش در رتبه‌بندی مدل‌ها در بنچمارک‌های چندگزینه‌ای (\en{MCQA}) می‌شود. این استاندارد سه جنبه فنی حیاتی را قاعده‌مند ساخت:
+\begin{itemize}
+    \item \textbf{دوگانگی صورت‌بندی تکمیل (\en{CF}) در برابر چندگزینه‌ای (\en{MCF}):}
+    در فرمت تکمیل (\en{Cloze Formulation - CF})، احتمال شرطی هر گزینه به صورت مستقیم در دنباله پرامپت محاسبه می‌شود:
+    \begin{equation}
+        \text{Score}_{\text{CF}}(a_i) = P(a_i \mid q)
+    \end{equation}
+    در فرمت چندگزینه‌ای (\en{Multiple-Choice Formulation - MCF})، کل گزینه‌ها با برچسب‌های متناظر به مدل داده شده و احتمال تولید شناسه برچسب (مثلاً $P(\text{A} \mid q)$) استخراج می‌گردد. نتایج نشان داد که مدل‌ها در اوایل فاز آموزش (کمتر از ۴۰۰ میلیارد توکن) توان پردازش فرمت \en{MCF} را ندارند و در آن به صورت تصادفی عمل می‌کنند؛ اما در فازهای نهایی، \en{MCF} به مراتب ارزیابی دقیق‌تری از توانایی مدل نسبت به \en{CF} ارائه می‌دهد.
+    \item \textbf{استراتژی‌های نرمال‌سازی احتمالات در \en{CF}:}
+    از آنجا که طول توکنی گزینه‌های مختلف متفاوت است، احتمال ضرب توکن‌ها به نفع پاسخ‌های کوتاه سوگیری دارد. در \en{OLMES} چهار رهیافت مقایسه و تبیین شده است:
+    \begin{enumerate}
+        \item بدون نرمال‌سازی (\en{None}): مناسب گزینه‌های با طول مساوی مانند \en{BoolQ}.
+        \item نرمال‌سازی بر مبنای کاراکتر (\en{Per-Character}): تقسیم لگاریتم احتمال بر تعداد حروف پاسخ، که به عنوان استاندارد برتر برای \en{ARC-Easy, HellaSwag, MMLU} تثبیت شد:
+        \begin{equation}
+            \text{Score}_{\text{char}}(a_i) = \frac{\ln P(a_i \mid q)}{\text{Length}_{\text{chars}}(a_i)}
+        \end{equation}
+        \item نرمال‌سازی اطلاعات متقابل نقطه‌ای (\en{PMI}): تقسیم احتمال بر شانس بدون شرط وقوع کلمه در پرامپت خنثی $u$، مناسب برای کلمات نامتعارف در \en{ARC-Challenge} و \en{OpenBookQA}:
+        \begin{equation}
+            \text{Score}_{\text{PMI}}(a_i) = \ln \frac{P(a_i \mid q)}{P(a_i \mid u)}
+        \end{equation}
+    \end{enumerate}
+    \item \textbf{حل مسئله توکنایزیشن برچسب‌ها:} توکنایزرها کاراکتر ابتدای خط را متمایز از کاراکتر بعد از فاصله تبدیل می‌کنند. \en{OLMES} الزام می‌کند که قبل از حروف گزینه‌ها فاصله تعبیه شود تا تطابق کامل توکنی برقرار گردد.
+\end{itemize}
+
+\paragraph*{درس‌های ترجمه ماشینی برای مدل‌های چندزبانه (\en{Kreutzer et al., 2025}):}
+کروتزر و همکاران نشان دادند که ارزیابی مدل‌های چندزبانه (\en{mLLMs}) دچار خطاهایی است که دهه‌ها در ارزیابی ترجمه ماشینی حل شده بودند:
+\begin{itemize}
+    \item \textbf{اثر مصنوعات ترجمه (\en{Translationese}):} ترجمه خودکار پرامپت‌های انگلیسی به زبان‌های هدف، الگوهای نحوی انگلیسی را منتقل کرده و تسک را برای مدل‌هایی که پرامپت انگلیسی دیده‌اند مصنوعی و آسان می‌سازد؛ ارزیابی‌ها با سنجه‌های مدرن \en{XCOMET} و \en{CometKiwi} نشان داد نرخ پیروزی (\en{Win Rate}) مدل‌ها تحت پرامپت‌های ترجمه‌شده تا ۳۲٪ دستخوش سوگیری می‌شود.
+    \item \textbf{محاسبه توان آماری (\en{Statistical Power}):} تعداد نمونه‌ها در ارزیابی‌های چندزبانه اغلب زیر ۵۰۰ گویه است؛ محاسبات اثبات کرد که برای زبان‌های با خطای واریانس بالا، ۵۰۰ گویه قدرت کشف تفاوت‌های واقعی را ندارد و گزارش فواصل اطمینان الزامی است.
+\end{itemize}
+
+\subsection*{روان‌سنجی مدل‌های زبانی (\en{LLM Psychometrics})}
+روان‌سنجی مدل‌های زبانی به بررسی صفات پایدار، ارزش‌ها و قابلیت‌های شناختی مدل به عنوان یک سوژه می‌پردازد \cite{ye2025large, li2024evaluating}:
+
+\paragraph*{مفهوم تجلی رفتاری مصنوعی (\en{Synthetic Behavioral Manifestation}):}
+پژوهشگران تاکید می‌کنند که کاربرد آزمون‌های روان‌شناختی به معنای باور به وجود حالات آگاهانه درونی یا تجارب بیولوژیک در شبکه نیست؛ بلکه به معنی رصد الگوهای نظام‌مند پاسخ‌دهی است که از منظر تعامل انسان و ماشین و کنترل‌پذیری رفتاری اهمیت دارند \cite{ye2025large}.
+
+\paragraph*{سنجش صفات شخصیتی و ارزش‌ها (\en{Personality \& Values}):}
+\begin{itemize}
+    \item در آزمون‌های پنج صفت بزرگ شخصیت (\en{Big Five: BFI})، مدل‌های مدرن تحت آموزش تراز به سمت نمرات بسیار بالا در سازگاری (\en{Agreeableness}) و وظیفه‌شناسی (\en{Conscientiousness}) و نمره نزدیک به صفر در روان‌رنجوری (\en{Neuroticism}) همگرا شده‌اند \cite{li2024evaluating}.
+    \item با این حال، پایداری این صفات متزلزل است؛ با تغییر سبک پرامپت یا پرامپت‌های شخصیت‌سازی ($P^2$)، نمره روان‌رنجوری می‌تواند بلافاصله از ۱ به ۵ جهش کند.
+    \item در زمینه ارزش‌های انسانی (نظریه ارزش شوارتز و مقیاس‌های \en{GLOBE})، مدل‌ها گرایش شدیدی به خودفراروی (\en{Self-Transcendence}) و حفاظت از هنجارها نشان می‌دهند و مواضع فردگرایانه و قدرت‌طلبانه را رد می‌کنند.
+\end{itemize}
+
+\paragraph*{سازه‌های شناختی: نظریه ذهن و هوش هیجانی (\en{ToM \& Emotional Intelligence}):}
+\begin{itemize}
+    \item در سنجش نظریه ذهن (\en{Theory of Mind - ToM}) با تکالیف باور غلط (\en{False Belief})، اگرچه مدل‌ها در ظاهر در مسائل کلاسیک موفق عمل می‌کنند، اما با اعمال آزمون‌های فرم موازی و تغییر نام ظرف‌ها یا بازنویسی صورت مسئله (\en{Perturbation})، دقت استدلالی به شدت سقوط می‌کند که نشان از شکنندگی هوریستیک‌ها دارد \cite{li2024evaluating, ullman2023large}.
+    \item در ارزیابی هوش هیجانی (\en{EmoBench})، مدل‌های زبانی در تطبیق هیجانات در موقعیت‌های متنی (\en{Emotion Application}) توانایی نسبی دارند، اما در درک علل زیربنایی احساسات به طور معناداری ضعیف‌تر از میانگین انسانی عمل می‌کنند.
+\end{itemize}
+
+\paragraph*{چالش تحمیل برون‌فرهنگی (\en{Imposed Etic}) و سوگیری مطلوبیت اجتماعی:}
+تحلیل عاملی تائیدی (\en{CFA}) نشان داده است که ابعاد شخصیتی انسان عیناً در فضای برداری مدل‌های زبانی متبلور نمی‌شود (\en{Construct Non-Equivalence}). علاوه بر این، مدل‌ها به دلیل آموزش بازخوردی (\en{RLHF}) به شدت تحت تأثیر **سوگیری مطلوبیت اجتماعی** (\en{Social Desirability Bias}) قرار دارند و در پاسخ به فرم‌های خودگزارشی همواره گزینه‌های اخلاقی‌تر را تایید می‌کنند، در حالی که در سناریوهای تولید آزاد رفتارهای متناقضی بروز می‌دهند \cite{suhr2023challenging, salecha2024large}.
+
+\subsection*{مدل‌سازی آماری با نظریه پاسخ گویه (\en{Item Response Theory})}
+نظریه پاسخ گویه، ریاضیات بنیادین گذر از تجمیع ساده به مدل‌سازی پنهان در ارزیابی هوش مصنوعی است \cite{truong2026roadmap}.
+
+\paragraph*{مدل‌های کلاسیک \en{IRT} و اطلاعات فیشر:}
+در مدل یک‌پارامتری راش (\en{1PL})، احتمال پاسخ صحیح آزمون‌شونده $i$ به سوال $j$ چنین است:
+\begin{equation}
+    P(R_{ij} = 1 \mid \theta_i, z_j) = \sigma(\theta_i - z_j) = \frac{1}{1 + e^{-(\theta_i - z_j)}}
+\end{equation}
+در مدل دوپارامتری (\en{2PL})، پارامتر تمیز یا تشخیص $a_j$ وارد می‌شود:
+\begin{equation}
+    P(R_{ij} = 1 \mid \theta_i, z_j, a_j) = \sigma(a_j(\theta_i - z_j))
+\end{equation}
+تابع اطلاعات فیشر برای گویه $j$ که نشان‌دهنده دقت ارزیابی توانایی $\theta$ در آن نقطه است، با مشتق‌گیری مراتب اول و دوم از لگاریتم درست‌نمایی برآورد می‌گردد:
+\begin{equation}
+    \mathcal{L}_{ij} = R_{ij} \ln P_j(\theta_i) + (1 - R_{ij}) \ln (1 - P_j(\theta_i))
+\end{equation}
+با مشتق‌گیری بر حسب $\theta_i$:
+\begin{equation}
+    \frac{\partial \mathcal{L}_{ij}}{\partial \theta_i} = a_j (R_{ij} - P_j(\theta_i))
+\end{equation}
+و امید ریاضی مربع مشتق اول برابر است با:
+\begin{equation}
+    I_j(\theta) = \mathbb{E} \left[ \left( \frac{\partial \mathcal{L}_{ij}}{\partial \theta} \right)^2 \right] = a_j^2 P_j(\theta) (1 - P_j(\theta))
+\end{equation}
+تابع اطلاعات کل آزمون (\en{TIF}) برابر با $\mathcal{I}(\theta) = \sum_{j=1}^J I_j(\theta)$ است و طبق نابرابری کرامر-رائو، واریانس مجانبی برآورد توانایی مدل با معکوس این تابع محدود می‌شود: $\text{Var}(\hat{\theta}) \ge \mathcal{I}(\theta)^{-1}$.
+
+\paragraph*{مدل نظریه پاسخ-درنگ (\en{Latency-Response Theory - LaRT}):}
+پژوهش شو و همکاران \cite{xu2026latency} با ترکیب دقت پاسخ و طول زنجیره تفکر (\en{CoT Length})، نخستین مدل مشترک چندعاملی را برای سنجش استدلال در مدل‌های زبانی ارائه داد. این مدل، طول زنجیره تفکر را معادل زمان پاسخ (\en{Response Time}) در آزمون‌های شناختی انسان قرار می‌دهد:
+\begin{align}
+    R_{ij} &\sim \text{Bernoulli}(\Phi(a_j \theta_i + b_j)) \label{eq:lart_r}\\
+    \ln T_{ij} &\sim \mathcal{N}(\omega_j - \varphi_j \tau_i, \lambda_j) \label{eq:lart_t}\\
+    (\theta_i, \tau_i)^\top &\sim \mathcal{N}\left(\begin{pmatrix} 0 \\ 0 \end{pmatrix}, \Sigma\right), \quad \Sigma = \begin{pmatrix} 1 & \rho \\ \rho & 1 \end{pmatrix} \label{eq:lart_prior}
+\end{align}
+که در آن $\theta_i$ توانایی استدلال، $\tau_i$ سرعت تولید (معکوس تفکر عمیق)، $a_j$ تمیزپذیری دقت، $b_j$ پارامتر مکان دشواری، $\omega_j$ شدت زنجیره تفکر پایه سوال، $\varphi_j$ تمیزپذیری درنگ سوال و $\lambda_j$ واریانس نویز است. ضریب $\rho \in (-1, 1)$ همبستگی میان توانایی و سرعت را مدل می‌کند (در استدلال‌های دشوار $\rho < 0$ است، یعنی توانایی بالاتر با طول \en{CoT} بیشتر و سرعت کمتر همراه است).
+
+\paragraph*{قضایای ریاضی شناسایی‌پذیری و برتری خطای مجانبی \en{LaRT}:}
+نویسندگان اثبات می‌کنند که توزیع توأم مارجینال مشاهدات از طریق میانگین‌ها، همبستگی‌های تتراکوریک و کوواریانس‌های متقابل به شکل یک دستگاه جبری خطی فاکتورگیری می‌شود.
+\begin{itemize}
+    \item \textbf{قضیه شناسایی کامل (Theorem 1 \cite{xu2026latency}):} اگر حداقل ۳ گویه دارای ضرایب غیرصفر در $a$ و $\varphi$ باشند و مجموع ضرایب مثبت باشد ($\sum a_j > 0, \sum \varphi_j > 0$)، مدل \en{LaRT} دارای شناسایی‌پذیری یکتا است.
+    \item \textbf{توزیع پسین و نمونه‌گیری با توزیع چوله‌نرمال یکپارچه (\en{SUN}):}
+    توزیع شرطی سرعت پنهان $\tau_i$ به شرط $\theta_i$ نرمال باقی می‌ماند:
+    \begin{equation}
+        \tau_i \mid \theta_i, T_{i,:}; \Omega \sim \mathcal{N}\left( \mu_\tau^{(i)}, \sigma_\tau^2 \right)
+    \end{equation}
+    که پارامترهای آن از برابری نمایی به دست می‌آیند:
+    \begin{equation}
+        \sigma_\tau^2 = \left( \frac{1}{1-\rho^2} + \sum_{j=1}^J \frac{\varphi_j^2}{\lambda_j} \right)^{-1}, \quad \mu_\tau^{(i)} = \sigma_\tau^2 \left( \frac{\rho \theta_i}{1-\rho^2} - \sum_{j=1}^J \frac{(\ln T_{ij} - \omega_j)\varphi_j}{\lambda_j} \right)
+    \end{equation}
+    با انتگرال‌گیری روی $\tau_i$، توزیع پیشین پیچ‌خورده (\en{Twisted Prior}) برای $\theta_i$ به دست آمده و پسین حاشیه‌ای به یک توزیع چوله‌نرمال یکپارچه (\en{Unified Skew-Normal - SUN}) تبدیل می‌گردد که نمونه‌گیری از آن در الگوریتم \en{SAEM} بدون نیاز به زنجیره مارکوف (\en{MCMC-free}) و به صورت فوق‌العاده پایدار صورت می‌گیرد:
+    \begin{equation}
+        \theta_i \mid R_{i,:}, T_{i,:}; \Omega \sim \text{SUN}_{1,J} \left( \mu_\theta^{(i)}, \sigma_\theta^2, \Delta_{i,\text{post}}, \gamma_{i,\text{post}}, \Gamma_{i,\text{post}} \right)
+    \end{equation}
+    \item \textbf{برتری واریانس مجانبی نسبت به \en{IRT} کلاسیک (Theorem 2 \cite{xu2026latency}):}
+    وارون واریانس مجانبی برآوردگر توانایی ($\tilde{I}_J(\theta)$) تحت مدل \en{LaRT} دقیقاً برابر است با:
+    \begin{equation}
+        \tilde{I}_J(\theta) = \frac{1}{1 - \rho^2} + \sum_{j=1}^J \frac{a_j^2 \phi(a_j \theta_i + b_j)^2}{\Phi(a_j \theta_i + b_j)[1 - \Phi(a_j \theta_i + b_j)]}
+    \end{equation}
+    از آنجا که عبارت اول $\frac{1}{1-\rho^2}$ برای هر همبستگی غیرصفر $\rho \neq 0$ اکیداً بزرگتر از یک است، این مدل دقت برآورد توانایی مدل‌ها را به طور قطعی افزایش داده و طول فواصل اطمینان را کوتاه می‌سازد.
+\end{itemize}
+
+\paragraph*{قوانین مقیاس‌پذیری پاسخ گویه (\en{Item Response Scaling Laws - IRSL}):}
+ترونگ و همکاران \cite{truong2026item} مدل‌سازی پاسخ گویه را با قوانین مقیاس‌پذیری عصبی ترکیب کردند. ارزیابی سنتی نیازمند تخمین مجزای پارامترهای مقیاس‌پذیری برای هر جفت مدل و بنچمارک با پیچیدگی $\mathcal{O}(M \times N)$ است. \en{IRSL} با تجزیه پاسخ به توانایی مدل $\theta_i$ و ویژگی‌های سوال ($z_j, d_j$) پیچیدگی را به $\mathcal{O}(M + N)$ کاهش می‌دهد.
+آن‌ها مدل \textbf{\en{Beta-IRT}} را برای خروجی‌های احتمالی پیوسته معرفی کردند:
+\begin{equation}
+    P_{ij} \sim \text{Beta}(\mu_{ij}, \phi), \quad \mu_{ij} = \sigma(d_j(\theta_i - z_j))
+\end{equation}
+که در آن $\phi > 0$ ضریب تمرکز توزیع بتا است. این مدل نرخ موفقیت در زمان استنتاج را با فرمول بسته پیش‌بینی می‌کند:
+\begin{equation}
+    \text{pass}@k(i, \mathcal{D}) = \frac{1}{N} \sum_{j=1}^N \left( 1 - \left(1 - \sigma(d_j(\theta_i - z_j))\right)^k \right)
+\end{equation}
+و به شکلی چشمگیر کالیبراسیون آزمون را به تنها ۲ مدل آزمون‌شونده کاهش می‌دهد.
+
+\subsection*{عقلانیت محاسباتی و سنجش اصل موضوعه تعدی (\en{Axiomatic Rationality})}
+پژوهش سانگ، جنینگز و دیویس-استوبر \cite{song2026benchmarking} ارزیابی را به آزمودن مستقیم اصول موضوعه نظریه تصمیم ارتقا می‌دهد.
+
+\paragraph*{اصل موضوع تعدی و مدل‌های تصادفی:}
+بر اساس نظریه مطلوبیت فن‌نویمان-مورگنشترن \cite{vonneumann1947theory}، شرط لازم و کافی برای عقلانیت وجود تابع مطلوبیت $u$ است که مستلزم تعدی در ترجیحات است:
+\begin{equation}
+    A \succsim B \land B \succsim C \implies A \succsim C
+\end{equation}
+برای متغیرهای تصادفی، چهار مدل تعریف می‌شود:
+\begin{itemize}
+    \item \textbf{تعدی تصادفی ضعیف (\en{WST}):}
+    \begin{equation}
+        P_{AB} \ge 0.5 \land P_{BC} \ge 0.5 \implies P_{AC} \ge 0.5
+    \end{equation}
+    \item \textbf{تعدی با قطعیت متوسط و بالا (\en{MCT \& HCT}):} آستانه از $0.5$ به $0.75$ در \en{MCT} و به $0.90$ در \en{HCT} ارتقا می‌یابد.
+    \item \textbf{مدل آمیخته رجحان تعدی (\en{MMTP} یا چندوجهی ترتیب خطی):}
+    برای مجموعه‌های انتخاب تا ۵ گزینه، این مدل با دستگاه نامعادله زیر هم‌ارز است:
+    \begin{equation}
+        P_{AB} + P_{BC} - P_{AC} \le 1, \quad P_{AB} \ge 0, \quad P_{AB} + P_{BA} = 1, \quad (\forall A, B, C)
+    \end{equation}
+\end{itemize}
+نتایج روی ۲۰ مدل نشان داد که مدل‌ها فاقد تابع مطلوبیت پایدار هستند. با اضافه شدن حافظه متنی (\en{Memory-Full})، پایبندی به \en{WST} از ۲۲.۶ به ۱۱.۰ سقوط کرد. نقض‌های تعدی مدل‌ها تصادفی نبود، بلکه پیرو **نیمه‌مرتبه‌های لغت‌نامه‌ای** (\en{Lexicographic Semi-Orders}) مشابه خطاهای انسان در تصمیم‌گیری‌های ریسک‌دار بود \cite{tversky1969intransitivity}.
+
+\subsection*{تفکیک علّی مدل‌ها، ارزیابی پویا و شکاف ایمنی-ارزیابی}
+
+\paragraph*{تحلیل واریانس عاملی در سامانه ارزیابی مینیمال (\en{Anonymous, ICLR 2026}):}
+نویسندگان اثبات کردند که نمره بنچمارک تابع کل سامانه ارزیابی مینیمال (\en{MES}) است:
+\begin{equation}
+    \text{MES} = \text{Object } (O) \times \text{Conditions } (EC), \quad EC = W \times P \times D
+\end{equation}
+تحلیل واریانس (\en{ANOVA}) روی مدل \en{DeepSeek-V3} نشان داد که سهم تبیین واریانس ناشی از فرمت سوال ($\eta^2 = 0.3996$) و تعامل فرمت با زنجیره تفکر ($\eta^2 = 0.1614$) بیش از نیمی از واریانس کل را به خود اختصاص می‌دهد و بدون کنترل این عوامل، ادعای برتری یک مدل نسبت به دیگری دچار پدیده **معکوس شدن نتیجه** (\en{Conclusion Reversal}) می‌شود.
+
+\paragraph*{تفکیک تفاوت مدل‌ها با \en{Crosscoders} (\en{Model Diffing}):}
+بوغربل و همکاران \cite{boughorbel2025beyond} با استفاده از خودرمزگذارهای تنک چندمدلی، به جای نمرات سطحی، فضای بازنمایی درونی مدل‌های بهینه‌سازی‌شده با \en{SimPO} و \en{DPO} را واکاوی کردند. شاخص اختلاف نرم نسبی برای فیلتر مفاهیم منحصر‌به‌فرد عبارت است از:
+\begin{equation}
+    \Delta_{\text{norm}}(j) = \frac{1}{2} \left( \frac{\|d_j^{M_2}\|_2 - \|d_j^{M_1}\|_2}{\max(\|d_j^{M_2}\|_2, \|d_j^{M_1}\|_2)} + 1 \right)
+\end{equation}
+این تحلیل نشان داد که \en{SimPO} در ازای بهبود صوری در تبعیت از قالب و دستورالعمل ($+151.7\%$) و تعدیل محتوا، دچار افت بسیار شدید در **تشخیص توهم** ($-68.5\%$) و خودارجاعی درونی ($-44.1\%$) شده است که نشان‌دهنده اولویت دادن به تسلط ظاهری و لحن قاطعانه در ازای فدا کردن اعتبارسنجی درونی است.
+
+\paragraph*{چارچوب شکاف ایمنی-ارزیابی (\en{EvalSafetyGap}) و قانون گودهارت (\en{Ulu\i rmak \& Kurban, 2026}):}
+اولورماک و قربان با بررسی ۳۷۳ مقاله، چارچوبی برای پیوند شکست‌های ارزیابی و ایمنی بر مبنای قانون گودهارت ارائه دادند:
+\begin{equation}
+    G(\pi) := \mathbb{E}_{\pi_{\text{target}}}[U] - \mathbb{E}_\pi[U] \sim f(\beta, \epsilon, \sigma, m, d, \mathcal{M})
+\end{equation}
+که در آن $\beta$ فشار بهینه‌سازی، $\epsilon$ خطای تعریف پروکسی، $\sigma$ نویز اندازه‌گیری، $m$ حجم آزمون، و $d$ شیفت توزیعی است. 
+نویسندگان **سه‌گانه هم‌ترازی** (\en{Alignment Trilemma}) را معرفی کردند که بیانگر تنش مهندسی میان سه مؤلفه است:
+\begin{itemize}
+    \item اثربخشی بهینه‌سازی (\en{Optimization Effectiveness - O}).
+    \item وفاداری به سازه و ارزش‌های واقعی (\en{Value/Construct Fidelity - V}).
+    \item تعمیم‌پذیری مقاوم در برابر حملات (\en{Robust Generalization - G}).
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    scale=0.95,
+    point/.style={circle, fill=blue!70!black, inner sep=2pt},
+    labelnode/.style={font=\small\bfseries, align=center}
+]
+    \coordinate (O) at (0, 3.5);
+    \coordinate (V) at (-4, -2);
+    \coordinate (G) at (4, -2);
+
+    \draw[line width=1.5pt, draw=blue!80!black] (O) -- (V) -- (G) -- cycle;
+
+    \node[point] at (O) {};
+    \node[point] at (V) {};
+    \node[point] at (G) {};
+
+    \node[above=6pt of O, labelnode, text=purple!80!black] {اثربخشی بهینه‌سازی (\en{O})\\\footnotesize بهبود متریک پروکسی};
+    \node[below left=6pt of V, labelnode, text=teal!80!black] {وفاداری به سازه (\en{V})\\\footnotesize انطباق با هدف واقعی};
+    \node[below right=6pt of G, labelnode, text=orange!80!black] {تعمیم‌پذیری مقاوم (\en{G})\\\footnotesize مقاومت در برابر حملات};
+
+    \node at (0, -0.3) [rectangle, fill=red!10, draw=red!60!black, rounded corners=3pt, font=\footnotesize\bfseries, align=center, inner sep=6pt] {تنش ساختاری گودهارت:\\شکاف میان نمره پروکسی\\و ایمنی جهان واقعی};
+\end{tikzpicture}
+\caption{سه‌گانه هم‌ترازی (\en{Alignment Trilemma}) در ایمنی و ارزیابی مدل‌های زبانی.}
+\label{fig:alignment_trilemma}
+\end{figure}
+
+\subsection*{جعبه‌ابزار محاسبات و ضرایب آماری توافق}
+برای تضمین پایایی در ارزیابی‌های انسانی و مدل‌محور، فرمولاسیون‌های زیر مبنای عمل هستند:
+\paragraph*{۱. کاپای وزندار درجه دوم (\en{Quadratic Weighted Kappa}):}
+برای متغیرهای رتبه‌ای با ماتریس وزن $W_{ij} = (i - j)^2$:
+\begin{equation}
+    P_w = 1 - \frac{\sum_{i,j} W_{ij} X_{ij}}{N \max(W)}, \quad P_{we} = 1 - \frac{\sum_{i,j} W_{ij} a_i b_j}{N^2 \max(W)}, \quad \kappa_w = \frac{P_w - P_{we}}{1 - P_{we}}
+\end{equation}
+
+\paragraph*{۲. کاپای برنان-پردیگر (\en{Brennan–Prediger Kappa - BPK}):}
+در صورت عدم توازن شدید داده‌ها که کاپای کوهن را دچار خطا می‌کند:
+\begin{equation}
+    \text{BPK} = \frac{P_o - 1/k}{1 - 1/k}
+\end{equation}
+
+\paragraph*{۳. نرخ تطابق فرم‌های موازی (\en{Match Rate - MR}):}
+\begin{equation}
+    MR = \frac{1}{n} \sum_{i=1}^n \mathbb{I}(x_i = x'_i)
+\end{equation}
+
+\subsection*{ارزیابی مدل‌های زبانی پیشرو (\en{Evaluations of Frontier LLMs})}
+در ادامه، ارزیابی تجربی و تحلیل تخصصی عملکرد مدل‌های شاخص زبانی بر مبنای پیکربندی‌ها، معیارهای عملکردی و گزارش‌های فنی مورد بررسی قرار گرفته است:
+
+\begin{itemize}
+    \input{models/Evaluation/deepseek_v4.tex}
+    \input{models/Evaluation/glm_5.tex}
+    \input{models/Evaluation/kimi_k3.tex}
+    \input{models/Evaluation/magistral.tex}
+    \input{models/Evaluation/minimax_m2.tex}
+    \input{models/Evaluation/mobilellm_pro.tex}
+    \input{models/Evaluation/qwen_3.tex}
+    \input{models/Evaluation/olmo_3.tex}
+\end{itemize}
