@@ -1,290 +1,291 @@
-\item \model{مرور جامع ادبیات پژوهش: تقطیر دانش و فشرده‌سازی در مدل‌های زبانی بزرگ}
+\item \textbf{مرور مبانی نظری، تاریخچه تحلیلی و هندسه تقطیر دانش در مدل‌های زبانی (\en{Literature Review of Knowledge Distillation in LLMs})}
 
-\paragraph*{مقدمه و سیر تکامل تاریخی تقطیر در هوش مصنوعی}
-با افزایش تصاعدی مقیاس مدل‌های زبانی بزرگ (\en{LLMs}) به صدها میلیارد پارامتر، چالش‌های ناظر بر حافظه پردازشی، توان محاسباتی و هزینه‌های زیست‌محیطی در مراحل آموزش و استنتاج (\en{Inference})، تقطیر دانش (\en{Knowledge Distillation - KD}) را از یک راهکار فرعی به یکی از ارکان بنیادی مهندسی هوش مصنوعی بدل ساخته است \cite{mansourian2025comprehensive, fang2026knowledge, song2026survey}. تقطیر دانش که نخستین بار توسط بوچیلوآ و همکاران \cite{bucilua2006model} برای مدل‌های بیزین و سپس توسط هینتون و همکاران \cite{hinton2015distilling} در یادگیری عمیق صورتبندی شد، فرآیندی است که طی آن یک مدل فشرده و سبک تحت عنوان دانش‌آموز (\en{Student}) برای بازتولید رفتار و بازنمایی‌های درونی یک مدل حجیم تحت عنوان آموزگار (\en{Teacher}) آموزش می‌بیند \cite{wen2025knowledge}.
+\paragraph*{مقدمه و تبارشناسی تاریخی: از فشرده‌سازی تا مدل‌های زبانی بزرگ}
+تقطیر دانش (\en{Knowledge Distillation - KD}) یکی از بنیادین‌ترین اصول در فشرده‌سازی و انتقال مهارت در یادگیری ماشین است. این مفهوم نخستین بار توسط بوچیلوآ و همکاران \cite{bucilua2006model} برای تقلیل مدل‌های گروهی به یک شبکه عصبی منفرد ارائه گردید و سپس توسط هینتون و همکاران \cite{hinton2015distilling} صورت‌بندی ریاضیاتی و فراگیر یافت. در پارادایم کلاسیک، آموزش از طریق برچسب‌های سخت متداول (\en{Hard Labels}) به علت نادیده گرفتن همبستگی‌های غنی آماری بین کلاس‌ها دچار محدودیت است. تقطیر با هموارسازی احتمالات خروجی مدل حجیم (معلم یا \en{Teacher})، این روابط ظریف را که اصطلاحاً «دانش تاریک» (\en{Dark Knowledge}) نامیده می‌شود، به مدل سبک‌تر (دانشجو یا \en{Student}) منتقل می‌سازد \cite{mansourian2025comprehensive, fang2026knowledge}.
 
-در طول یک دهه اخیر، مفهوم تقطیر از تطبیق ایستا و نقطه‌ای لاجیت‌ها در مسائل طبقه‌بندی تصویر به حوزه‌های بسیار پیچیده‌ای نظیر استدلال زنجیره تفکر (\en{Chain-of-Thought - CoT})، تقطیر درون‌خط‌مشی (\en{On-Policy Distillation - OPD})، هم‌افزایی با تقطیر مجموعه داده (\en{Dataset Distillation - DD}) و کوانتیزاسیون مجانبی بدون اتلاف آماری (\en{Statistically-Lossless Quantization}) تکامل یافته است.
+با پیدایش مدل‌های زبانی اتورگرسیو با ده‌ها و صدها میلیارد پارامتر نظیر خانواده‌های \en{LLaMA} \cite{touvron2023llama}، \en{Qwen} \cite{yang2024qwen2, yang2025qwen3} و \en{DeepSeek} \cite{deepseek2025r1, deepseek2026v4}، مفهوم تقطیر از یک روش ساده کاهش ابعاد لایه‌ها به یک سازوکار حیاتی برای ترازسازی، انتقال قابلیت استدلال چندگامی (\en{Multi-step Reasoning})، بازیابی دانش نهفته و غلبه بر هزینه محاسباتی سرسام‌آور استنتاج ارتقا یافته است \cite{song2026survey, ramesh2025generalization}.
 
-\paragraph*{مبانی تحلیلی تقطیر کلاسیک و مشتق‌گیری ریاضی رفتار مجانبی}
-در صورتبندی پایه تقطیر دانش برای بردار لاجیت‌های آموزگار $z^T \in \mathbb{R}^{|\mathcal{V}|}$ و دانش‌آموز $z^S \in \mathbb{R}^{|\mathcal{V}|}$، توزیع‌های احتمال هموارشده از طریق تابع بیشینه هموار با دمای $\tau > 0$ به صورت زیر تعریف می‌شوند:
+\paragraph*{فرمولاسیون ریاضی بنیادین و رفتار مجانبی در دمای بی‌نهایت}
+فرض کنید $z_T \in \mathbb{R}^{|V|}$ و $z_S \in \mathbb{R}^{|V|}$ به ترتیب بردارهای لاجیت لایه نهایی معلم و دانشجو در فضای واژگان $V$ باشند. با اعمال دمای سافت‌مکس $\tau > 0$، توزیع‌های احتمالاتی هموارشده به صورت زیر تعریف می‌شوند:
 \begin{equation}
-    p_i(z, \tau) = \frac{\exp(z_i / \tau)}{\sum_{j=1}^{|\mathcal{V}|} \exp(z_j / \tau)}
+    p_T^\tau(i) = \frac{\exp(z_{T, i} / \tau)}{\sum_{j \in V} \exp(z_{T, j} / \tau)}, \quad p_S^\tau(i) = \frac{\exp(z_{S, i} / \tau)}{\sum_{j \in V} \exp(z_{S, j} / \tau)}
 \end{equation}
-تابع هزینه تلفیقی تقطیر بر پایه واگرایی کولبک-لایبلر (\en{Kullback-Leibler Divergence}) به فرم زیر است \cite{hinton2015distilling, mansourian2025comprehensive}:
+تابع هزینه کل تقطیر ترکیب محدبی از انتروپی متقابل استاندارد ($L_{\text{CE}}$) با برچسب واقعی $y$ و دیورژانس کولبک-لایبلر ($D_{\text{KL}}$) است:
 \begin{equation}
-    \mathcal{L}_{\text{KD}} = \alpha \mathcal{L}_{\text{CE}}(y, p(z^S, 1)) + (1 - \alpha) \tau^2 \mathcal{D}_{\text{KL}}\left(p(z^T, \tau) \,\|\, p(z^S, \tau)\right)
+    \mathcal{L}_{\text{KD}} = \alpha L_{\text{CE}}(\sigma(z_S), y) + (1 - \alpha) \tau^2 D_{\text{KL}}(p_T^\tau \parallel p_S^\tau)
 \end{equation}
-که در آن:
+که در آن ضریب $\tau^2$ اثر مقیاسی گرادیان ناشی از دما را خنثی می‌کند. برای واکاوی رفتار گرادیان، مشتق جزئی نسبت به لاجیت‌های دانشجو $z_{S, i}$ به صورت گام‌به‌گام محاسبه می‌شود:
 \begin{equation}
-    \mathcal{D}_{\text{KL}}\left(p(z^T, \tau) \,\|\, p(z^S, \tau)\right) = \sum_{i=1}^{|\mathcal{V}|} p_i(z^T, \tau) \log \left( \frac{p_i(z^T, \tau)}{p_i(z^S, \tau)} \right)
+\begin{aligned}
+    \frac{\partial D_{\text{KL}}(p_T^\tau \parallel p_S^\tau)}{\partial z_{S, i}} &= \sum_{k \in V} \frac{\partial D_{\text{KL}}}{\partial p_S^\tau(k)} \frac{\partial p_S^\tau(k)}{\partial z_{S, i}} \\
+    &= - \sum_{k \in V} \frac{p_T^\tau(k)}{p_S^\tau(k)} \left[ \frac{1}{\tau} p_S^\tau(k) \left( \mathbb{I}(i=k) - p_S^\tau(i) \right) \right] \\
+    &= -\frac{1}{\tau} \left[ p_T^\tau(i) - p_S^\tau(i) \sum_{k \in V} p_T^\tau(k) \right] = \frac{1}{\tau} \left( p_S^\tau(i) - p_T^\tau(i) \right)
+\end{aligned}
 \end{equation}
+در رژیم دمای بی‌نهایت ($\tau \to \infty$)، با بسط تیلور مرتبه اول تابع نمایی $\exp(x) \approx 1 + x$ و فرض صفر بودن میانگین لاجیت‌ها ($\sum_j z_{S, j} = \sum_j z_{T, j} = 0$):
+\begin{equation}
+    p_S^\tau(i) \approx \frac{1}{|V|} \left( 1 + \frac{z_{S, i}}{\tau} \right), \quad p_T^\tau(i) \approx \frac{1}{|V|} \left( 1 + \frac{z_{T, i}}{\tau} \right)
+\end{equation}
+با جایگذاری این تقریب‌ها در عبارت گرادیان وزن‌دار شده با $\tau^2$:
+\begin{equation}
+    \tau^2 \frac{\partial D_{\text{KL}}}{\partial z_{S, i}} \approx \tau^2 \cdot \frac{1}{\tau} \left[ \frac{1}{|V|}\left(1 + \frac{z_{S, i}}{\tau}\right) - \frac{1}{|V|}\left(1 + \frac{z_{T, i}}{\tau}\right) \right] = \frac{1}{|V|} (z_{S, i} - z_{T, i})
+\end{equation}
+این اشتقاق دقیقاً اثبات می‌کند که در حد دمای بی‌نهایت، کمینه‌سازی واگرایی \en{KL} به حداقل‌سازی خطای میانگین مربعات (\en{MSE}) روی لاجیت‌های متمرکز میل می‌کند \cite{hinton2015distilling, li2026generalization}.
 
-جهت بررسی سازوکار انتشار گرادیان، مشتق جزئی واگرایی $\mathcal{D}_{\text{KL}}$ را نسبت به لاجیت دانش‌آموز $z_i^S$ محاسبه می‌کنیم. با بسط رابطه داریم:
-\begin{equation}
-    \frac{\partial \mathcal{D}_{\text{KL}}}{\partial z_i^S} = - \sum_{j=1}^{|\mathcal{V}|} p_j(z^T, \tau) \frac{\partial \log p_j(z^S, \tau)}{\partial z_i^S} = - \sum_{j=1}^{|\mathcal{V}|} \frac{p_j(z^T, \tau)}{p_j(z^S, \tau)} \frac{\partial p_j(z^S, \tau)}{\partial z_i^S}
-\end{equation}
-با توجه به مشتق تابع سافت‌مکس که برابر است با:
-\begin{equation}
-    \frac{\partial p_j(z^S, \tau)}{\partial z_i^S} = \frac{1}{\tau} p_i(z^S, \tau) (\delta_{ij} - p_j(z^S, \tau))
-\end{equation}
-با جایگذاری رابطه فوق در گرادیان واگرایی خواهیم داشت:
-\begin{equation}
-    \frac{\partial \mathcal{D}_{\text{KL}}}{\partial z_i^S} = - \sum_{j=1}^{|\mathcal{V}|} \frac{p_j(z^T, \tau)}{p_j(z^S, \tau)} \left[ \frac{1}{\tau} p_i(z^S, \tau) (\delta_{ij} - p_j(z^S, \tau)) \right] = \frac{1}{\tau} \left( p_i(z^S, \tau) - p_i(z^T, \tau) \right)
-\end{equation}
+\paragraph*{رده‌بندی جامع ابعاد تقطیر دانش}
+بر اساس پیمایش منصورین و همکاران \cite{mansourian2025comprehensive}، متدهای تقطیر بر پایه چهار بعد اصلی ساختاردهی می‌شوند: منبع دانش (\en{Source})، طرح آموزشی (\en{Scheme})، الگوریتم بهینه‌سازی (\en{Algorithm}) و مدالیته داده‌ها (\en{Modality}).
 
-اکنون رفتار این تابع را در حد دمای بسیار بالا ($\tau \to \infty$) با استفاده از بسط تیلور بررسی می‌کنیم. بسط نمایی حول صفر عبارت است از:
-\begin{equation}
-    \exp\left(\frac{z_i}{\tau}\right) = 1 + \frac{z_i}{\tau} + \frac{z_i^2}{2\tau^2} + \mathcal{O}\left(\frac{1}{\tau^3}\right)
-\end{equation}
-با فرض میانگین-صفر بودن لاجیت‌ها بر روی کل واژگان ($\sum_j z_j = 0$):
-\begin{equation}
-    \sum_{j=1}^{|\mathcal{V}|} \exp\left(\frac{z_j}{\tau}\right) \approx |\mathcal{V}| + \frac{1}{\tau}\sum_{j=1}^{|\mathcal{V}|} z_j = |\mathcal{V}|
-\end{equation}
-در نتیجه، احتمال نرمال‌شده به صورت زیر تقریب زده می‌شود:
-\begin{equation}
-    p_i(z, \tau) \approx \frac{1}{|\mathcal{V}|} + \frac{z_i}{|\mathcal{V}|\tau}
-\end{equation}
-با قرار دادن این تقریب در رابطه گرادیان، اثر ضریب $\tau^2$ در گرادیان کل مشخص می‌گردد:
-\begin{equation}
-    \tau^2 \frac{\partial \mathcal{D}_{\text{KL}}}{\partial z_i^S} \approx \tau^2 \cdot \frac{1}{\tau} \left( \left[\frac{1}{|\mathcal{V}|} + \frac{z_i^S}{|\mathcal{V}|\tau}\right] - \left[\frac{1}{|\mathcal{V}|} + \frac{z_i^T}{|\mathcal{V}|\tau}\right] \right) = \frac{1}{|\mathcal{V}|} (z_i^S - z_i^T)
-\end{equation}
-این نتیجه تحلیلی اثبات می‌کند که در حد دمای بالا، تقطیر بر پایه واگرایی \en{KL} به طور کامل معادل با **کمینه‌سازی خطای میانگین مربعات (\en{MSE})** بین لاجیت‌های میانگین-صفر دو مدل است:
-\begin{equation}
-    \lim_{\tau \to \infty} \tau^2 \mathcal{D}_{\text{KL}}\left(p(z^T, \tau) \,\|\, p(z^S, \tau)\right) = \frac{1}{2|\mathcal{V}|} \|z^S - z^T\|_2^2
-\end{equation}
-
-\paragraph*{رده‌بندی پنج‌گانه روش‌های تقطیر دانش}
-طبقه‌بندی جامع ارائه‌شده توسط منصوریان و همکاران \cite{mansourian2025comprehensive} نشان می‌دهد که تقطیر مدرن بر پنج محور اساسی استوار است که در نمودار زیر ساختاربندی شده‌اند:
-
-\begin{center}
+\begin{figure}[htbp]
+\centering
 \begin{tikzpicture}[
-    box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=3pt, text centered, font=\small\bfseries, minimum height=0.8cm, inner sep=4pt},
-    leaf/.style={rectangle, draw=gray!60, fill=white, rounded corners=2pt, text centered, font=\footnotesize, minimum height=0.7cm, inner sep=3pt},
-    arrow/.style={-{Stealth[scale=0.8]}, draw=blue!60!black, thick}
+    node distance=1.1cm and 0.8cm,
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners=3pt, text centered, minimum height=0.9cm, font=\small\bfseries, drop shadow},
+    leaf/.style={rectangle, draw=gray!70, fill=white, rounded corners=2pt, text width=3.4cm, font=\footnotesize, inner sep=4pt, drop shadow},
+    arrow/.style={-{Stealth[scale=0.9]}, draw=blue!70!black, thick}
 ]
-    \node[box, fill=blue!20] (root) at (0, 0) {ابعاد بنیادین تقطیر دانش (\en{KD})};
+    % Central Node
+    \node (root) [box, fill=blue!20, text width=4.2cm] {شاخه‌های اصلی تقطیر دانش\\ (\en{Knowledge Distillation})};
     
-    \node[box] (src) at (-5.5, -1.8) {منابع دانش (\en{Sources})};
-    \node[box] (sch) at (-2.7, -1.8) {طرح‌ها (\en{Schemes})};
-    \node[box] (alg) at (0, -1.8) {الگوریتم‌ها (\en{Algorithms})};
-    \node[box] (mod) at (2.8, -1.8) {روش‌های ورودی (\en{Modalities})};
-    \node[box] (app) at (5.7, -1.8) {کاربردها (\en{Applications})};
+    % First level nodes
+    \node (source) [box, below left=1.2cm and 2.5cm of root, text width=2.6cm] {منابع تقطیر\\ (\en{Sources})};
+    \node (scheme) [box, below left=1.2cm and -0.8cm of root, text width=2.6cm] {طرح‌های تقطیر\\ (\en{Schemes})};
+    \node (algo)   [box, below right=1.2cm and -0.8cm of root, text width=2.6cm] {الگوریتم‌ها\\ (\en{Algorithms})};
+    \node (modal)  [box, below right=1.2cm and 2.5cm of root, text width=2.6cm] {مدالیته‌ها\\ (\en{Modalities})};
     
-    \draw[arrow] (root) -- (src);
-    \draw[arrow] (root) -- (sch);
-    \draw[arrow] (root) -- (alg);
-    \draw[arrow] (root) -- (mod);
-    \draw[arrow] (root) -- (app);
+    % Connections from root
+    \draw [arrow] (root) -| (source);
+    \draw [arrow] (root) -| (scheme);
+    \draw [arrow] (root) -| (algo);
+    \draw [arrow] (root) -| (modal);
     
-    \node[leaf, align=center] (src_c) at (-5.5, -3.2) {• لاجیت‌ها (\en{Logits})\\• ویژگی‌ها (\en{Features})\\• شباهت‌ها (\en{Similarities})};
-    \node[leaf, align=center] (sch_c) at (-2.7, -3.2) {• آفلاین (\en{Offline})\\• آنلاین (\en{Online})\\• خود-تقطیری (\en{Self})};
-    \node[leaf, align=center] (alg_c) at (0, -3.2) {• مبتنی بر توجه\\• تخاصمی (\en{GAN})\\• تقطیر تطبیقی\\• متقابل (\en{Contrastive})};
-    \node[leaf, align=center] (mod_c) at (2.8, -3.2) {• متنی (\en{NLP})\\• بینایی و تصویر\\• چندوجهی و ابرنقاط\\• صوتی (\en{Speech})};
-    \node[leaf, align=center] (app_c) at (5.7, -3.2) {• مدل‌های زبانی\\• مدل‌های پایه (\en{CLIP})\\• بینایی خودرویی\\• بیوانفورماتیک};
+    % Leaf nodes
+    \node (leaf_src) [leaf, below=0.6cm of source] {
+        \textbf{• لاجیت (\en{Logits}):} برچسب نرم\\
+        \textbf{• ویژگی (\en{Features}):} لایه‌های میانی\\
+        \textbf{• شباهت (\en{Similarity}):} ساختار روابط
+    };
+    \node (leaf_sch) [leaf, below=0.6cm of scheme] {
+        \textbf{• برون‌خط (\en{Offline}):} معلم منجمد\\
+        \textbf{• برخط (\en{Online}):} یادگیری توأم\\
+        \textbf{• خودتقطیری (\en{Self-KD}):} مدل واحد
+    };
+    \node (leaf_alg) [leaf, below=0.6cm of algo] {
+        \textbf{• توجه و تخاصمی}\\
+        \textbf{• چندمعلمی و گراف‌محور}\\
+        \textbf{• تطبیقی و تقابل‌گرا}
+    };
+    \node (leaf_mod) [leaf, below=0.6cm of modal] {
+        \textbf{• متن (\en{NLP / LLMs})}\\
+        \textbf{• بینایی، صوت و ویدئو}\\
+        \textbf{• داده‌های سه‌بعدی و ابرنقاط}
+    };
     
-    \draw[draw=gray!50, dashed] (src) -- (src_c);
-    \draw[draw=gray!50, dashed] (sch) -- (sch_c);
-    \draw[draw=gray!50, dashed] (alg) -- (alg_c);
-    \draw[draw=gray!50, dashed] (mod) -- (mod_c);
-    \draw[draw=gray!50, dashed] (app) -- (app_c);
+    \draw [arrow] (source) -- (leaf_src);
+    \draw [arrow] (scheme) -- (leaf_sch);
+    \draw [arrow] (algo) -- (leaf_alg);
+    \draw [arrow] (modal) -- (leaf_mod);
 \end{tikzpicture}
-\end{center}
+\caption{درخت ساختاریافته ابعاد گوناگون تقطیر دانش بر پایه گونه‌شناسی منصورین و همکاران \cite{mansourian2025comprehensive}.}
+\label{fig:kd_taxonomy_tree}
+\end{figure}
 
-\begin{itemize}
-    \item \textbf{تقطیر مبتنی بر لاجیت پیشرفته:} تفکیک توزیع کلاس هدف و غیرهدف در روش \en{DKD} \cite{zhao2022decoupled}، استانداردسازی پیش‌پردازش لاجیت در \en{NormKD} \cite{chi2023normkd} و نگاشت کروی برای خنثی‌سازی خطای مقیاس در \en{SphericalKD} \cite{guo2020reducing}.
-    \item \textbf{تقطیر مبتنی بر ویژگی (\en{Feature-based}):} نگاشت حالت‌های پنهان میانی با تبدیل‌های خطی در \en{FitNet} \cite{romero2014fitnets}، تطبیق توجه در \en{AT} \cite{zagoruyko2016paying}، تقطیر نرمال‌سازی کانالی در \en{CWD} \cite{shu2021channel} و کاربرد مدل‌های دیفیوژن در پالایش ویژگی‌ها در روش \en{DiffKD} \cite{huang2023knowledge}.
-    \item \textbf{تقطیر مبتنی بر شباهت (\en{Similarity-based}):} انتقال فاصله اقلیدسی و زاویه‌ای میان نمونه‌ها در \en{RKD} \cite{park2019relational}، همبستگی کانالی در \en{ICKD} \cite{liu2021exploring} و ساختار رابطه‌ای بین‌کلاسی در \en{DistKD} \cite{huang2022knowledge} و \en{AICSD} \cite{mansourian2025aicsd}.
-\end{itemize}
-
-\paragraph*{تقطیر درون‌خط‌مشی (\en{On-Policy Distillation - OPD}) و حذف خطای انباشته مواجهه}
-در استنتاج خودبازگشتی مدل‌های زبانی، ناتوانی روش‌های برون‌خط‌مشی (\en{Off-Policy}) ناشی از پدیده **تورش مواجهه (\en{Exposure Bias})** است \cite{song2026survey, wen2025knowledge}. در روش‌های مرسوم، مدل روی پیشوندهای کاملاً صحیح تولیدشده توسط انسان یا آموزگار ($y_{<t} \sim p_{\text{data}}$) آموزش می‌بیند، در حالی که در استنتاج، مدل از خروجی‌های خود استفاده می‌کند ($y_{<t} \sim p_\theta$).
-
-\textbf{تحلیل قضیه دگر (\en{DAgger Compounding Error Bound}):} طبق نتایج راس و بگنل \cite{ross2011reduction}، چنانچه احتمال خطای پیش‌بینی در هر گام $\epsilon$ باشد، خطای کل در یک افق زمانی $T$ توکنی در آموزش ایستا (برون‌خط‌مشی) به صورت درجه دوم رشد می‌کند:
+\paragraph*{تئوری اطلاعات و کران‌های تعمیم تصادفی جفت‌شده (\en{Coupled Stochastic Bounds})}
+بر پایه تحلیل صوری لی و هه \cite{li2026generalization}، فرآیند آموزش معلم بر دادگان واقعی $D_n = \{Z_i\}_{i=1}^n \sim P^{\otimes n}$ با توزیع $\Delta_{D_n, f_T} = \Delta_{D_n} \otimes \Delta_{f_T \mid D_n}$ و فرآیند آموزش دانشجو روی دادگان ساختگی شبه‌برچسب‌خورده $\hat{D}_n = \{(X_i, f_T(X_i))\}_{i=1}^n$ با توزیع $\Delta_{\hat{D}_n, f_S} = \Delta_{\hat{D}_n} \otimes \Delta_{f_S \mid \hat{D}_n}$ به عنوان دو فرآیند تصادفی جفت‌شده صورت‌بندی می‌شوند. فاصله این دو فرآیند با دیورژانس تقطیر $K_n$ تعریف می‌گردد:
 \begin{equation}
-    \mathbb{E}[\text{Error}]_{\text{Off-Policy}} = \mathcal{O}(\epsilon T^2)
-\end{equation}
-زیرا بروز یک خطای منفرد در ابتدای دنباله، مدل را به مناطقی از فضای توزیع می‌برد که هرگز در فاز آموزش مشاهده نکرده است. در مقابل، تقطیر درون‌خط‌مشی (\en{OPD}) از طریق وادار ساختن دانش‌آموز به نمونه‌برداری از توزیع خود ($y \sim p_\theta$) و دریافت فیدبک نظارتی روی همین مسیرها، نرخ تجمع خطا را به مرتبه خطی بازمی‌گرداند:
-\begin{equation}
-    \mathbb{E}[\text{Error}]_{\text{On-Policy}} = \mathcal{O}(\epsilon T)
+    K_n := D_{\text{KL}}(\Delta_{\hat{D}_n, f_S} \parallel \Delta_{D_n, f_T}) = \underbrace{D_{\text{KL}}(\Delta_{\hat{D}_n} \parallel \Delta_{D_n})}_{\text{\en{Dataset Shift}}} + \underbrace{\mathbb{E}_{\hat{D}_n} \left[ D_{\text{KL}}(\Delta_{f_S \mid \hat{D}_n} \parallel \Delta_{f_T \mid D_n}) \right]}_{\text{\en{Algorithm Shift}}}
 \end{equation}
 
-\paragraph*{چارچوب یکپارچه واگرایی‌های $f$ (\en{Unified $f$-Divergence Framework})}
-سونگ و ژنگ \cite{song2026survey} نشان دادند که رویکردهای نوین تقطیر درون‌خط‌مشی، همگی نمونه‌هایی خاص از یک چارچوب بهینه‌سازی واگرایی $f$ روی توزیع نمونه‌برداری خط‌مشی دانش‌آموز هستند:
+شکاف تعمیم معلم و دانشجو به صورت زیر تعریف می‌شوند:
 \begin{equation}
-    \mathcal{L}_{\text{OPD}}(\theta) = \mathbb{E}_{x \sim \mathcal{D}, \, y \sim p_\theta(\cdot \mid x)} \left[ \sum_{t=1}^{|y|} \mathcal{D}_f\left(p_T(\cdot \mid x, y_{<t}) \,\|\, p_\theta(\cdot \mid x, y_{<t})\right) \right]
+    \text{gen}_T := \mathbb{E}_{\Delta_{D_n, f_T}}[L_P(f_T) - L_{D_n}(f_T)], \quad \text{gen}_S := \mathbb{E}_{\Delta_{\hat{D}_n, f_S}}[L_P(f_S) - L_{\hat{D}_n}(f_S)]
 \end{equation}
-که در آن عملگر واگرایی برای تابع مولد محدب $f$ با شرط $f(1)=0$ به صورت زیر تعریف می‌شود:
-\begin{equation}
-    \mathcal{D}_f(P \,\|\, Q) = \mathbb{E}_{y \sim Q} \left[ f\left(\frac{P(y)}{Q(y)}\right) \right]
-\end{equation}
-ویژگی‌های هندسی واگرایی‌ها در برازش توزیع‌های زبانی عبارتند از:
-\begin{itemize}
-    \item \textbf{واگرایی مستقیم (\en{Forward KL}):} با $f(u) = u \log u$ منجر به رفتار **پوشش مد (\en{Mode-Covering})** می‌شود. دانش‌آموز تمامی مدهای آموزگار را در بر می‌گیرد و در مسائل دارای پاسخ‌های متکثر (نظیر ترجمه یا خلاصه‌سازی) از افت تنوع جلوگیری می‌کند، هرچند ممکن است به توهم (\en{Hallucination}) در فواصل بین مدی بیانجامد.
-    \item \textbf{واگرایی معکوس (\en{Reverse KL}):} با $f(u) = -\log u$ منجر به رفتار **جستجوی مد (\en{Mode-Seeking})** می‌شود. دانش‌آموز تنها بر یک قله با احتمال بالا متمرکز شده و از ورود به نواحی با چگالی ناچیز آموزگار شدیداً اجتناب می‌ورزد؛ این راهبرد برای مسائل استدلال ریاضیاتی، فرمول‌ها و کدنویسی که پاسخ واحد دارند ایده‌آل است.
-    \item \textbf{واگرایی‌های آمیخته و چوله (\en{Skewed KL}):} روش \en{DistiLLM} \cite{ko2024distillm} با هدف پیشگیری از ناپایداری‌های عددی و تقسیم بر صفر هنگامی که $p_T(y) \approx 0$ یا $p_\theta(y) \approx 0$ است، توزیع چوله $\tilde{p} = \alpha p_T + (1 - \alpha) p_\theta$ را تعبیه کرده و واگرایی $\mathcal{D}_{\text{KL}}(p_T \,\|\, \tilde{p})$ را کمینه می‌سازد.
-\end{itemize}
 
-\paragraph*{اثبات هم‌ارزی تحلیلی \en{Reverse KL} با گرادیان خط‌مشی در \en{RL}}
-در روش‌های تقطیر در سطح دنباله نظیر \model{MiniLLM} \cite{gu2024minillm}، هدف کمینه‌سازی واگرایی معکوس روی دنباله کامل خروجی است:
+\paragraph*{اثبات نامساوی تعمیم بالایی تحت توزیع زیرگوسی (\en{Sub-Gaussian Generalization Bound})}
+اگر متغیر تصادفی شکاف تعمیم معلم $H(D_n, f_T) := L_P(f_T) - L_{D_n}(f_T)$ دارای پارامتر پراکندگی $\sigma^2$-زیرگوسی باشد، کران بالای تعمیم دانشجو به فرم زیر اثبات می‌شود \cite{li2026generalization}:
 \begin{equation}
-    \mathcal{L}_{\text{Seq-RKL}}(\theta) = \mathbb{E}_{y \sim p_\theta(\cdot \mid x)} \left[ \log p_\theta(y \mid x) - \log p_T(y \mid x) \right]
+    \text{gen}_S \le \text{gen}_T + \sigma \sqrt{2 K_n}
 \end{equation}
-گرادیان این تابع هدف نسبت به $\theta$ مستقیماً بر مبنای قضیه گرادیان خط‌مشی به دست می‌آید:
+\textit{اثبات گام‌به‌گام:} از نمایش وردشی دونسکر-وارادهان (\en{Donsker-Varadhan Variational Representation}) استفاده می‌کنیم: برای هر تابع اندازه‌پذیر $g$ که در آن $\mathbb{E}_P[e^g] < \infty$ و $Q \ll P$:
 \begin{equation}
-    \nabla_\theta \mathcal{L}_{\text{Seq-RKL}}(\theta) = \nabla_\theta \sum_{y} p_\theta(y \mid x) \left[ \log p_\theta(y \mid x) - \log p_T(y \mid x) \right]
+    \mathbb{E}_Q[g] \le D_{\text{KL}}(Q \parallel P) + \log \mathbb{E}_P[e^g]
 \end{equation}
-با بسط مشتق و استفاده از قاعده لایبنیتس:
+با قرار دادن $P = \Delta_{D_n, f_T}$، $Q = \Delta_{\hat{D}_n, f_S}$ و $g = \lambda H(D, f)$ به ازای هر $\lambda > 0$:
 \begin{equation}
-    \nabla_\theta \mathcal{L} = \sum_{y} \left( \nabla_\theta p_\theta(y \mid x) \right) \left[ \log \frac{p_\theta(y \mid x)}{p_T(y \mid x)} \right] + \sum_{y} p_\theta(y \mid x) \nabla_\theta \left[ \log p_\theta(y \mid x) - \log p_T(y \mid x) \right]
+    \lambda \, \text{gen}_S \le K_n + \log \mathbb{E}_{\Delta_{D_n, f_T}} \left[ e^{\lambda H(D_n, f_T)} \right]
 \end{equation}
-جمله دوم به دلیل نرمال بودن توزیع احتمال صفر می‌شود:
+با توجه به ویژگی زیرگوسی بودن متغیر تصادفی متمرکز $H - \text{gen}_T$:
 \begin{equation}
-    \sum_{y} p_\theta(y \mid x) \nabla_\theta \log p_\theta(y \mid x) = \sum_y \nabla_\theta p_\theta(y \mid x) = \nabla_\theta \left(\sum_y p_\theta(y \mid x)\right) = \nabla_\theta(1) = 0
+    \log \mathbb{E} \left[ e^{\lambda(H - \text{gen}_T)} \right] \le \frac{\lambda^2 \sigma^2}{2} \implies \log \mathbb{E} \left[ e^{\lambda H} \right] \le \lambda \, \text{gen}_T + \frac{\lambda^2 \sigma^2}{2}
 \end{equation}
-با اعمال ترفند نسبت درست‌نمایی ($\nabla_\theta p_\theta = p_\theta \nabla_\theta \log p_\theta$) روی جمله اول، رابطه زیر به دست می‌آید:
+با جایگذاری در نامساوی دونسکر-وارادهان و تقسیم طرفین بر $\lambda > 0$:
 \begin{equation}
-    \nabla_\theta \mathcal{L}_{\text{Seq-RKL}}(\theta) = - \mathbb{E}_{y \sim p_\theta} \left[ \left( \log \frac{p_T(y \mid x)}{p_\theta(y \mid x)} \right) \nabla_\theta \log p_\theta(y \mid x) \right]
+    \text{gen}_S - \text{gen}_T \le \frac{K_n}{\lambda} + \frac{\lambda \sigma^2}{2}
 \end{equation}
-اگر نسبت پاداش توکنی به صورت $r(x, y) = \log \frac{p_T(y \mid x)}{p_\theta(y \mid x)}$ تعریف گردد، این رابطه دقیقاً معادل با **فرمول کلاسیک \en{REINFORCE} در یادگیری تقویتی** خواهد بود \cite{gu2024minillm, song2026survey}.
+حال برای دستیابی به فشرده‌ترین کران، تابع $\phi(\lambda) = \frac{K_n}{\lambda} + \frac{\lambda \sigma^2}{2}$ را مشتق گرفته و برابر صفر قرار می‌دهیم:
+\begin{equation}
+    \phi'(\lambda) = -\frac{K_n}{\lambda^2} + \frac{\sigma^2}{2} = 0 \implies \lambda^* = \frac{\sqrt{2 K_n}}{\sigma}
+\end{equation}
+با جایگذاری $\lambda^*$ در عبارت:
+\begin{equation}
+    \phi(\lambda^*) = \frac{K_n}{\frac{\sqrt{2 K_n}}{\sigma}} + \frac{\sigma^2 \frac{\sqrt{2 K_n}}{\sigma}}{2} = \sigma \sqrt{\frac{K_n}{2}} + \sigma \sqrt{\frac{K_n}{2}} = \sigma \sqrt{2 K_n}
+\end{equation}
+بدین ترتیب نامساوی به شکل دقیق اثبات می‌گردد. $\blacksquare$
 
-\paragraph*{روش‌های تقطیر هدایت‌شده با یادگیری تقویتی و خود-تقطیری ممتاز (\en{OPSD})}
-\begin{itemize}
-    \item \textbf{برون‌یابی پاداش با \en{G-OPD}:} یانگ و همکاران \cite{yang2026learning} نشان دادند که می‌توان با بازتعریف فرآیند تقطیر به صورت بهینه‌سازی تحت قید \en{KL}:
+اگر الگوریتم آموزش معلم بر اساس تعریف بوزکه و الیسف \cite{li2026generalization} دارای $\beta$-پایداری یکنواخت (\en{Uniform Stability}) و تابع هزینه در بازه $[a, b]$ کراندار باشد، با استفاده از نامساوی مک‌دیارمید (\en{McDiarmid's Inequality}) ثابت تحدید تغییرات $c_i = 2\beta + \frac{b-a}{n}$ حاصل شده و واریانس زیرگوسی برابر است با:
+\begin{equation}
+    \sigma^2 = \frac{n}{4} \left( 2\beta + \frac{b-a}{n} \right)^2 \xrightarrow{\beta = \mathcal{O}(1/n)} \sigma^2 = \mathcal{O}\left(\frac{1}{n}\right)
+\end{equation}
+
+همچنین تحت شرط مرکزی $(\eta, c)$-مرکزی (\en{$(\eta, c)$-Central Condition}) که بیان می‌دارد $\log \mathbb{E}[e^{-\eta H}] \le -c \eta \mathbb{E}[H]$، با انتخاب تابع آزمون منفی $g = -\eta H$ در نامساوی دونسکر-وارادهان، کران پایین خطی زیر حاصل می‌شود:
+\begin{equation}
+    \text{gen}_S \ge c \cdot \text{gen}_T - \frac{1}{\eta} K_n
+\end{equation}
+این نامساوی نشان می‌دهد در شرایطی که خطای تعمیم معلم بالا باشد، بزرگ بودن دیورژانس $K_n$ می‌تواند کران پایین را به سمت صفر میل داده و شرایطی را فراهم سازد که دانشجو از معلم خود تعمیم‌پذیرتر گردد \cite{li2026generalization}.
+
+\paragraph*{کران‌های تعمیم آگاه از هندسه و تختی کمینه‌ها (\en{Sharpness-Aware Bounds})}
+لی و هه \cite{li2026generalization} تختی محلی موضعی مدل معلم را تحت آشفتگی‌های تصادفی یکنواخت در گوی اقلیدسی $U \sim \mathcal{B}(\rho) = \{u : \|u\| \le \rho\}$ به صورت زیر تعریف نمودند:
+\begin{equation}
+    S_D(f) := \mathbb{E}_U [L_D(f + U)] - L_D(f), \quad S_P(f) := \mathbb{E}_U [L_P(f + U)] - L_P(f)
+\end{equation}
+با تعریف شکاف تختی موضعی $\Delta := L - g_0 > 0$ (که در آن $L$ ضریب لیپشیتز سراسری و $g_0$ کران محلی گرادیان معلم در شعاع $2\rho$ است)، کران تعمیم آگاه از تختی به فرم زیر بسط می‌یابد:
+\begin{equation}
+    \text{gen}_S \le \text{gen}_T + \mathbb{E}_{\Delta_{D_n, f_T}}[S_P(f_T)] + (\sigma_u(\rho) + \nu(\rho))\sqrt{2 K_n}
+\end{equation}
+که در آن با تقریب هسیان موضعی $\mathbb{E}[S_P(f_T)] \le \frac{1}{2}\tau_{\text{op}}\rho^2$، شعاع بهینه بحرانی $\rho_0$ به صورت تحلیلی برابر است با:
+\begin{equation}
+    \rho_0 = \frac{-c_1 + \sqrt{c_1^2 + 4 c_2 c_0}}{2 c_2}
+\end{equation}
+به طوری که به ازای هر $\rho \in (0, \rho_0)$، این کران اکیداً فشرده‌تر از کران تعمیم استاندارد سراسری خواهد بود.
+
+\paragraph*{تقطیر رتبه-پایین (\en{Low-Rank Clone - LRC}) و همانندسازی اکتیویشن‌ها}
+سوارز و همکاران \cite{soarez2026demystifying} تجزیه ماتریس‌های وزن ترنسفورمر دانشجو بر پایه فاکتورهای رتبه-پایین را مدون ساختند:
+\begin{equation}
+    W_s^{(l)} = P_{\text{left}}^{(l)} W_t^{(l)} P_{\text{right}}^{(l)}, \quad P_{\text{left}}^{(l)} \in \mathbb{R}^{r \times m}, \quad P_{\text{right}}^{(l)} \in \mathbb{R}^{n \times r}, \quad r \ll \min(m, n)
+\end{equation}
+تحت تابع اتلاف ترکیبی $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{KD}} + \mathcal{L}_{\text{LM}} + \lambda \mathcal{L}_{\text{clone}}$:
+\begin{enumerate}
+    \item \textbf{نرخ همگرایی:} بهینه‌ساز گرادیان تصادفی پس از $T$ گام همگرایی از مرتبه زیر را ارضا می‌کند:
     \begin{equation}
-        \max_\theta \mathbb{E}_{y \sim p_\theta} \left[ \sum_{t=1}^{|y|} \alpha \log \frac{p_T(y_t \mid y_{<t})}{p_{\text{ref}}(y_t \mid y_{<t})} - \mathcal{D}_{\text{KL}}\left(p_\theta(\cdot \mid y_{<t}) \,\|\, p_{\text{ref}}(\cdot \mid y_{<t})\right) \right]
+        \frac{1}{T} \sum_{t=0}^{T-1} \mathbb{E}[\|\nabla \mathcal{L}(\theta_t)\|^2] \le \frac{2L(\mathcal{L}(\theta_0) - \mathcal{L}^*)}{T} + \frac{\sigma^2}{T} + \mathcal{O}\left(\frac{\epsilon^2}{\sqrt{T}}\right)
     \end{equation}
-    به ازای $\alpha > 1$ پدیده برون‌یابی پاداش (\en{Reward Extrapolation}) را برانگیخت که طی آن دانش‌آموز استدلال‌هایی نوین و کوتاه‌تر خلق می‌کند که حتی ورای گستره آموزشی آموزگار قرار دارند.
-    \item \textbf{خود-تقطیری با اطلاعات ممتاز (\en{OPSD}):} ژائو و همکاران \cite{zhao2026self} نشان دادند که بدون نیاز به آموزگار خارجی، می‌توان با شرطی‌سازی یک مدل بر روی پاسخ صحیح ($y^*$) یک «آموزگار درونی» ساخت که خط‌مشی بدون پاسخ دانش‌آموز را در مسیر استنتاج اصلاح کند:
+    که در آن $\epsilon$ مجموع خطای برش تجزیه مقادیر تکین (\en{SVD}) در لایه‌ها است.
+    \item \textbf{رتبه بهینه بر اساس پیچیدگی رادماخر (\en{Rademacher Complexity}):} با استفاده از انتگرال انتروپی دادلی، شکاف تعمیم از مرتبه $\mathcal{O}(r(m+n)/\sqrt{n})$ و خطای تقریب ماتریسی از مرتبه $\mathcal{O}(1/r)$ است. برابرسازی این دو عبارت، مقیاس‌بندی بهینه رتبه را به صورت صریح به دست می‌دهد:
     \begin{equation}
-        \mathcal{L}_{\text{OPSD}}(\theta) = \mathbb{E}_{(x, y^*) \sim \mathcal{S}} \mathbb{E}_{\hat{y} \sim p_\theta(\cdot \mid x)} \left[ \sum_{t=1}^{|\hat{y}|} \mathcal{D}\left(p_\theta(\cdot \mid x, y^*, \hat{y}_{<t}) \,\|\, p_\theta(\cdot \mid x, \hat{y}_{<t})\right) \right]
+        r^* = \arg\min_r \left( \frac{C_1}{r} + C_2 \frac{r}{\sqrt{n}} \right) = \mathcal{O}(\sqrt{n})
     \end{equation}
-    این رویکرد به ویژه در پایدارسازی آموزش مدل‌های زبانی در حل مسائل ریاضیات المپیادی نقشی کلیدی ایفا می‌کند \cite{song2026survey}.
-\end{itemize}
-
-\paragraph*{پایدارسازی پویایی آموزش و گزینش بهینه سختی (\en{PACED})}
-یک نقیصه خطرناک در \en{OPD} بروز **تله پیشوند معیوب (\en{Flawed Prefix Trap})** است؛ بدین معنا که اگر دانش‌آموز توکنی غلط تولید کند، آموزگار روی بافت غلط شرطی شده و گرادیان‌های نویزی مخربی تولید می‌کند \cite{fu2026revisiting}. 
-روش \en{PACED} \cite{xu2026paced} برای حل این مسئله، سختی پرومپت‌ها را بر اساس احتمال موفقیت دانش‌آموز ($p$) مدل‌سازی می‌کند. نسبت سیگنال به نویز (\en{SNR}) گرادیان تحت توزیع بتا بررسی می‌شود:
-\begin{equation}
-    w(p) = p^\alpha (1 - p)^\beta
-\end{equation}
-در حالت متقارن $\alpha = \beta = 1$، بیشینه گرادیان در نقطه مرزی توانمندی مدل ($p^* = 0.5$) محقق می‌شود و نمونه‌هایی که مدل در آن‌ها نرخ موفقیت صفر یا یک دارد (بسیار سخت یا بسیار آسان) به دلیل فقدان سیگنال گرادیان کارآمد فیلتر می‌گردند \cite{song2026survey}.
-
-\paragraph*{همگرایی تقطیر دانش (\en{KD}) و تقطیر مجموعه داده (\en{Dataset Distillation - DD})}
-همان‌طور که در پیمایش فانگ و همکاران \cite{fang2026knowledge} تبیین شده است، تقطیر داده‌ها به دنبال فشرده‌سازی مجموعه آموزشی عظیم $\mathcal{D}$ به یک مجموعه مصنوعی فشرده $\mathcal{D}_{\text{syn}}$ است. روش **\en{SRe2L}** \cite{yin2023squeeze} با تلفیق این دو مفهوم، از آموزگار برای بازبرچسب‌زنی احتمالات نرم داده‌های مصنوعی حاصل از وارون‌سازی مدل (\en{Model Inversion}) استفاده کرده و دانش‌آموز را بر روی این داده‌های بهینه‌شده آموزش می‌دهد که نیاز به ذخیره‌سازی داده‌های اصلی را تا ۹۰٪ کاهش می‌دهد.
-
-\paragraph*{پایه‌های هندسی و نظری کوانتیزاسیون مدل‌های زبانی}
-در زمینه تقطیر وزن‌ها برای استنتاج با حافظه اندک، چن و همکاران در مقاله \model{GPTQ-Babai} \cite{chen2026geometry} برای نخستین بار ساختار هندسی الگوریتم \en{GPTQ} \cite{frantar2023gptq} را رمزگشایی کردند.
-
-\textbf{تبدیل به مسئله نزدیک‌ترین بردار (\en{Closest Vector Problem - CVP}):} مسئله کوانتیزاسیون لایه‌ای با تابع هدف خطای $L_2$ خروجی به صورت زیر است:
-\begin{equation}
-    \min_{z \in \mathbb{Z}^c} \|X \text{diag}(s) z - X w\|_2^2
-\end{equation}
-که در آن $X \in \mathbb{R}^{n \times c}$ ماتریس فعال‌سازی کالیبراسیون، $s \in \mathbb{R}_{>0}^c$ بردار مقیاس‌های کوانتیزاسیون، $w \in \mathbb{R}^c$ وزن اولیه و $z \in \mathbb{Z}^c$ بردار صحیح کوانتیزه‌شده است. این مسئله دقیقاً معادل با یافتن نزدیک‌ترین نقطه در یک شبکه لتیس با ماتریس پایه $B = X \text{diag}(s)$ به بردار هدف پیوسته $y = X w$ است:
-\begin{equation}
-    \min_{z \in \mathbb{Z}^c} \|B z - y\|_2^2
-\end{equation}
-
-\textbf{اثبات هم‌ارزی با الگوریتم نزدیک‌ترین صفحه بابای (\en{Babai's Algorithm}):} چن و همکاران \cite{chen2026geometry} اثبات کردند که گام به‌روزرسانی وزن‌ها در \en{OBQ} و \en{GPTQ} برای بعد $j_1$ پس از رند کردن بعد $j_2$:
-\begin{equation}
-    \Delta w[j_1] = - \frac{(B^\top B)^{-1}[j_1, j_2]}{(B^\top B)^{-1}[j_2, j_2]} (q[j_2] - w[j_2])
-\end{equation}
-دقیقاً معادل با تصویر ارتوگونال بردار باقی‌مانده هدف بر روی ابرصفحه تعریف‌شده توسط بردارهای متعامد گرام-اشمیت (\en{GSO}) در الگوریتم بابای \cite{babai1986lovasz} است. بر این مبنا، کران خطای لایه‌ای \en{GPTQ} در حالت بدون برش (\en{No-Clipping}) بر پایه تجزیه \en{LDL} ماتریس هسین $H = T^\top X^\top X T = L D L^\top$ به صورت تحلیلی و صلب استخراج شد:
-\begin{equation}
-    \|X \text{diag}(s) z - X w\|_2^2 \le \frac{1}{4} (T^{-1} s)^\top D (T^{-1} s)
-\end{equation}
-
-\paragraph*{انتشار خطای کوانتیزاسیون در شبکه‌های چندلایه (\en{QEP})}
-آرای و ایچیکاوا در چارچوب \model{QEP} \cite{arai2025quantization} اثبات کردند که خطای کوانتیزاسیون در طول لایه‌های متوالی ترنسفورمر بدون کنترل به صورت **نمایی** منبسط می‌شود. آن‌ها با فرمول‌بندی تصحیح وزن تحلیلی:
-\begin{equation}
-    \widetilde{W}_l^* = W_l + W_l \delta_l \widehat{X}_l^\top \widehat{H}_l^{-1}
-\end{equation}
-که در آن $\delta_l = X_l - \widehat{X}_l$ عدم انطباق فعال‌سازی‌های دقت کامل و کوانتیزه‌شده است، نشان دادند که این بهینه‌سازی دقیقاً معادل با رگولاریزاسیون ریج (\en{Ridge Regularization}) برای مهار بیش‌برازش روی داده‌های کالیبراسیون است:
-\begin{equation}
-    \min_{\widetilde{W}_l} \|W_l X_l - \widetilde{W}_l \widehat{X}_l\|_F^2 + \lambda_l \|W_l - \widetilde{W}_l\|_F^2
-\end{equation}
-
-\paragraph*{ناهمدوسی هادامارد و سرکوب داده‌های پرت}
-پژوهش‌های اخیر نشان داده‌اند که فعال‌سازی‌های مدل‌های زبانی به شدت دارای داده‌های پرت شدید (\en{Outliers}) هستند که کوانتیزاسیون به زیر ۴ بیت را ناممکن می‌سازد \cite{dettmers2022gpt3, maisonnave2025gradual, panferov2025quest}. میسوناو و همکاران \cite{maisonnave2025gradual} به صورت نظری نشان دادند که اعمال ماتریس تبدیل هادامارد (\en{Hadamard Matrix}) به مراتب بهتر از ماتریس‌های ارتوگونال تصادفی داده‌های پرت را سرکوب می‌کند. 
-به ازای بردار $x = (c, \epsilon, \dots, \epsilon)^\top$ با مقدار فرین $c \gg \epsilon$:
-\begin{equation}
-    \max_{i} |(H x)_i| = \frac{c}{\sqrt{n}} \quad \text{vs.} \quad \mathbb{E}\left[\max_{i} |(Q x)_i|\right] = c \sqrt{\frac{2 \log n}{n}}
-\end{equation}
-علاوه بر این، آن‌ها اثبات کردند که ماتریس‌های هادامارد با رسیدن به کران پایین $\max_{i,j} |Q_{ij}| \ge \frac{1}{\sqrt{n}}$ بهینه‌ترین کانال بازتوزیع انرژی بردار در فضای چندبعدی به شمار می‌روند \cite{maisonnave2025gradual}.
-
-\paragraph*{قضیه خطی‌بودن پرپلکسیتی (\en{The Linearity Theorem})}
-مالینوفسکی و همکاران \cite{malinovskii2024pushing} ارتباط مستقیم بین خطای میانگین مربعات ($L_2$ \en{MSE}) لایه‌ها و معیار پرپلکسیتی کل مدل را با بسط تیلور مرتبه دوم اثبات نمودند:
-\begin{equation}
-    \mathbb{E}[\text{PPL}(\widehat{W})] \approx \text{PPL}(W^*) + \sum_{l=1}^L \alpha_l t_l^2, \quad t_l^2 = \frac{\mathbb{E}\|W_l - \widehat{W}_l\|_F^2}{\|W_l\|_F^2}
-\end{equation}
-که در آن $\alpha_l$ ضرایب حساسیت مستقل از نوع فشرده‌سازی هستند. این فرمول‌بندی پایه الگوریتم **\en{HIGGS}** گردید که با ترکیب چرخش‌های هادامارد و گریدهای بهینه گاوسی، رکوردهای جدیدی در فشرده‌سازی بدون داده ثبت کرد \cite{malinovskii2024pushing}.
-
-\paragraph*{کوانتیزاسیون بدون اتلاف آماری (\en{SLQ}) و قانون واریانس گاما-توان‌دو}
-در پژوهش هلسیگ و همکاران \cite{helcig2026statistically}، مرز میان فشرده‌سازی اتلافی و بدون اتلاف با معرفی مفهوم **کوانتیزاسیون بدون اتلاف آماری (\en{Statistically-Lossless Quantization - SLQ})** بازتعریف شد. آن‌ها دو معیار ارائه دادند:
-\begin{itemize}
-    \item \textbf{اتلاف‌ناپذیری در سطح وظیفه (\en{Task-Lossless - TL}):} حفظ دقت بنچمارک‌ها در دامنه واریانس نمونه‌برداری استوکستیک ($\ge 99\%$).
-    \item \textbf{اتلاف‌ناپذیری در سطح توزیع (\en{Distribution-Lossless - DL}):} انطباق کامل توزیع توکن بعدی که با معیار تحلیلی **نرخ پذیرش مورد انتظار (\en{Expected Acceptance Rate - EAR})** سنجیده می‌شود:
+    \item \textbf{بیشینه‌سازی اطلاعات متقابل با همانندسازی اکتیویشن‌ها:} با فرض توزیع گاوسی همسانگرد با واریانس $\sigma^2$ و همبستگی $\rho$ میان بردارهای فعال‌ساز لایه $l$ معلم و دانشجو، اتلاف $\mathcal{L}_{\text{clone}}^{(l)} = \mathbb{E}[\|h_t^l - h_s^l\|^2] = 2d\sigma^2(1 - \rho)$ است. از سوی دیگر، اطلاعات متقابل بین دو بردار $I(H_t^l; H_s^l) = -\frac{d}{2}\log(1-\rho^2) \ge -\frac{d}{2}\log(1-\rho)$ است که با جایگذاری $\rho$ به صورت زیر اثبات می‌شود:
     \begin{equation}
-        \text{EAR} = 1 - d_{\text{TV}}(p, q) = \sum_{k=1}^{|\mathcal{V}|} \min(p(k), q(k))
+        I(H_t^l; H_s^l) \ge \log d - \frac{d}{2}\mathcal{L}_{\text{clone}}^{(l)} + \text{const}
     \end{equation}
-\end{itemize}
+    این رابطه اثبات می‌کند که کمینه‌سازی خطای اکتیویشن‌ها، کران پایین اطلاعات متقابل بازنمایی‌ها را بیشینه می‌سازد \cite{soarez2026demystifying}.
+\end{enumerate}
 
-\textbf{استخراج قانون واریانس گاما-توان‌دو (\en{Gamma-Squared Variance Law}):}
-برای بردار وزن‌ها در بازه $[L, U]$ با دامنه $R = U - L$ و حداکثر اندازه $M = \max(|L|, |U|)$، شاخص ناکارآمدی مرکزی (\en{Centering Inefficiency}) به فرم $\gamma = \frac{2M}{R} \ge 1$ تعریف می‌شود. اندازه‌های گام کوانتیزاسیون متقارن و نامتقارن عبارتند از:
+\paragraph*{هندسه اطلاعات و خانواده توزیع دستیار $\alpha$-Mixture (\en{AMiD})}
+شین و همکاران \cite{shin2026amid} چارچوب جامع \en{AMiD} را با بسط میانگین تعمیم‌یافته $f_\alpha$-mean کلموگروف برای توزیع‌های معلم $p$ و دانشجو $q_\theta$ معرفی کردند:
 \begin{equation}
-    \Delta_{\text{asym}} = \frac{R}{n-1}, \quad \Delta_{\text{sym}} = \frac{2M}{n-1} \implies \Delta_{\text{sym}} = \gamma \Delta_{\text{asym}}
+    \tilde{r}_\theta^{(\alpha, \lambda)}(z) = \begin{cases} 
+        \left( \lambda p(z)^{\frac{1-\alpha}{2}} + (1-\lambda) q_\theta(z)^{\frac{1-\alpha}{2}} \right)^{\frac{2}{1-\alpha}}, & \alpha \neq 1 \\ 
+        p(z)^\lambda q_\theta(z)^{1-\lambda}, & \alpha = 1 
+    \end{cases}
 \end{equation}
-تحت تقریب نرخ‌بالای بنت \cite{bennett1948spectra} که واریانس نویز یکنواخت برابر با $\sigma^2 = \frac{\Delta^2}{12}$ است، رابطه مستقیم زیر استخراج می‌شود \cite{helcig2026statistically}:
+این خانواده پیوسته، توزیع‌های پیشین را یکپارچه می‌سازد: $\alpha = -1$ متناظر با میانگین حسابی (\en{$m$-mixture}) در روش‌های \en{GKD} و \en{DistiLLM} و $\alpha = 1$ متناظر با میانگین هندسی (\en{$e$-mixture}) در روش \en{TAID} است. این توزیع نقطه انقسام درونی ژئودزیک دیورژانس $\alpha$ اماری را تشکیل می‌دهد:
 \begin{equation}
-    \sigma_{\text{sym}}^2 = \frac{\Delta_{\text{sym}}^2}{12} = \frac{(\gamma \Delta_{\text{asym}})^2}{12} = \gamma^2 \sigma_{\text{asym}}^2
+    r^{(\alpha, \lambda)} = \arg\min_r \left[ \lambda D_\alpha(p \parallel r) + (1-\lambda) D_\alpha(q \parallel r) \right]
 \end{equation}
-این نتیجه اثبات می‌کند که در مدل‌های زبانی نامتقارن، کوانتیزاسیون متقارن واریانس نویز را با ضریب $\gamma^2$ تشدید کرده و به شکستن تصمیمات حاشیه‌ای سافت‌مکس می‌انجامد؛ بنابراین، **کوانتیزاسیون نامتقارن پیش‌شرط قطعی برای فشرده‌سازی بدون اتلاف توزیعی است**.
+مشتق‌گیری تحلیلی گرادیان نشان می‌دهد که پارامتر $\alpha$ تعادل میان رفتار پوشش مدهای توزیع (\en{Mode-Covering}) و تمرکز بر مدهای غالب (\en{Mode-Seeking}) را مستقلاً کنترل می‌کند و مقادیر منفی‌تر $\alpha$ موجب هدایت پایدار دانشجو در فضاهای با ابعاد بسیار بالا می‌گردد \cite{shin2026amid}.
 
-\paragraph*{رویکردهای مکمل: \model{ResQ} و \model{QuEST}}
+\paragraph*{دینامیک تقطیر مولد و تبیین تعادل دقت-بازخوانی (\en{Precision-Recall Trade-off})}
+چا و چو \cite{cha2025why} با مدل‌سازی توزیع خروجی مدل‌های زبانی به عنوان مخلوطی از مؤلفه‌های گاوسی با بردار وزن $\alpha'_k(\beta) \propto \exp(\beta \log \alpha'_k)$، نشان دادند که با اعمال نامساوی ینسن بر روی اتلاف تقطیر متقاطع:
+\begin{equation}
+\begin{aligned}
+    \int p'(x; \beta) \log p''(x) dx \ge \sum_{k'=1}^{K'} \sum_{k''=1}^{K''} &\underbrace{\alpha_{k'}'(\beta) \alpha_{k''}'}_{\text{هم‌راستاسازی ضرایب مخلوط}} \\
+    &\times \underbrace{\int \mathcal{N}(x; \mu_{k'}', \Sigma_{k'}') \log \mathcal{N}(x; \mu_{k''}'', \Sigma_{k''}'') dx}_{\text{تطابق هندسی تک‌تک مؤلفه‌ها}}
+\end{aligned}
+\end{equation}
+با افزایش $\beta$ (کاهش انتروپی معلم و تشدید انتخاب‌گری)، دانشجو بخش عمده‌ای از ظرفیت محدود خود را صرفاً روی چگال‌ترین مدهای داده متمرکز می‌سازد. این امر موجب جهش دقت استنتاج (\en{Precision}) به بهای کاهش تنوع پوشش (\en{Recall}) می‌گردد که دقیقاً توجیه‌کننده روانی و کیفیت بالای متون تولیدشده در فرآیند \en{Instruction Tuning} است.
+
+در همین راستا، رامش و همکاران \cite{ramesh2025generalization} پدیده‌ای تحت عنوان **پارادوکس تعمیم در برابر وفاداری (\en{Generalization vs. Fidelity Paradox})** را کشف کردند: تقطیر دانش تعمیم صفر-شات را در مدل‌های کوچک (زیر 1B) تا ۲۲٪ بهبود می‌بخشد، اما وفاداری استدلال (\en{Reasoning Fidelity} با سنجه‌های \en{BLEU} و شباهت کسینوسی امبدینگ جملات) با دقت نهایی دانشجو همبستگی بسیار ضعیفی ($\rho \approx 0.01$) نشان می‌دهد. این یافته اثبات می‌کند که دانشجو استراتژی‌های استنتاجی مستقل خود را توسعه می‌دهد و الزامی به تقلید گام‌به‌گام نحوه تفکر معلم ندارد.
+
+\paragraph*{دیدگاه توزیع حالات و تقطیر برخط (\en{On-Policy Distillation - OPD})}
+دانگ نیه \cite{nie2026post} استدلال کرد که آموزش مدل‌های زبانی بیش از آنکه وابسته به توکن‌ها باشد، وابسته به **توزیع حالات (\en{State Distribution})** $s_t = (x, y_{<t})$ است. در حالی که \en{SFT} مدل را بر روی پیشوندهای ثابت و خطاناپذیر پیشین آموزش می‌دهد، در زمان آزمون خطای دانشجو در تولید پیشوندها موجب بروز انحراف توزیعی تصاعدی می‌گردد. 
+
+سونگ و ژنگ \cite{song2026survey} نشان دادند که طبق قضیه \en{DAgger} \cite{ross2011reduction}، خطای انباشته مدل‌های اتورگرسیو در طول افق $T$ از مرتبه فاجعه‌بار $\mathcal{O}(\epsilon T^2)$ در تقطیر آفلاین، در تقطیر برخط (\en{OPD}) به دلیل نمونه‌برداری از توزیع خود دانشجو ($y \sim p_\theta$) و دریافت بازخورد محلی، به نرخ خطی تقلیل می‌یابد:
+\begin{equation}
+    \text{Error}_{\text{Off-policy}} = \mathcal{O}(\epsilon T^2) \quad \xrightarrow{\text{On-Policy Distillation}} \quad \text{Error}_{\text{On-policy}} = \mathcal{O}(\epsilon T)
+\end{equation}
+
+روش‌های برجسته تقطیر برخط و بهینه‌سازی‌های آن عبارتند از:
 \begin{itemize}
-    \item \textbf{روش \model{ResQ} \cite{saxena2025resq}:} بهره‌گیری از تحلیل مؤلفه‌های اصلی (\en{PCA}) بر روی ماتریس کوواریانس فعال‌سازی‌ها ($XX^\top$) جهت شناسایی زیرفضای کم‌رتبه ($r = d/8$) با واریانس بالا و نگهداری آن در دقت ۸ بیتی، در حالی که مابقی درایه‌ها با چرخش تصادفی در ۴ بیت کوانتیزه می‌شوند. کران خطای اثبات‌شده تضمین می‌کند که بیشینه‌سازی انرژی در مؤلفه‌های اصلی، خطای فروبنیوس را به حداقل می‌رساند.
-    \item \textbf{روش \model{QuEST} \cite{panferov2025quest}:} ارائه نخستین راهکار آموزش آگاه از کوانتیزاسیون (\en{QAT}) پایدار برای مدل‌های ۱ بیتی و ۲ بیتی با تعریف برآوردگر گرادیان مطمئن (\en{Trust Gradient Estimator}) بر پایه ماسک‌گذاری نقاط با خطای کوانتیزاسیون بالا در حوزه تبدیل هادامارد:
+    \item \textbf{تقطیر برخط آگاه از انتروپی (\en{EOPD}):} جین و همکاران \cite{jin2026entropy} دریافتند استفاده محض از \en{Reverse KL} به دلیل رفتار بیش‌ازحد \en{Mode-seeking}، در توکن‌های با انتروپی بالا که محل انشعاب مسیرهای درست استدلال هستند دچار ناپایداری می‌شود. تابع اتلاف \en{EOPD} با هدایت انتروپی معلم $H_t^{te}$ به شکل زیر تعریف می‌شود:
     \begin{equation}
-        \frac{\partial}{\partial x} \approx \text{IHT}\left( M_{\alpha^*}(x_h; \hat{x}_h) \odot \frac{\partial}{\partial \hat{x}_h} \right), \quad M_{\alpha^*} = \mathbb{I}_{|\hat{x} - x| \le T}
+        \mathcal{L}_t^{\text{EOPD}} = \mathcal{L}_t^{\text{OPD}} + \alpha \cdot \mathbb{I}[H_t^{te} > \tau] \cdot D_{\text{KL}}(\tilde{\pi}_{te}(\cdot \mid c_t) \parallel \pi_\theta(\cdot \mid c_t))
+    \end{equation}
+    که در آن توزیع \en{Forward KL} روی ۱۶ توکن برتر معلم متراکم می‌شود تا از نویز دم توزیع جلوگیری گردد.
+    \item \textbf{تقطیر حدسی (\en{Speculative KD - SKD}):} شو و همکاران \cite{xu2025speculative} با الهام از رمزگشایی حدسی، سازوکار پذیرش یا رد توکن‌های پیشنهادی دانشجو بر مبنای حضور در بین $K$ توکن برتر معلم را به کار بستند:
+    \begin{equation}
+        y_i \in \text{top}K(M_t(\cdot \mid y_{<i}, x))
+    \end{equation}
+    این رویکرد به طور خودکار از رفتار نظارت‌شده در گام‌های اولیه به سمت تقطیر کاملاً برخط در گام‌های پایانی سوق یافته و هزینه استنتاج را تا ۵۰٪ تقلیل می‌دهد.
+    \item \textbf{تقطیر دلتا (\en{Delta-KD}):} کائو و همکاران \cite{cao2025delta} به جای انطباق مستقیم لاجیت‌ها، شیفت رفتاری معلم از پیش‌آموزش به تنظیم دقیق ($\Delta = \pi_t^{ft} / \pi_t^{raw}$) را استخراج نموده و توزیع هدف مصنوعی زیر را با تابع افراز $Z(x, y)$ نرمال‌سازی کردند:
+    \begin{equation}
+        \pi_s^*(y_t \mid x) = \frac{1}{Z(x, y)} \pi_t^{ft}(y_t \mid x) \left( \frac{\pi_s^{raw}(y_t \mid x)}{\pi_t^{raw}(y_t \mid x)} \right)^\alpha
     \end{equation}
 \end{itemize}
 
-\paragraph*{ارزیابی‌های آماری و تجربی روش‌های فشرده‌سازی و تقطیر}
-در جدول زیر، مقایسه جامع عملکرد، سطوح فشرده‌سازی و میزان حفظ قابلیت‌های استدلالی در روش‌های شاخص مرور شده بر پایه نتایج رسمی مقالات مرجع گزارش شده است:
+\paragraph*{هندسه به‌روزرسانی پارامترها و پدیده قفل‌شدگی زیرفضا (\en{Subspace Locking})}
+شن و همکاران \cite{shen2026geometry} موقعیت پارامتری \en{OPD} را در طیف میان \en{SFT} و \en{RLVR} تعیین نمودند. بر اساس تحلیل رتبه پایدار ماتریس تغییرات وزن‌ها $\text{srank}(\Delta W_t) = \frac{\|\Delta W_t\|_F^2}{\|\Delta W_t\|_{\text{op}}^2}$، آن‌ها پدیده شگرف **قفل‌شدگی زیرفضا** را نشان دادند؛ به این معنا که به‌روزرسانی‌های \en{OPD} از همان اوایل آموزش به یک کانال کم‌بعد بسیار پایدار وارد می‌شوند. تصویر کردن گرادیان به یک زیرفضای رتبه ۱۶ ثابت ($g \leftarrow g V_{16} V_{16}^\top$) هیچ‌گونه افتی در عملکرد مدل تقطیرشده ایجاد نکرده و اثبات می‌کند که این زیرفضا برای یادگیری عملکردی کاملاً کفایت دارد. همچنین یانگ و همکاران \cite{yang2026learning} نشان دادند که \en{OPD} از طریق هم‌ارزی با یادگیری تقویتی منظم‌شده با \en{KL}، امکان پدیده «برون‌یابی پاداش» (\en{Reward Extrapolation}) را فراهم می‌آورد و مدل دانشجو می‌تواند از مرزهای دانش معلم نیز فراتر رود.
+
+\paragraph*{دینامیک حافظه‌سپاری و تبیین بازی‌محور برهم‌کنش‌های هارسانی}
+بورکار و همکاران \cite{borkar2026memorization} اثبات کردند که بر خلاف آموزش با انتروپی متقابل سخت در \en{SFT} که مدل را دچار «حافظه‌سپاری اجباری» (\en{Forced Memorization}) روی داده‌های پرت می‌کند، تقطیر دانش به دلیل وجود برچسب‌های نرم، بیش از ۵۰٪ حافظه‌سپاری را کاهش می‌دهد و دانشجو داده‌های پرریسک را جذب نمی‌کند.
+
+از سوی دیگر، وانگ و همکاران \cite{wang2026unified} با بهره‌گیری از نظریه بازی‌های مشارکتی و مفهوم برهم‌کنش‌های هارسانی (\en{Harsanyi Interactions})، خروجی غیرخطی مدل زبانی را به مجموع برهم‌کنش‌های زیرمجموعه‌های متغیرهای ورودی $N = \{1, \dots, n\}$ تفکیک کردند:
+\begin{equation}
+    v(x_T) = \phi(x_T) = \phi(x_\emptyset) + \sum_{S \subseteq T, S \neq \emptyset} I_S^{\text{AND}}
+\end{equation}
+آن‌ها با اثبات ریاضی قضیه انطباق جهانی (\en{Universal Matching Property}) نشان دادند که اثر هر برهم‌کنش دقیقاً برابر است با:
+\begin{equation}
+    I_S^{\text{AND}} = \sum_{S' \subseteq S} (-1)^{|S| - |S'|} v(x_{S'})
+\end{equation}
+یافته بنیادین این پژوهش نشان داد که **جوهر تقطیر دانش، تنک‌سازی برهم‌کنش‌های پیچیده (\en{Sparsification of Complex Interactions}) است.** تقطیر مانند تیغ اوکام برهم‌کنش‌های شکننده و پرطول ($|S| \ge \lceil n/3 \rceil$) را که نویز غیرقابل تعمیم هستند سرکوب کرده و ساختارهای تعمیم‌پذیر ساده را ابقا می‌کند. اتلاف کمکی جریمه برهم‌کنش پیچیده (\en{CIP}):
+\begin{equation}
+    \mathcal{L}_{\text{CIP}} = \mathbb{E}_x \left[ \mathbb{E}_{S \in \Omega^{\text{complex}}} [|I(S)|] \right]
+\end{equation}
+با اثبات قید افراز نمونه‌برداری به $m \le 3$ زیرمجموعه، با بار محاسباتی ناچیز عملکرد تمامی مدل‌های تقطیرشده را به صورت پایا ارتقا می‌دهد.
+
+\paragraph*{ماتریس مقایسه‌ای جامع روش‌های پیشرفته تقطیر در مدل‌های زبانی}
+جدول \ref{tab:kd_advanced_comparative_matrix} مقایسه ساختاریافته روش‌های کلیدی معرفی‌شده در ادبیات را بر اساس مبانی ریاضیاتی، اهداف بهینه‌سازی و مزایای برجسته نشان می‌دهد.
 
 \begin{table}[htbp]
 \centering
-\caption{مقایسه عملکردی روش‌های نوین تقطیر و کوانتیزاسیون در مدل‌های زبانی بزرگ}
-\label{tab:kd_quant_sota_eval}
+\caption{مقایسه تحلیلی روش‌های برجسته تقطیر دانش در مدل‌های زبانی بزرگ بر پایه مبانی نظری و پیاده‌سازی.}
+\label{tab:kd_advanced_comparative_matrix}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llccccc}
+\begin{tabular}{llllll}
 \toprule
-\textbf{روش} & \textbf{پارادایم / رویکرد} & \textbf{پیکربندی بیت (\en{W/A/KV})} & \textbf{مدل ارزیابی} & \textbf{پرپلکسیتی (\en{WikiText-2})} & \textbf{دقت بنچمارک هدف} & \textbf{شتاب استنتاج} \\
+\textbf{نام روش} & \textbf{مرجع پژوهشی} & \textbf{دسترسی / سیگنال} & \textbf{رویکرد توزیعی} & \textbf{تابع اتلاف / سازوکار کلیدی} & \textbf{دستاورد و برتری نظری} \\
 \midrule
-\textbf{\en{BF16 Baseline}} & دقت پایه & 16 / 16 / 16 & \model{Qwen3-8B} & 9.73 & 73.02\% (\en{MMLU}) & 1.0× \\
-\textbf{\en{FP16 Baseline}} & دقت پایه & 16 / 16 / 16 & \model{Llama-3.1-8B} & 7.20 & 68.31\% (\en{MMLU}) & 1.0× \\
-\midrule
-\model{GPTQ} \cite{frantar2023gptq} & \en{PTQ} (حریصانه / \en{Hessian}) & 4 / 16 / 16 & \model{Qwen3-8B} & 10.10 & 71.76\% (\en{MMLU}) & 2.1× \\
-\model{QEP-GPTQ} \cite{arai2025quantization} & \en{PTQ} (تصحیح خطای انباشته) & 4 / 16 / 16 & \model{Llama-2-7B} & 5.93 & 67.95\% (\en{Avg-3Task}) & 2.1× \\
-\model{QEP-QuIP} \cite{arai2025quantization} & \en{PTQ} (چرخش هادامارد + \en{QEP}) & 2 / 16 / 16 & \model{Llama-2-70B} & 5.86 & 69.98\% (\en{Avg-3Task}) & 3.8× \\
-\model{HIGGS} \cite{malinovskii2024pushing} & \en{PTQ} (قضیه خطی‌بودن + گرید گاوسی) & 4.02 / 16 / 16 & \model{Llama-3.1-8B} & 6.01 & 63.26\% (\en{MMLU}) & 2.5× \\
-\model{HPTQ} \cite{chen2026geometry} & لتیس / بابای بدون برش & 3.125 / 16 / 16 & \model{Qwen3-8B} & 10.34 & 70.96\% (\en{MMLU}) & 2.4× \\
-\model{SSQR-1\%} \cite{chen2026geometry} & تطبیق مقیاس + پسماند اسپارس & 3.445 / 16 / 16 & \model{Qwen3-8B} & 10.64 & 68.46\% (\en{MMLU}) & 2.0× \\
-\model{ResQ} \cite{saxena2025resq} & تجزیه \en{PCA} کم‌رتبه + چرخش & 4 / 4 / 4 (1/8 INT8) & \model{Llama-3-8B} & 7.10 & 57.20\% (\en{MMLU}) & 3.03× \\
-\model{QuEST} \cite{panferov2025quest} & \en{QAT} (برآوردگر گرادیان مطمئن) & 4 / 4 / 16 & \model{Llama-800M} & 2.65 (\en{C4 Loss}) & 71.16\% (\en{PiQA}) & 2.2× \\
-\model{SLQ-TL} \cite{helcig2026statistically} & تخصیص پویا شپلی (اتلاف‌ناپذیر وظیفه) & 3.59 / 16 / 16 & \model{Llama-3.3-70B} & 9.80 & 99.1\% (\en{Recovery}) & 3.68× \\
-\model{SLQ-DL} \cite{helcig2026statistically} & تخصیص پویا شپلی (اتلاف‌ناپذیر توزیع) & 5.70 / 16 / 16 & \model{Qwen3-8B} & 9.81 (\en{EAR: 99\%}) & 99.3\% (\en{Recovery}) & 1.74× \\
-\midrule
-\model{OPSD} \cite{zhao2026self} & خود-تقطیری درون‌خط‌مشی با داده ممتاز & 16 / 16 / 16 & \model{Qwen3-8B-Inst} & - & 71.4\% (\en{AIME/HMMT}) & 8× کاهش سمپل \\
+\model{Standard KD} & Hinton et al. \cite{hinton2015distilling} & لاجیت کامل (جعبه‌سفید) & برون‌خط (\en{Off-policy}) & $D_{\text{KL}}(p_T^\tau \parallel p_S^\tau)$ در سطح توکن & انتقال دانش نرم و توزیع شباهت‌های پنهان \\
+\model{Seq-KD} & Kim \& Rush \cite{kim2016sequence} & متن تولیدی (جعبه‌سیاه) & برون‌خط (\en{Off-policy}) & $-\log P_\theta(\hat{y} \mid x)$ روی توالی برتر & کاهش خطای مرحله‌ای با نظارت در سطح دنباله \\
+\model{MiniLLM} & Gu et al. \cite{gu2024minillm} & لاجیت کامل (جعبه‌سفید) & برخط (\en{On-policy}) & \en{Reverse KL} با گرادیان خط‌مشی & رفع بیش‌برازش روی احتمالات کم معلم (\en{Mode-seeking}) \\
+\model{GKD} & Agarwal et al. \cite{agarwal2024onpolicy} & لاجیت کامل (جعبه‌سفید) & ترکیبی / برخط & $D_{\text{GJS}}$ روی توالی‌های خود مدل & حل خطای انباشته (\en{Exposure bias}) با نمونه‌برداری برخط \\
+\model{DistiLLM} & Ko et al. \cite{ko2024distillm} & لاجیت کامل (جعبه‌سفید) & تطبیقی برون‌خط & \en{Skew KL} بر روی توزیع مخلوط & پایداری عددی و جلوگیری از بی‌نهایت شدن گرادیان \\
+\model{SKD} & Xu et al. \cite{xu2025speculative} & لاجیت و توکن برتر & متناوب (\en{Interleaved}) & فیلترسازی حدسی توکن با آستانه $K$ & تولید نمونه‌های باکیفیت و کاهش ۵۰٪ بار محاسباتی \\
+\model{Delta-KD} & Cao et al. \cite{cao2025delta} & لاجیت معلم و مبنا & برون‌خط / برخط & ترازسازی شیفت توزیعی $\Delta = \pi_t^{ft} / \pi_t^{raw}$ & سازگاری با فضای بازنمایی متناقض مدل کوچک \\
+\model{AMiD} & Shin et al. \cite{shin2026amid} & لاجیت کامل (جعبه‌سفید) & ژئودزیک اماری & دیورژانس $\alpha$-مخلوط با بهینگی همگانی & یکپارچه‌سازی ریاضیاتی توزیع دستیار و مهار ناموزونی مدهای توزیع \\
+\model{EOPD} & Jin et al. \cite{jin2026entropy} & لاجیت کامل (جعبه‌سفید) & برخط هدایت‌شده & \en{Reverse KL} + گیت‌بندی \en{FKL} انتروپی & حفظ تنوع و رفع ناپایداری در گره‌های تصمیم استدلال \\
+\model{LRC} & Soarez et al. \cite{soarez2026demystifying} & بازنمایی پنهان و لاجیت & برون‌خط مقید & افراز رتبه-پایین $W_s = P_L W_t P_R + \mathcal{L}_{\text{clone}}$ & کران تعمیم رادماخر و رتبه بهینه $\mathcal{O}(\sqrt{n})$ \\
+\model{OPSD} & Zhao et al. \cite{zhao2026selfdistilled} & خودتقطیری (\en{Self-KD}) & برخط با اطلاعات ممتاز & شرطی‌سازی معلم داخلی بر پاسخ صحیح & حذف نیاز به مدل خارجی و حفظ نرخ تعمیم در استدلال \\
+\model{CIP} & Wang et al. \cite{wang2026unified} & مستقل از تقطیر & برهم‌کنش‌های هارسانی & جریمه برهم‌کنش‌های پیچیده $\mathcal{L}_{\text{CIP}}$ & فیلترسازی نویزهای شناختی طبق اصل تیغ اوکام \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
 
-\paragraph*{چالش‌های حل‌نشده، پاتولوژی‌های شکست و چشم‌انداز آینده}
-علیرغم پیشرفت‌های حاصله، چندین چالش بنیادین در کانون توجه پژوهشگران قرار دارد \cite{song2026survey, fang2026knowledge}:
+\paragraph*{آسیب‌شناسی حالات شکست و افق‌های پژوهشی آینده}
+شواهد تجربی و نظری حاصل از پژوهش‌های اخیر \cite{song2026survey, jin2026entropy, borkar2026memorization, ramesh2025generalization} نشان می‌دهند که خط لوله‌های پیشرفته تقطیر با چالش‌های ساختاری زیر روبرو هستند:
 \begin{itemize}
-    \item \textbf{اشباع در خود-تقطیری و مسئله اوروبوروس (\en{The Ouroboros Problem}):} در خود-تقطیری بدون بازخورد محیطی یا برچسب مرجع، مدل خطاهای ساختاری خود را بازتولید و تقویت کرده که منجر به فروپاشی تنوع توزیع می‌گردد \cite{song2026survey}.
-    \item \textbf{شکاف قابلیت-کالیبراسیون (\en{Calibration-Capability Gap}):} مدل‌های تقطیرشده با \en{OPD} علیرغم کسب نمرات بالا در حل مسائل، دچار بیش‌اعتمادی شدید شده و توانایی خودارزیابی عدم قطعیت (\en{Epistemic Uncertainty}) را از دست می‌دهند \cite{zhang2026illusion}.
-    \item \textbf{تورم توکن‌های تفکر (\en{Thinking Token Inflation}):} فشرده‌سازی‌های اتلافی ناخواسته منجر به طولانی‌تر شدن ردپای استدلال مدل (تا ۲.۵ برابر) برای رسیدن به پاسخ یکسان می‌شوند که مزیت کارایی حافظه را تضعیف می‌سازد \cite{helcig2026statistically}.
-    \item \textbf{تدوین قوانین مقیاس‌پذیری تقطیر (\en{Distillation Scaling Laws}):} استخراج روابط توانی دقیق مشابه قوانین کاپلان و چینچیلا برای تخصیص بهینه بودجه میان اندازه آموزگار، اندازه دانش‌آموز و میزان رول‌آوت‌های درون‌خط‌مشی از مهم‌ترین مسائل باز در این حوزه است \cite{busbridge2025distillation, song2026survey}.
+    \item \textbf{تله پیشوند معیوب (\en{Flawed Prefix Trap}):} هنگامی که مدل دانشجو در حین تولید برخط دچار اشتباه می‌شود، شرطی‌سازی معلم روی این بافت ناهنجار، سیگنال‌های گرادیانی بسیار مخدوش تولید می‌کند که نیازمند راهبردهای فیلترینگ مبتنی بر قابلیت یادگیری توکن (\en{Token Teachability}) و سوئیچینگ پویا است \cite{peng2025adaswitch, xu2026tip}.
+    \item \textbf{شکاف کالیبراسیون و قطعیت کاذب (\en{Illusion of Certainty}):} تقطیر برخط غالباً منجر به بیش‌اطمینانی شدید مدل روی پاسخ‌های نادرست و از دست رفتن نشانه‌های زبانی تردید در استدلال (\en{Epistemic Verbalization}) می‌شود که ایمنی بالینی و حقوقی مدل را تهدید می‌کند \cite{zhang2026illusion, kim2026why}.
+    \item \textbf{تورم طول دنباله (\en{Length Inflation}):} بهینه‌سازی محض \en{Reverse KL} ممکن است چرخه‌های افزایشی بی‌پایان در طول استدلال بدون ارزش افزوده ایجاد کند که نیازمند مهار با دیورژانس لنگر مرجع است \cite{luo2026demystifying}.
 \end{itemize}
+مسیرهای آینده این حوزه بر تدوین قوانین مقیاس‌پذیری دقیق تقطیر برخط (\en{OPD Scaling Laws})، یکپارچه‌سازی تقطیر در عامل‌های خودمختار با افق زمانی طولانی (\en{Agentic Distillation}) و تعمیم روش‌های ترازسازی به فضاهای واژگانی ناهمگن و توکنایزرهای نامتجانس متمرکز خواهد بود.

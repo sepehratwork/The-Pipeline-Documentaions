@@ -3225,6 +3225,12 @@ Elias Frantar, Roberto~L. Castro, Jiale Chen, Torsten Hoefler, and Dan
   language models.
 \newblock {\em Proceedings of PPoPP}, pages 239--251, 2025.
 
+\bibitem{bucilua2006model}
+Cristian Bucilu{\v{a}}, Rich Caruana, and Alexandru Niculescu-Mizil.
+\newblock Model compression.
+\newblock In {\em Proceedings of the 12th ACM SIGKDD International Conference
+  on Knowledge Discovery and Data Mining}, pages 535--541, 2006.
+
 \bibitem{mansourian2025comprehensive}
 Amir~M Mansourian, Rozhan Ahmadi, Masoud Ghafouri, Amir~Mohammad Babaei,
   Elaheh~Badali Golezani, Zeynab~Yasamani Ghamchi, Vida Ramezanian, Alireza
@@ -3244,24 +3250,44 @@ Mingyang Song and Mao Zheng.
 \newblock A survey of on-policy distillation for large language models.
 \newblock {\em arXiv preprint arXiv:2604.00626}, 2026.
 
-\bibitem{bucilua2006model}
-Cristian Bucilu{\v{a}}, Rich Caruana, and Alexandru Niculescu-Mizil.
-\newblock Model compression.
-\newblock In {\em Proceedings of the 12th ACM SIGKDD International Conference
-  on Knowledge Discovery and Data Mining}, pages 535--541, 2006.
+\bibitem{ramesh2025generalization}
+Suhas~Kamasetty Ramesh, Ayan Sengupta, and Tanmoy Chakraborty.
+\newblock On the generalization vs fidelity paradox in knowledge distillation.
+\newblock {\em arXiv preprint arXiv:2505.15442v2}, 2025.
 
-\bibitem{wen2025knowledge}
-Yuqiao Wen, Freda Shi, and Lili Mou.
-\newblock Knowledge distillation for language models.
-\newblock In {\em Proceedings of the 2025 Annual Conference of the Nations of
-  the Americas Chapter of the Association for Computational Linguistics: Human
-  Language Technologies (Tutorial Abstracts)}, pages 25--29, 2025.
+\bibitem{li2026generalization}
+Bingying Li and Haiyun He.
+\newblock On the generalization of knowledge distillation: An
+  information-theoretic view.
+\newblock {\em arXiv preprint arXiv:2605.13143v2}, 2026.
 
-\bibitem{zhao2022decoupled}
-Borui Zhao, Quan Cui, Renjie Song, Yiyu Qiu, and Jiajun Liang.
-\newblock Decoupled knowledge distillation.
-\newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and
-  Pattern Recognition}, pages 11953--11962, 2022.
+\bibitem{soarez2026demystifying}
+Alberlucia~Rafael Soarez, Daniel Kim, Mariana Costa, and Alejandro Torres.
+\newblock Demystifying low-rank knowledge distillation in large language
+  models: Convergence, generalization, and information-theoretic guarantees.
+\newblock {\em arXiv preprint arXiv:2603.22355v1}, 2026.
+
+\bibitem{shin2026amid}
+Donghyeok Shin, Yeongmin Kim, Suhyeon Jo, Byeonghu Na, and Il-Chul Moon.
+\newblock {AMiD}: Knowledge distillation for {LLMs} with $\alpha$-mixture
+  assistant distribution.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2026.
+\newblock arXiv:2510.15982v3.
+
+\bibitem{cha2025why}
+Sungmin Cha and Kyunghyun Cho.
+\newblock Why knowledge distillation works in generative models: A minimal
+  working explanation.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+\newblock arXiv:2505.13111v3.
+
+\bibitem{nie2026post}
+Dong Nie.
+\newblock Post-training is about states, not tokens: A state distribution view
+  of {SFT}, {RL}, and on-policy distillation.
+\newblock {\em arXiv preprint arXiv:2605.22731v1}, 2026.
 
 \bibitem{ross2011reduction}
 St{\'e}phane Ross, Geoffrey Gordon, and J~Andrew Bagnell.
@@ -3270,11 +3296,32 @@ St{\'e}phane Ross, Geoffrey Gordon, and J~Andrew Bagnell.
 \newblock In {\em Proceedings of the Fourteenth International Conference on
   Artificial Intelligence and Statistics}, pages 627--635, 2011.
 
-\bibitem{gu2024minillm}
-Yuxian Gu, Li~Dong, Furu Wei, and Minlie Huang.
-\newblock Minillm: Knowledge distillation of large language models.
+\bibitem{jin2026entropy}
+Woogyeol Jin, Taywon Min, Yongjin Yang, Dennis Wei, Yi~Zhou, Swanand~Ravindra
+  Kadhe, Nathalie Baracaldo, and Kimin Lee.
+\newblock Entropy-aware on-policy distillation of language models.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2026.
+\newblock arXiv:2603.07079v3.
+
+\bibitem{xu2025speculative}
+Wenda Xu, Rujun Han, Zifeng Wang, Long~T. Le, Dhruv Madeka, Lei Li,
+  William~Yang Wang, Rishabh Agarwal, Chen-Yu Lee, and Tomas Pfister.
+\newblock Speculative knowledge distillation: Bridging the teacher-student gap
+  through interleaved sampling.
 \newblock In {\em International Conference on Learning Representations (ICLR)},
-  2024.
+  2025.
+\newblock arXiv:2410.11325v3.
+
+\bibitem{cao2025delta}
+Yihan Cao, Yanbin Kang, Zhengming Xing, and Ruijie Jiang.
+\newblock Delta knowledge distillation for large language models.
+\newblock {\em arXiv preprint arXiv:2509.14526v1}, 2025.
+
+\bibitem{shen2026geometry}
+Zhennan Shen, Yanshu Li, Qingyu Yin, Chak~Tou Leong, Zhilin Wang, Yanxu Chen,
+  Rongduo Han, Sunbowen Lee, and Yi~R. Fung.
+\newblock On the geometry of on-policy distillation.
+\newblock {\em arXiv preprint arXiv:2606.07082v3}, 2026.
 
 \bibitem{yang2026learning}
 Wenkai Yang, Weijie Liu, Ruobing Xie, Kai Yang, Saiyong Yang, and Yankai Lin.
@@ -3282,71 +3329,43 @@ Wenkai Yang, Weijie Liu, Ruobing Xie, Kai Yang, Saiyong Yang, and Yankai Lin.
   reward extrapolation.
 \newblock {\em arXiv preprint arXiv:2602.12125}, 2026.
 
-\bibitem{zhao2026self}
-Siyan Zhao, Zhihui Xie, Mengchen Liu, Jing Huang, Guan Pang, Feiyu Chen, and
-  Aditya Grover.
-\newblock Self-distilled reasoner: On-policy self-distillation for large
-  language models.
-\newblock {\em arXiv preprint arXiv:2601.18734}, 2026.
+\bibitem{borkar2026memorization}
+Jaydeep Borkar, Karan Chadha, Niloofar Mireshghallah, Yuchen Zhang, Irina-Elena
+  Veliche, Archi Mitra, David~A. Smith, Zheng Xu, and Diego Garcia-Olano.
+\newblock Memorization dynamics in knowledge distillation for language models.
+\newblock {\em arXiv preprint arXiv:2601.15394v2}, 2026.
 
-\bibitem{xu2026paced}
-Yuanda Xu, Hejian Sang, Zhengze Zhou, Ran He, and Zhipeng Wang.
-\newblock Paced: Distillation and on-policy self-distillation at the frontier
-  of student competence.
-\newblock {\em arXiv preprint arXiv:2603.11178}, 2026.
+\bibitem{wang2026unified}
+Qingzhuo Wang, Ruiyang Qin, Zhenxin Qin, Wen Shen, and Zhihua Wei.
+\newblock A unified approach to interpreting knowledge distillation for large
+  language models via interactions.
+\newblock {\em arXiv preprint arXiv:2607.08776v1}, 2026.
 
-\bibitem{yin2023squeeze}
-Zeyuan Yin, Eric Xing, and Zhiqiang Shen.
-\newblock Squeeze, recover and relabel: Dataset condensation at imagenet scale
-  from a new perspective.
-\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
-  volume~36, pages 73582--73603, 2023.
+\bibitem{kim2016sequence}
+Yoon Kim and Alexander~M. Rush.
+\newblock Sequence-level knowledge distillation.
+\newblock {\em Conference on Empirical Methods in Natural Language Processing
+  (EMNLP)}, pages 1317--1327, 2016.
 
-\bibitem{babai1986lovasz}
-L{\'a}szl{\'o} Babai.
-\newblock On lov{\'a}sz' lattice reduction and the nearest lattice point
-  problem.
-\newblock {\em Combinatorica}, 6(1):1--13, 1986.
+\bibitem{gu2024minillm}
+Yuxian Gu, Li~Dong, Furu Wei, and Minlie Huang.
+\newblock Minillm: Knowledge distillation of large language models.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2024.
 
-\bibitem{arai2025quantization}
-Yamato Arai and Yuma Ichikawa.
-\newblock Quantization error propagation: Revisiting layer-wise post-training
-  quantization.
-\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
-  2025.
+\bibitem{agarwal2024onpolicy}
+Rishabh Agarwal, Nino Vieillard, Yongchao Zhou, Piotr Stanczyk, Sabela Ramos,
+  Matthieu Geist, and Olivier Bachem.
+\newblock On-policy distillation of language models: Learning from
+  self-generated mistakes.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2024.
 
-\bibitem{dettmers2022gpt3}
-Tim Dettmers, Mike Lewis, Younes Belkada, and Luke Zettlemoyer.
-\newblock Gpt3.int8(): 8-bit matrix multiplication for transformers at scale.
-\newblock {\em Advances in Neural Information Processing Systems},
-  35:30318--30332, 2022.
-
-\bibitem{maisonnave2025gradual}
-Lucas Maisonnave, Cyril Moineau, Olivier Bichler, and Fabrice Rastello.
-\newblock Gradual binary search and dimension expansion: A general method for
-  activation quantization in llms.
-\newblock {\em arXiv preprint arXiv:2504.13989}, 2025.
-
-\bibitem{panferov2025quest}
-Andrei Panferov, Jiale Chen, Soroush Tabesh, Roberto~L Castro, Mahdi Nikdan,
-  and Dan Alistarh.
-\newblock Quest: Stable training of llms with 1-bit weights and activations.
-\newblock {\em arXiv preprint arXiv:2502.05003}, 2025.
-
-\bibitem{malinovskii2024pushing}
-Vladimir Malinovskii, Andrei Panferov, Ivan Ilin, Han Guo, Peter Richt{\'a}rik,
-  and Dan Alistarh.
-\newblock Pushing the limits of large language model quantization via the
-  linearity theorem.
-\newblock In {\em Proceedings of the Conference of the Nations of the Americas
-  Chapter of the Association for Computational Linguistics: Human Language
-  Technologies (NAACL-HLT)}, pages 10857--10886, 2025.
-
-\bibitem{saxena2025resq}
-Utkarsh Saxena, Sayeh Sharify, Kaushik Roy, and Xin Wang.
-\newblock Resq: Mixed-precision quantization of large language models with
-  low-rank residuals.
-\newblock {\em arXiv preprint arXiv:2412.14363}, 2025.
+\bibitem{ko2024distillm}
+Jongwoo Ko, Sungnyun Kim, Tianyi Chen, and Se-Young Yun.
+\newblock {DistiLLM}: Towards streamlined distillation for large language
+  models.
+\newblock {\em International Conference on Machine Learning (ICML)}, 2024.
 
 \bibitem{zhang2026illusion}
 Jiaxin Zhang, Xiangyu Peng, Qinglin Chen, Qinyuan Ye, Caiming Xiong, and
@@ -3354,12 +3373,6 @@ Jiaxin Zhang, Xiangyu Peng, Qinglin Chen, Qinyuan Ye, Caiming Xiong, and
 \newblock The illusion of certainty: Decoupling capability and calibration in
   on-policy distillation.
 \newblock {\em arXiv preprint arXiv:2604.16830}, 2026.
-
-\bibitem{busbridge2025distillation}
-Dan Busbridge, Amitis Shidani, Floris Weers, Jason Ramapuram, Etai Littwin, and
-  Russ Webb.
-\newblock Distillation scaling laws.
-\newblock In {\em International Conference on Machine Learning (ICML)}, 2025.
 
 \bibitem{chen2025revisiting}
 Zhengyu Chen, Siqi Wang, Teng Xiao, Yudong Wang, Shiqi Chen, Xunliang Cai,
@@ -4343,16 +4356,101 @@ Joe~H Ward~Jr.
 \newblock In {\em Journal of the American Statistical Association}, volume~58,
   pages 236--244, 1963.
 
+\bibitem{arai2025quantization}
+Yamato Arai and Yuma Ichikawa.
+\newblock Quantization error propagation: Revisiting layer-wise post-training
+  quantization.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  2025.
+
+\bibitem{malinovskii2024pushing}
+Vladimir Malinovskii, Andrei Panferov, Ivan Ilin, Han Guo, Peter Richt{\'a}rik,
+  and Dan Alistarh.
+\newblock Pushing the limits of large language model quantization via the
+  linearity theorem.
+\newblock In {\em Proceedings of the Conference of the Nations of the Americas
+  Chapter of the Association for Computational Linguistics: Human Language
+  Technologies (NAACL-HLT)}, pages 10857--10886, 2025.
+
+\bibitem{saxena2025resq}
+Utkarsh Saxena, Sayeh Sharify, Kaushik Roy, and Xin Wang.
+\newblock Resq: Mixed-precision quantization of large language models with
+  low-rank residuals.
+\newblock {\em arXiv preprint arXiv:2412.14363}, 2025.
+
+\bibitem{panferov2025quest}
+Andrei Panferov, Jiale Chen, Soroush Tabesh, Roberto~L Castro, Mahdi Nikdan,
+  and Dan Alistarh.
+\newblock Quest: Stable training of llms with 1-bit weights and activations.
+\newblock {\em arXiv preprint arXiv:2502.05003}, 2025.
+
+\bibitem{maisonnave2025gradual}
+Lucas Maisonnave, Cyril Moineau, Olivier Bichler, and Fabrice Rastello.
+\newblock Gradual binary search and dimension expansion: A general method for
+  activation quantization in llms.
+\newblock {\em arXiv preprint arXiv:2504.13989}, 2025.
+
 \bibitem{zhang2026theoretical}
 Haoyu Zhang, Shihao Zhang, Ian Colbert, and Rayan Saab.
 \newblock Provable post-training quantization: Theoretical analysis of optq and
   qronos.
 \newblock {\em arXiv preprint arXiv:2508.04853}, 2026.
 
+\bibitem{wen2025knowledge}
+Yuqiao Wen, Freda Shi, and Lili Mou.
+\newblock Knowledge distillation for language models.
+\newblock In {\em Proceedings of the 2025 Annual Conference of the Nations of
+  the Americas Chapter of the Association for Computational Linguistics: Human
+  Language Technologies (Tutorial Abstracts)}, pages 25--29, 2025.
+
 \bibitem{zhang2023spfq}
 Jinjie Zhang and Rayan Saab.
 \newblock Spfq: A stochastic algorithm and its error analysis for neural
   network quantization.
 \newblock {\em arXiv preprint arXiv:2309.10975}, 2023.
+
+\bibitem{zhao2026self}
+Siyan Zhao, Zhihui Xie, Mengchen Liu, Jing Huang, Guan Pang, Feiyu Chen, and
+  Aditya Grover.
+\newblock Self-distilled reasoner: On-policy self-distillation for large
+  language models.
+\newblock {\em arXiv preprint arXiv:2601.18734}, 2026.
+
+\bibitem{babai1986lovasz}
+L{\'a}szl{\'o} Babai.
+\newblock On lov{\'a}sz' lattice reduction and the nearest lattice point
+  problem.
+\newblock {\em Combinatorica}, 6(1):1--13, 1986.
+
+\bibitem{yin2023squeeze}
+Zeyuan Yin, Eric Xing, and Zhiqiang Shen.
+\newblock Squeeze, recover and relabel: Dataset condensation at imagenet scale
+  from a new perspective.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~36, pages 73582--73603, 2023.
+
+\bibitem{zhao2022decoupled}
+Borui Zhao, Quan Cui, Renjie Song, Yiyu Qiu, and Jiajun Liang.
+\newblock Decoupled knowledge distillation.
+\newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and
+  Pattern Recognition}, pages 11953--11962, 2022.
+
+\bibitem{dettmers2022gpt3}
+Tim Dettmers, Mike Lewis, Younes Belkada, and Luke Zettlemoyer.
+\newblock Gpt3.int8(): 8-bit matrix multiplication for transformers at scale.
+\newblock {\em Advances in Neural Information Processing Systems},
+  35:30318--30332, 2022.
+
+\bibitem{xu2026paced}
+Yuanda Xu, Hejian Sang, Zhengze Zhou, Ran He, and Zhipeng Wang.
+\newblock Paced: Distillation and on-policy self-distillation at the frontier
+  of student competence.
+\newblock {\em arXiv preprint arXiv:2603.11178}, 2026.
+
+\bibitem{busbridge2025distillation}
+Dan Busbridge, Amitis Shidani, Floris Weers, Jason Ramapuram, Etai Littwin, and
+  Russ Webb.
+\newblock Distillation scaling laws.
+\newblock In {\em International Conference on Machine Learning (ICML)}, 2025.
 
 \end{thebibliography}
