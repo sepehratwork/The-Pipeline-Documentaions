@@ -1,1 +1,48 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{تقطیر برخط چندمعلمی و چندسطحی (\en{Multi-Teacher On-Policy Distillation - MOPD})}
+مدل \model{Kimi K3} (با ۲.۸ تریلیون پارامتر کل و ۱۰۴ میلیارد پارامتر فعال در ساختار \en{Stable LatentMoE})، قابلیت‌های خود را از ادغام ۹ خط‌مشی متخصص حاصل از تقاطع سه دامنه (وظایف عمومی، عامل‌های هوشمند، کدنویسی) و سه سطح تلاش ذهنی (\en{Reasoning Effort}) $e \in \{\text{low}, \text{high}, \text{max}\}$ به دست می‌آورد \cite{kimi2026k3}. سیگنال پاداش متراکم تقطیر برای هدایت دانش‌آموز به صورت زیر تعریف شده است:
+\begin{equation}
+    r_{\mathrm{opd}}^d(y_t \mid e, x, y_{<t}) = \mathrm{clip}\left( \mathrm{sg}\left( \log \frac{\pi_{\text{teacher}}^{(d, e)}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid e, x, y_{<t})} \right), -R_{\max}, R_{\max} \right)
+\end{equation}
+که در آن $R_{\max} > 0$ یک آستانه برش جهت کنترل سیگنال‌های فرین مزیت است. این پاداش متراکم در ترکیب با سازوکار بازپخش جزئی (\en{Partial Rollout})، آموزش در مقیاس کانتکست ۱ میلیون توکن را پایدار می‌سازد.
+
+\paragraph*{تقطیر مدل پیش‌نویس \en{EAGLE-3} با تابع زیان شانس‌پذیری (\en{LK Loss})}
+لایه‌های پیش‌بینی چندتوکنی (\en{MTP}) در \model{Kimi K3} به عنوان یک مدل پیش‌نویس سبک‌وزن در معماری \en{EAGLE-3} \cite{li2025eagle3} تنظیم دقیق می‌شوند. در حالی که مدل هدف منجمد است، مدل پیش‌نویس با استفاده از بازنمایی‌های چندسطحی استخراج‌شده از بلوک‌های سازوکار توجه پسماند (\en{Attention Residuals - AttnRes}) آموزش می‌بیند:
+\begin{equation}
+    H_{\mathrm{fused}} = W_{E3} \begin{bmatrix} h_{\mathrm{low}} \\ h_{\mathrm{mid}} \\ h_{\mathrm{high}} \end{bmatrix}
+\end{equation}
+ماتریس $W_{E3}$ به صورت $[0 \mid 0 \mid I]$ مقداردهی اولیه می‌شود تا در شروع آموزش دقیقاً بر ویژگی‌های لایه آخر منطبق باشد و سپس تعاملات سطوح پایین‌تر را یاد بگیرد.
+
+\paragraph*{بهینه‌سازی مستقیم نرخ پذیرش استنتاج حدسی}
+بهینه‌سازی سنتی بر مبنای واگرایی \en{KL} تضمین‌کننده حداکثرسازی نرخ پذیرش در مدل‌های پیش‌نویس با ظرفیت محدود نیست. \model{Kimi K3} از تابع زیان \en{LK} \cite{samarin2026lk} برای بهینه‌سازی مستقیم نرخ پذیرش بدون اتلاف استفاده می‌کند:
+\begin{equation}
+    \mathcal{L}_{\mathrm{LK}} = - \log \sum_{x \in \mathcal{V}} \min(p(x), q(x))
+\end{equation}
+که در آن $p$ توزیع مدل هدف و $q$ توزیع مدل پیش‌نویس است. با در نظر گرفتن مشتق سافت‌مکس، گرادیان نسبت به لاجیت پیش‌نویس $z_k^q$ عبارت است از:
+\begin{equation}
+    \frac{\partial \mathcal{L}_{\mathrm{LK}}}{\partial z_k^q} = -\frac{1}{\sum_{x \in \mathcal{V}} \min(p(x), q(x))} \left[ \mathbb{I}(q(k) < p(k)) q(k) - q(k) \sum_{x \in \mathcal{V}} \mathbb{I}(q(x) < p(x)) q(x) \right]
+\end{equation}
+این فرمول‌بندی ریاضی، گرادیان را منحصراً به سمت توکن‌هایی هدایت می‌کند که احتمال تولید آن‌ها توسط پیش‌نویس کمتر از هدف بوده است. این فرایند تحت کوانتیزاسیون آگاه (\en{QAT}) با وزن‌های \en{MXFP4} و فعال‌سازهای \en{MXFP8} اجرا می‌گردد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.6cm,
+    block/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners, minimum height=1cm, minimum width=3.2cm, align=center, font=\small},
+    box/.style={rectangle, draw=green!60!black, fill=green!5, rounded corners, minimum height=1cm, minimum width=3.2cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[block] (target) {\textbf{بک‌بون مدل \model{Kimi K3} (منجمد)}\\استخراج ویژگی‌های چندسطحی \en{AttnRes}};
+    \node[block, right=2.0cm of target] (fusion) {\textbf{تصویرسازی و ادغام ویژگی‌ها}\\$W_{E3} = [0 \mid 0 \mid I]$};
+    \node[box, below=1.4cm of fusion] (draft) {\textbf{مدل پیش‌نویس \en{EAGLE-3}}\\بازکردن بازگشتی طی ۷ گام};
+    \node[box, below=1.4cm of target] (loss) {\textbf{بهینه‌سازی مستقیم با \en{LK Loss}}\\$\mathcal{L}_{\mathrm{LK}} = -\log \sum \min(p(x), q(x))$};
+
+    \draw[arrow] (target) -- node[above, font=\footnotesize] {$h_{\text{low}}, h_{\text{mid}}, h_{\text{high}}$} (fusion);
+    \draw[arrow] (fusion) -- (draft);
+    \draw[arrow] (target) -- node[left, font=\footnotesize] {توزیع هدف $p(x)$} (loss);
+    \draw[arrow] (draft) -- node[above, font=\footnotesize] {توزیع پیش‌نویس $q(x)$} (loss);
+\end{tikzpicture}
+\caption{سازوکار تقطیر مدل پیش‌نویس با تابع زیان \en{LK} در \model{Kimi K3}}
+\label{fig:kimi_k3_distillation}
+\end{figure}

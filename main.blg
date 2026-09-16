@@ -2,15 +2,27 @@ This is BibTeX, Version 0.99e (TeX Live 2026/Arch Linux)
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: unsrt.bst
-Reallocated field_info (elt_size=8) to 19145 items from 5000.
+Reallocated field_info (elt_size=8) to 19904 items from 5000.
 Database file #1: references.bib
 Reallocated str_pool (elt_size=1) to 130000 items from 65000.
+Reallocated str_pool (elt_size=1) to 195000 items from 130000.
 Warning--I didn't find a database entry for "nemotron_nano2_2025"
 Warning--I didn't find a database entry for "tieleman2012rmsprop"
 Warning--I didn't find a database entry for "kunstner2023noise"
 Warning--I didn't find a database entry for "ordentlich2026high1"
-Warning--I didn't find a database entry for "chen2026geometry"
 Warning--I didn't find a database entry for "birnick2026lattice"
+Warning--I didn't find a database entry for "chi2023normkd"
+Warning--I didn't find a database entry for "guo2020reducing"
+Warning--I didn't find a database entry for "romero2014fitnets"
+Warning--I didn't find a database entry for "zagoruyko2016paying"
+Warning--I didn't find a database entry for "shu2021channel"
+Warning--I didn't find a database entry for "huang2023knowledge"
+Warning--I didn't find a database entry for "park2019relational"
+Warning--I didn't find a database entry for "liu2021exploring"
+Warning--I didn't find a database entry for "huang2022knowledge"
+Warning--I didn't find a database entry for "mansourian2025aicsd"
+Warning--I didn't find a database entry for "ko2024distillm"
+Warning--I didn't find a database entry for "fu2026revisiting"
 Warning--empty journal in goldwaser2026equivalence
 Warning--empty journal in geva2021transformer
 Warning--empty journal in geva2022transformer
@@ -20,45 +32,45 @@ Warning--empty journal in zhao2025small
 Warning--empty journal in su2026moe
 Warning--empty journal in chen2025olmix
 Warning--can't use both volume and number fields in ward1963hierarchical
-You've used 692 entries,
+You've used 716 entries,
             1791 wiz_defined-function locations,
-            3113 strings with 128482 characters,
-and the built_in function-call counts, 151366 in all, are:
-= -- 10802
-> -- 11454
-< -- 99
-+ -- 4093
-- -- 3401
-* -- 9472
-:= -- 26382
-add.period$ -- 2070
-call.type$ -- 692
-change.case$ -- 685
+            3221 strings with 133802 characters,
+and the built_in function-call counts, 157518 in all, are:
+= -- 11284
+> -- 11840
+< -- 106
++ -- 4230
+- -- 3514
+* -- 9856
+:= -- 27358
+add.period$ -- 2142
+call.type$ -- 716
+change.case$ -- 709
 chr.to.int$ -- 0
-cite$ -- 701
-duplicate$ -- 6787
-empty$ -- 12936
-format.name$ -- 3401
-if$ -- 32564
+cite$ -- 725
+duplicate$ -- 7085
+empty$ -- 13495
+format.name$ -- 3514
+if$ -- 33945
 int.to.chr$ -- 0
-int.to.str$ -- 692
-missing$ -- 657
-newline$ -- 3457
-num.names$ -- 692
-pop$ -- 2582
+int.to.str$ -- 716
+missing$ -- 681
+newline$ -- 3577
+num.names$ -- 716
+pop$ -- 2683
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 3314
+skip$ -- 3483
 stack$ -- 0
-substring$ -- 3930
-swap$ -- 1627
-text.length$ -- 99
+substring$ -- 4215
+swap$ -- 1726
+text.length$ -- 106
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
 warning$ -- 9
-while$ -- 1007
-width$ -- 695
-write$ -- 7065
-(There were 15 warnings)
+while$ -- 1053
+width$ -- 719
+write$ -- 7314
+(There were 26 warnings)

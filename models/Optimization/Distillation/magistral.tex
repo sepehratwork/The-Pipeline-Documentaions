@@ -1,1 +1,35 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{تقطیر ردپای تفکر در برابر یادگیری تقویتی خالص}
+مدل‌های استدلالی خانواده \model{Magistral} (شامل \en{Magistral Medium} بر پایه \en{Mistral Medium 3} و \en{Magistral Small} بر پایه مدل ۲۴ میلیارد پارامتری \en{Mistral Small 3}) پاسخی دقیق به کارآمدی روش‌های تقطیر در قیاس با یادگیری تقویتی ارائه می‌دهند \cite{magistral2025}. 
+
+\paragraph*{تحلیل پارادوکس تقطیر استدلال در مدل‌های کوچک}
+گزارش‌های قبلی (نظیر \en{DeepSeek-R1} \cite{deepseek2025r1}) مدعی بودند که مدل‌های کوچک توانایی دستیابی به رفتار استدلالی ژرف از طریق \en{RL} خالص را ندارند و باید مستقیماً از ردپای مدل‌های بزرگ‌تر تقطیر شوند. \model{Magistral} با ارزیابی سه پیکربندی مجزا روی مدل ۲۴B، این فرضیه را به چالش می‌کشد:
+\begin{itemize}
+    \item \textbf{تقطیر محض (\en{SFT-only}):} آموزش نظارت‌شده با استفاده از ردپاهای استدلالی استخراج‌شده از \en{Magistral Medium} بر روی بنچمارک \en{AIME'24} به دقت $65.4\%$ می‌رسد.
+    \item \textbf{یادگیری تقویتی خالص (\en{RL-only}):} آموزش بدون هیچ‌گونه داده راه‌انداز استدلالی به دقت $65.8\%$ دست می‌یابد که برتری \en{RL} بدون تقطیر را اثبات می‌کند.
+    \item \textbf{ترکیب تقطیر و یادگیری تقویتی (\en{SFT + RL}):} اعمال فین‌تیونینگ اولیه روی ردپاهای تقطیرشده معلم و سپس اجرای \en{RLVR}، دقت \en{AIME'24} را به \textbf{۷۰.۷٪} (بیش از ۵ نمره رشد مطلق نسبت به هر دو رویکرد) می‌رساند.
+\end{itemize}
+
+\paragraph*{تقطیر منابع استدلال بازمتن (\en{Distillation from OSS Reasoning Traces})}
+در فاز آزمایشی، مدل پایه با ۱.۳ میلیون نمونه تقطیرشده از \en{DeepSeek-R1} (از طریق مجموعه‌های \en{OpenThoughts} و \en{OpenR1}) تنظیم دقیق گردید. اعمال یادگیری تقویتی بر روی این چک‌پوینت تقطیرشده، جهشی بالغ بر ۱۰ درصد در \en{AIME'25} و ۵ درصد در \en{LiveCodeBench} ثبت کرد که بر نقش کاتالیزوری تقطیر اولیه در تسریع بهینه‌سازی صحه می‌گذارد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    block/.style={rectangle, draw=orange!80!black, fill=orange!5, rounded corners, minimum height=1cm, minimum width=3.2cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[block] (teacher) {\textbf{مدل معلم} (\model{Magistral Medium})\\تولید استدلال عمیق با \en{RL} خالص};
+    \node[block, right=2.0cm of teacher] (traces) {\textbf{ردپاهای فیلترشده \en{CoT}}\\حذف استدلال‌های کوتاه و متناقض};
+    \node[block, below=1.3cm of traces] (student_sft) {\textbf{راه‌اندازی دانش‌آموز ۲۴B}\\آموزش نظارت‌شده (\en{SFT})};
+    \node[block, left=2.0cm of student_sft] (student_rl) {\textbf{مدل نهایی \model{Magistral Small}}\\بهبود فراتر از سقف تقطیر با \en{RL}};
+
+    \draw[arrow] (teacher) -- (traces);
+    \draw[arrow] (traces) -- (student_sft);
+    \draw[arrow] (student_sft) -- node[above, font=\footnotesize] {شروع \en{RLVR}} (student_rl);
+\end{tikzpicture}
+\caption{فرایند تقطیر و ارتقای متوالی در \model{Magistral Small}}
+\label{fig:magistral_distillation}
+\end{figure}

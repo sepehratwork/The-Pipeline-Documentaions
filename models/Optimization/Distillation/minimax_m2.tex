@@ -1,1 +1,40 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{تقطیر نامتقارن دستورالعمل‌ها (\en{Asymmetric Prompt Distillation})}
+در مدل‌های سری \model{MiniMax-M2} (با ۲۲۹.۹ میلیارد پارامتر کل و ۹.۸ میلیارد پارامتر فعال)، به منظور درونی‌سازی الگوهای مهندسی نرم‌افزار و تعامل عاملی، از روش تقطیر پرامپت استفاده شده است \cite{minimax2026m2}. در مرحله نمونه‌برداری مسیرهای عاملی، مدل‌های معلم یک پرامپت سیستمی غنی شامل قواعد جامع طراحی \en{UI/UX} و چک‌لیست‌های پیشرفته تست دریافت می‌کنند. در زمان تقطیر این مسیرها به مدل \model{M2}، این دستورالعمل‌ها از زمینه ورودی حذف می‌شوند:
+\begin{equation}
+    \mathcal{D}_{\text{train}} = \left\{ (x_{\text{stripped}}, y) \mid y \sim \pi_{\text{teacher}}(\cdot \mid x_{\text{enriched}}) \right\}
+\end{equation}
+این عدم تقارن موجب می‌شود که مدل دانش‌آموز اصول حرفه‌ای را به عنوان یک رفتار پیش‌فرض در وزن‌های خود نهادینه سازد.
+
+\paragraph*{تقطیر همزمان ماژول \en{MTP} با واگرایی \en{Top-$K$ KL}}
+در طول آموزش \en{RL} بر پایه سامانه \en{Forge}، سیاست رفتاری مدل اصلی به طور پیوسته تغییر می‌کند. برای جلوگیری از واگرایی میان مدل اصلی و لایه‌های پیش‌نویس \en{MTP}، این لایه‌ها از طریق واگرایی \en{Top-$K$ KL} همگام با خط‌مشی جاری تقطیر می‌شوند:
+\begin{equation}
+    \mathcal{L}_{\mathrm{MTP}}(\phi) = \sum_{k=1}^3 \mathbb{E}_{y \sim \pi_\theta} \left[ D_{\mathrm{KL}}^{\mathrm{Top\text{-}}M}\left( \pi_\theta(\cdot \mid y_{\le t+k-1}) \parallel \pi_\phi^{(k)}(\cdot \mid y_{\le t}) \right) \right]
+\end{equation}
+که در آن $D_{\mathrm{KL}}^{\mathrm{Top\text{-}}M}$ نشان‌دهنده واگرایی کولبک-لایبلر مقید به $M$ توکن با بیشترین جرم احتمالاتی مدل هدف است:
+\begin{equation}
+    D_{\mathrm{KL}}^{\mathrm{Top\text{-}}M}(P \parallel Q) = \sum_{w \in \mathrm{Top\text{-}}M(P)} \tilde{P}(w) \log \frac{\tilde{P}(w)}{\tilde{Q}(w)}, \quad \tilde{P}(w) = \frac{P(w)}{\sum_{u \in \mathrm{Top\text{-}}M(P)} P(u)}
+\end{equation}
+این راهکار تضمین می‌کند که نرخ پذیرش کلمات در رمزگشایی حدسی در تمام مراحل پویای یادگیری تقویتی بالا باقی بماند.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    block/.style={rectangle, draw=red!70!black, fill=red!5, rounded corners, minimum height=1cm, minimum width=3.4cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[block] (rl_policy) {\textbf{خط‌مشی پویا \en{Forge RL}}\\تغییر غیرایستای توزیع $\pi_\theta$};
+    \node[block, right=2.0cm of rl_policy] (topk_distill) {\textbf{تقطیر همزمان \en{Top-$K$ KL}}\\ترازسازی پیش‌بینی لایه‌های \en{MTP}};
+    \node[block, below=1.3cm of topk_distill] (mtp_heads) {\textbf{ماژول‌های پیش‌نویس $K=3$}\\کپی اولیه از وزن‌های بک‌بون};
+    \node[block, below=1.3cm of rl_policy] (inference) {\textbf{رمزگشایی حدسی پایدار}\\تثبیت نرخ پذیرش در فاز استنتاج};
+
+    \draw[arrow] (rl_policy) -- (topk_distill);
+    \draw[arrow] (topk_distill) -- (mtp_heads);
+    \draw[arrow] (mtp_heads) -- (inference);
+    \draw[arrow] (rl_policy) -- (inference);
+\end{tikzpicture}
+\caption{تقطیر همزمان لایه‌های \en{MTP} با استفاده از \en{Top-$K$ KL} در \model{MiniMax-M2}}
+\label{fig:minimax_m2_distillation}
+\end{figure}

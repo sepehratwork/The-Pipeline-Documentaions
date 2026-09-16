@@ -1,1 +1,39 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{رویکرد تقطیر قوی به ضعیف (\en{Strong-to-Weak Distillation})}
+در توسعه خانواده \model{Qwen3}، مدل‌های پرچم‌دار شامل \en{Qwen3-235B-A22B} و \en{Qwen3-32B} با یک فرایند پس‌آموزش چهارمرحله‌ای شامل راه‌اندازی با تفکر طولانی، یادگیری تقویتی استدلال، همجوشی مدهای تفکر و \en{RL} عمومی آموزش داده شده‌اند \cite{qwen2025v3}. در مقابل، برای ساخت مدل‌های سبک‌وزن (شامل مدل‌های متراکم ۰.۶B تا ۱۴B و مدل ۳۰B-A3B)، از یک خط لوله کارآمد دو‌مرحله‌ای بر مبنای «تقطیر قوی به ضعیف» استفاده شده است:
+\begin{enumerate}
+    \item \textbf{تقطیر برون‌خط پاسخ‌ها (\en{Off-Policy Distillation}):} پاسخ‌های معلمان پرچم‌دار که به صورت متوازن حاوی برچسب‌های \en{/think} و \en{/no\_think} هستند، به مدل‌های سبک‌وزن تزریق می‌شوند تا توانایی فعال‌سازی یا عدم‌فعال‌سازی تفکر و قالب‌بندی خروجی را بیاموزند.
+    \item \textbf{تقطیر برخط لاجیت‌ها (\en{On-Policy Distillation}):} دانش‌آموز اقدام به تولید توالی‌های جدید می‌کند و سپس لاجیت‌های تولیدی آن با لاجیت‌های مدل‌های معلم مقایسه و واگرایی کولبک-لایبلر معکوس به حداقل رسانده می‌شود:
+    \begin{equation}
+        \mathcal{L}_{\mathrm{OPD}}(\theta) = \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta} \left[ D_{\mathrm{KL}}\left(\pi_\theta(\cdot \mid x, y_{<t}) \parallel \pi_{\mathrm{Teacher}}(\cdot \mid x, y_{<t})\right) \right]
+    \end{equation}
+\end{enumerate}
+
+\paragraph*{تحلیل تجربی و تئوریک: مقایسه تقطیر برخط در برابر یادگیری تقویتی (\en{RL})}
+تیم توسعه \model{Qwen3} در آزمایشی تطبیقی بر روی نسخه ۸B، عملکرد دو رویکرد تقطیر برخط و یادگیری تقویتی مستقیم را با نقطه آغاز یکسان مقایسه کرده است:
+\begin{itemize}
+    \item \textbf{کاهش ۱۰ برابری هزینه محاسبات:} تقطیر برخط به ۱,۸۰۰ ساعت پردازش \en{GPU} نیاز داشته، در حالی که اجرای \en{RL} نیازمند ۱۷,۹۲۰ ساعت پردازش بوده است.
+    \item \textbf{گسترش افق اکتشاف (\en{Exploration Space}):} در الگوریتم‌های \en{RL}، به دلیل پاداش‌های دودویی، نرخ \en{Pass@64} بهبود نیافته و روی ۹۰.۰٪ متوقف می‌ماند؛ در حالی که تقطیر لاجیت‌ها با هدایت گام‌به‌گام فضای پنهان، \en{Pass@64} را در آزمون \en{AIME'24} به \textbf{۹۳.۳٪} و نرخ \en{Pass@1} را از ۵۵.۰٪ به \textbf{۷۴.۴٪} ارتقا داده است.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    block/.style={rectangle, draw=purple!80!black, fill=purple!5, rounded corners, minimum height=1cm, minimum width=3.4cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[block] (flagship) {\textbf{معلمان پرچم‌دار \model{Qwen3}}\\Qwen3-235B-A22B / 32B};
+    \node[block, right=2.0cm of flagship] (offpolicy) {\textbf{فاز ۱: تقطیر برون‌خط}\\تثبیت مدهای تفکر دوگانه};
+    \node[block, below=1.3cm of offpolicy] (onpolicy) {\textbf{فاز ۲: تقطیر برخط لاجیت}\\نمونه‌برداری برخط $y \sim \pi_\theta$};
+    \node[block, below=1.3cm of flagship] (student) {\textbf{مدل‌های سبک‌وزن \model{Qwen3}}\\۰.۶B تا ۱۴B و ۳۰B-A3B\\کاهش ۱۰ برابری ساعت \en{GPU}};
+
+    \draw[arrow] (flagship) -- (offpolicy);
+    \draw[arrow] (offpolicy) -- (onpolicy);
+    \draw[arrow] (flagship) |- (onpolicy);
+    \draw[arrow] (onpolicy) -- (student);
+\end{tikzpicture}
+\caption{فرایند دومرحله‌ای تقطیر قوی-به-ضعیف در مدل‌های سبک‌وزن \model{Qwen3}}
+\label{fig:qwen3_distillation}
+\end{figure}

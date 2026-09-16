@@ -1,1 +1,50 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{تقطیر برخط بین‌مرحله‌ای (\en{On-Policy Cross-Stage Distillation})}
+در مدل \model{GLM-5}، پس‌آموزش شامل سه مرحله متوالی است: یادگیری تقویتی استدلال (\en{Reasoning RL})، یادگیری تقویتی عاملی (\en{Agentic RL}) و یادگیری تقویتی عمومی (\en{General RL}) \cite{glm2026v5}. بهینه‌سازی متوالی این اهداف متمایز معمولاً به پدیده فراموشی فاجعه‌بار (\en{Catastrophic Forgetting}) منجر می‌شود. برای مقابله با این معضل، مرحله پایانی پس‌آموزش با یک خط‌لوله تقطیر برخط طراحی شده است که مهارت‌های تخصصی مراحل قبلی را بدون افت کیفیت یکپارچه می‌سازد.
+
+\paragraph*{صورت‌بندی ریاضی جایگزینی مزیت در \en{GRPO}}
+در این رهیافت، آخرین چک‌پوینت‌های مراحل پیشین به عنوان مدل‌های معلم ایفای نقش می‌کنند. \model{GLM-5} به‌جای تخمین تجربی مزیت بر پایه گروه در الگوریتم \en{GRPO} \cite{shao2024deepseekmath}، سیگنال مزیت را مستقیماً با نسبت لگاریتمی توزیع معلم جایگزین می‌کند:
+\begin{equation}
+    \hat{A}_{i, t} = \mathrm{sg} \left[ \log \frac{\pi_{\theta_{\text{teacher}}}^{\text{infer}}(y_{i, t} \mid x, y_{i, <t})}{\pi_\theta^{\text{train}}(y_{i, t} \mid x, y_{i, <t})} \right]
+\end{equation}
+که در آن $\pi_{\theta_{\text{teacher}}}^{\text{infer}}$ خط‌مشی استنتاجی معلم و $\pi_\theta^{\text{train}}$ خط‌مشی آموزشی جاری است.
+
+\paragraph*{تحلیل تئوری و راندمان محاسباتی}
+با توجه به فرمول‌بندی فوق، مزیت دیگر به عنوان یک متغیر تصادفی نیازمند خط‌پایه درون‌گروهی نیست؛ زیرا انحراف از توزیع هدف به صورت صریح از لاگ-نسبت به دست می‌آید. این ویژگی محاسباتی پیامدهای راهبردی زیر را در بر دارد:
+\begin{itemize}
+    \item \textbf{تقلیل اندازه گروه به $G=1$:} در فرمول استاندارد \en{GRPO}، نیاز به نمونه‌برداری چندگانه ($G \ge 16$) برای تخمین میانگین پاداش وجود داشت. با جایگزینی تحلیلی فوق، اندازه گروه به $G=1$ کاهش یافته و اندازه دسته به $1024$ افزایش می‌یابد که به شکل چشمگیری نرخ پردازش نمونه‌ها را ارتقا می‌دهد.
+    \item \textbf{استخراج سریع لاجیت‌ها با \en{MQA Mode}:} جهت تسریع در استخراج خروجی‌های معلم، موتور استنتاج به گونه‌ای بازمهندسی شده که معماری توجه چندنهفته‌ای (\en{MLA}) معلم در فاز تقطیر مستقیماً در قالب \en{Multi-Query Attention (MQA)} عمل کند.
+\end{itemize}
+
+\paragraph*{تقطیر و اشتراک پارامتر در پیش‌بینی چندتوکنی (\en{MTP Distillation})}
+در معماری \model{GLM-5}، لایه‌های \en{Multi-Token Prediction (MTP)} جهت افزایش طول پذیرش در رمزگشایی حدسی به کار گرفته می‌شوند. برخلاف \en{DeepSeek-V3} که تنها دارای یک لایه \en{MTP} با پیش‌بینی ۲ توکن است، \model{GLM-5} سه لایه \en{MTP} را در زمان آموزش با پارامترهای مشترک (\en{Shared Parameters}) بهینه‌سازی می‌کند:
+\begin{equation}
+    \mathcal{L}_{\mathrm{MTP}}(\theta) = - \sum_{k=1}^3 \sum_{t=1}^T \log P_{\theta, \mathrm{shared}}(x_{t+k} \mid x_{\le t})
+\end{equation}
+این طراحی مانع از رشد خطی حافظه پنهان \en{KV-Cache} شده و متوسط طول پذیرش توکن‌های حدسی را از $2.55$ در \model{DeepSeek-V3.2} به $2.76$ در \model{GLM-5} افزایش داده است.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    stage/.style={rectangle, draw=teal!80!black, fill=teal!5, rounded corners, minimum height=0.9cm, minimum width=2.8cm, align=center, font=\small},
+    block/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners, minimum height=1cm, minimum width=3.4cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[stage] (s1) {\textbf{مرحله ۱:}\\یادگیری تقویتی استدلال};
+    \node[stage, right=1.2cm of s1] (s2) {\textbf{مرحله ۲:}\\یادگیری تقویتی عاملی};
+    \node[stage, right=1.2cm of s2] (s3) {\textbf{مرحله ۳:}\\یادگیری تقویتی عمومی};
+
+    \node[block, below=1.4cm of s2] (distill) {\textbf{تقطیر برخط بین‌مرحله‌ای}\\جایگزینی مزیت با $\hat{A}_{i,t} = \mathrm{sg}[\log(\pi_T/\pi_\theta)]$\\تنظیم اندازه گروه $G=1$};
+    \node[block, below=1.2cm of distill] (final) {\textbf{مدل نهایی \model{GLM-5}}\\رفع کامل فراموشی فاجعه‌بار};
+
+    \draw[arrow] (s1) -- (s2);
+    \draw[arrow] (s2) -- (s3);
+    \draw[arrow] (s1) |- node[near start, left, font=\footnotesize] {چک‌پوینت معلم استدلال} (distill);
+    \draw[arrow] (s3) |- node[near start, right, font=\footnotesize] {چک‌پوینت معلم عمومی} (distill);
+    \draw[arrow] (distill) -- (final);
+\end{tikzpicture}
+\caption{خط‌لوله تقطیر برخط بین‌مرحله‌ای در \model{GLM-5} برای بازیابی مهارت‌ها}
+\label{fig:glm5_distillation}
+\end{figure}

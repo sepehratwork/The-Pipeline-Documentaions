@@ -1,1 +1,38 @@
-\item \textbf asd
+\item \model{Olmo 3}
+
+\paragraph*{اشباع تقلید و ظهور یادگیری دلتا (\en{Imitation Saturation \& Delta Learning})}
+در آموزش مدل‌های تفکر \model{Olmo 3 Think} (به‌ویژه نسخه پرچم‌دار ۳۲B)، پدیده‌ای تئوریک تحت عنوان **«اشباع تقلید در فین‌تیونینگ نظارت‌شده (\en{SFT})»** شناسایی گردید \cite{olmo2025v3}. ادامه آموزش نظارت‌شده مستقیم بر روی زنجیره‌های تفکر تولیدشده توسط معلمان قدرتمند (نظیر \en{Qwen3-32B}) به افت کارایی مدل منجر شد (کاهش میانگین بنچمارک‌ها از ۷۰.۳ به ۶۴.۵). برای عبور از این گلوگاه، تیم \model{Olmo 3} روش تقطیر را از تقلید صلب به «یادگیری ترجیحی دلتا بر پایه \en{DPO}» دگرگون ساخت \cite{geng2025delta}.
+
+\paragraph*{صورت‌بندی ریاضی یادگیری دلتا در \en{DPO}}
+در این چارچوب، جفت‌های ترجیحی متشکل از پاسخ برگزیده معلم قوی ($y_c \sim \text{Qwen3-32B}$) و پاسخ مردود یک مدل ضعیف‌تر ($y_r \sim \text{Qwen3-0.6B}$) با حداکثر تفاوت کیفی $\Delta(y_c, y_r)$ ساخته می‌شوند. تابع زیان \en{DPO} به صورت نرمالایز‌شده بر پایه طول تعریف می‌گردد:
+\begin{equation}
+    \mathcal{L}_{\mathrm{DPO}}(\theta) = -\mathbb{E}_{(x, y_c, y_r)} \left[ \log \sigma \left( \frac{\beta}{|y_c|} \log \frac{\pi_\theta(y_c \mid x)}{\pi_{\text{ref}}(y_c \mid x)} - \frac{\beta}{|y_r|} \log \frac{\pi_\theta(y_r \mid x)}{\pi_{\text{ref}}(y_r \mid x)} \right) \right]
+\end{equation}
+مشتق این رابطه نشان می‌دهد که گرادیان مدل بر بردار تفاضلی گرادیان دو پاسخ متمرکز می‌شود:
+\begin{equation}
+    \nabla_\theta \mathcal{L}_{\mathrm{DPO}} = -\beta \cdot \sigma(-\hat{r}_\theta) \left( \frac{\nabla_\theta \log \pi_\theta(y_c \mid x)}{|y_c|} - \frac{\nabla_\theta \log \pi_\theta(y_r \mid x)}{|y_r|} \right)
+\end{equation}
+این ساختار ریاضی تباینی، حتی در شرایطی که تقلید از $y_c$ اشباع شده باشد، به لطف گرادیان دافعه نسبت به $y_r$، مرزهای قابلیت استدلال را گسترش می‌دهد و میانگین ارزیابی را به \textbf{۷۲.۹} می‌رساند.
+
+\paragraph*{کنترل سوگیری طول در تقطیر \en{Olmo 3 Instruct}}
+در تقطیر داده‌های مکالمه‌ای و استفاده از ابزار، به دلیل تمایل ذاتی قضات \en{LLM} به ترجیح متون طولانی‌تر، اختلاف طول $|y_c| - |y_r|$ در دادگان به حداکثر ۱۰۰ توکن محدود گردید. این امر به تقطیر مدلی منجر شد که با کمترین پرگویی، بالاترین کارایی اطلاعاتی را در هر توکن ارائه می‌دهد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    block/.style={rectangle, draw=teal!80!black, fill=teal!5, rounded corners, minimum height=1cm, minimum width=3.4cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[block] (strong) {\textbf{معلم قوی (پاسخ $y_c$)}\\\en{Qwen3-32B Thinking}};
+    \node[block, right=2.0cm of strong] (weak) {\textbf{معلم ضعیف (پاسخ $y_r$)}\\\en{Qwen3-0.6B Thinking}};
+    \node[block, below=1.3cm of $(strong)!0.5!(weak)$] (delta) {\textbf{محاسبه دلتای تباینی}\\تلفات \en{Length-Normalized DPO}};
+    \node[block, below=1.3cm of delta] (student) {\textbf{مدل دانش‌آموز \model{Olmo 3 Think}}\\شکستن سد اشباع تقلید (\en{Imitation Saturation})};
+
+    \draw[arrow] (strong) |- (delta);
+    \draw[arrow] (weak) |- (delta);
+    \draw[arrow] (delta) -- (student);
+\end{tikzpicture}
+\caption{سازوکار یادگیری دلتا (\en{Delta Learning}) در برابر اشباع تقلید در \model{Olmo 3}}
+\label{fig:olmo3_distillation}
+\end{figure}

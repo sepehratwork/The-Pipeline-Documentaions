@@ -1,1 +1,44 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{تقطیر لاجیت در پیش‌آموزش (\en{Logit-based Pre-Training Distillation})}
+مدل \model{MobileLLM-Pro} با مقیاس ۱ میلیارد پارامتر، فرایند پیش‌آموزش خود را روی ۱.۴ تریلیون توکن با بهره‌گیری کامل از تقطیر لاجیت از مدل معلم \en{Llama 4-Scout} با دایره واژگان ۲۰۲,۰۴۸ اجرا کرده است \cite{mobilellmpro2025}. به‌جای تابع زیان آنتروپی متقاطع با برچسب‌های تک‌کدی (\en{One-hot Targets})، هدف بر پایه واگرایی پیشرو \en{Forward KL} تعریف می‌شود:
+\begin{equation}
+    \mathcal{L}_{\mathrm{KD}} = \sum_{w \in \mathcal{V}} P_{\mathrm{Teacher}}(w \mid x) \log \left( \frac{P_{\mathrm{Teacher}}(w \mid x)}{Q_{\mathrm{Student}}(w \mid x)} \right)
+\end{equation}
+در ارزیابی‌های هم‌مقیاس از منظر فلاپس محاسباتی (\en{FLOP-aligned})، تقطیر لاجیت در پیش‌آموزش موجب بهبود \textbf{۴.۴٪ مطلق} در میانگین ۱۱ بنچمارک استاندارد گردید (۵۳.۷۴ در برابر ۴۹.۳۱).
+
+\paragraph*{تقطیر موقعیتی پنهان (\en{Implicit Positional Distillation})}
+نوآوری محوری این مدل، توسعه طول کانتکست به ۱۲۸,۰۰۰ توکن بدون مواجهه مستقیم دانش‌آموز با داده‌های طولانی است. در سازوکار \en{RoPE}، بردارهای ویژگی در موقعیت $p$ با فرکانس $\theta_i = 10000^{-2i/d}$ چرخانده می‌شوند:
+\begin{equation}
+    R_{\Theta, p} = \mathrm{diag}\left( R_{\theta_1, p}, R_{\theta_2, p}, \dots, R_{\theta_{d/2}, p} \right), \quad 
+    R_{\theta_i, p} = \begin{pmatrix} \cos(p\theta_i) & -\sin(p\theta_i) \\ \sin(p\theta_i) & \cos(p\theta_i) \end{pmatrix}
+\end{equation}
+در پیش‌آموزش با کانتکست کوتاه $L_{\mathrm{short}}$، مدل فقط زوایای بازه $[0, L_{\mathrm{short}}\theta_i]$ را می‌بیند. اتصال اسناد کوتاه به همراه ماسک علّی بلوکی مانع از تعامل توکن‌های با فاصله بیش از طول هر سند می‌شود. با این حال، معلم (\en{Llama 4-Scout}) زوایای متناظر با فواصل طویل را در لاجیت‌های خروجی خود رمزگذاری کرده است. از این رو، دانش‌آموز از طریق تطابق لاجیت‌ها، روابط موقعیتی بلندمدت را به شکل ضمنی فرا می‌گیرد. در آزمون سوزن در انبار کاه (\en{Needle In A Haystack - NIH})، دقت بازیابی به \textbf{۹۹.۷۸٪} رسیده و از افت ۵.۹ درصدی کارایی که در روش‌های استاندارد رخ می‌دهد، جلوگیری شده است.
+
+\paragraph*{خود-تقطیر آگاه از کوانتیزاسیون (\en{QAT Self-Distillation})}
+در فاز چهارم بهینه‌سازی، برای کوانتیزاسیون ۴ بیتی (\en{INT4})، از خود-تقطیر با استفاده از چک‌پوینت ممیز شناور فاز ۳ به عنوان معلم منجمد استفاده شد:
+\begin{equation}
+    \mathcal{L}_{\mathrm{QAT}} = D_{\mathrm{KL}}\left( \pi_{\mathrm{FP32}}(\cdot \mid x) \parallel \pi_{\mathrm{INT4}}(\cdot \mid x) \right)
+\end{equation}
+این خود-تقطیر سبب افزایش ۲.۴۳ درصدی نمرات گردیده و پسرفت ناشی از کوانتیزاسیون را به کمتر از ۰.۴ درصد محدود کرد.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    block/.style={rectangle, draw=cyan!80!black, fill=cyan!5, rounded corners, minimum height=1cm, minimum width=3.4cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[block] (teacher) {\textbf{معلم: \en{Llama 4-Scout}}\\پوشش زاویه‌ای کامل \en{RoPE} تا ۱۲۸k};
+    \node[block, right=2.0cm of teacher] (input) {\textbf{اسناد کوتاه متصل‌شده}\\ماسک علّی بلوکی (کانتکست ۲k)};
+    \node[block, below=1.4cm of teacher] (distill) {\textbf{تقطیر موقعیتی پنهان}\\انتقال هندسه دوربرد از طریق لاجیت};
+    \node[block, below=1.4cm of input] (student) {\textbf{دانش‌آموز: \model{MobileLLM-Pro}}\\دقت ۹۹.۷۸٪ در آزمون \en{NIH}};
+
+    \draw[arrow] (input) -- (teacher);
+    \draw[arrow] (teacher) -- (distill);
+    \draw[arrow] (distill) -- (student);
+    \draw[arrow] (input) -- (student);
+\end{tikzpicture}
+\caption{انتقال فضای زاویه‌ای \en{RoPE} از طریق تقطیر موقعیتی پنهان در \model{MobileLLM-Pro}}
+\label{fig:mobilellm_distillation}
+\end{figure}

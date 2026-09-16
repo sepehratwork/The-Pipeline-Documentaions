@@ -1,1 +1,68 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{چارچوب نظری تقطیر برخط مبتنی بر چند معلم (\en{Multi-Teacher On-Policy Distillation - MOPD})}
+در فرایند پس‌آموزش (\en{Post-training}) مدل \model{DeepSeek-V4}، مرحله سنتی یادگیری تقویتی ترکیبی (\en{Mixed RL}) به طور کامل با سازوکار \en{On-Policy Distillation (OPD)} جایگزین شده است \cite{deepseek2026v4}. در این پارادایم، ابتدا $N$ مدل تخصصی (\en{Specialist Models}) $\mathcal{S} = \{\pi_{E_1}, \pi_{E_2}, \dots, \pi_{E_N}\}$ (شامل بیش از ۱۰ معلم در دامنه‌های ریاضیات، کدنویسی، تعامل عاملی، و نگارش) از طریق \en{GRPO} آموزش می‌بینند. سپس مدل یکپارچه دانش‌آموز $\pi_\theta$ بر روی نمونه‌های تولیدشده از خط‌مشی جاری خود ($y \sim \pi_\theta$) و تحت هدایت توزیع خروجی این معلمان تخصصی بهینه‌سازی می‌شود:
+\begin{equation}
+    \mathcal{L}_{\mathrm{OPD}}(\theta) = \sum_{i=1}^N w_i \cdot \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_\theta} \left[ D_{\mathrm{KL}}\left(\pi_\theta(\cdot \mid x, y_{<t}) \parallel \pi_{E_i}(\cdot \mid x, y_{<t})\right) \right]
+\end{equation}
+که در آن $w_i \ge 0$ وزن اهمیت هر معلم متناسب با دامنه ورودی است.
+
+\paragraph*{استخراج ریاضی گرادیان واگرایی معکوس \en{KL} در برابر تقریب تک‌توکنی}
+رویکردهای پیشین تقطیر برخط، واگرایی \en{KL} را با یک تخمین مونت‌کارلو در سطح تک‌توکن تقریب زده و پاداش خط‌مشی را با استفاده از عملگر توقف گرادیان (\en{Stop Gradient}) به فرم زیر تعریف می‌کردند:
+\begin{equation}
+    r_t = \mathrm{sg}\left( \log \frac{\pi_{E_i}(y_t \mid x, y_{<t})}{\pi_\theta(y_t \mid x, y_{<t})} \right)
+\end{equation}
+تیم \model{DeepSeek-V4} نشان می‌دهد که این تخمین به دلیل وابستگی به یک تک‌نمونه تصادفی، دارای واریانس بسیار شدید است:
+\begin{equation}
+    \mathrm{Var}_{y_t \sim \pi_\theta}\left[ \nabla_\theta \log \pi_\theta(y_t) \cdot \log \frac{\pi_{E_i}(y_t)}{\pi_\theta(y_t)} \right] \gg 0
+\end{equation}
+این واریانس بالا منجر به ناپایداری‌های شدید در طول آموزش و پدیده فروپاشی خط‌مشی می‌شود. برای حل بنیادین این چالش، \model{DeepSeek-V4} تقطیر بر روی کل واژگان (\en{Full-Vocabulary Logit Distillation}) را جایگزین می‌کند. مشتق تحلیلی نسبت به لاجیت $z_{t, k}$ مدل دانش‌آموز به صورت زیر حاصل می‌شود:
+\begin{equation}
+    \frac{\partial \mathcal{L}_t}{\partial z_{t, k}} = \sum_{w \in \mathcal{V}} \frac{\partial \pi_\theta(w)}{\partial z_{t, k}} \left( \log \frac{\pi_\theta(w)}{\pi_T(w)} + 1 \right)
+\end{equation}
+با توجه به اینکه مشتق تابع سافت‌مکس برابر با $\frac{\partial \pi_\theta(w)}{\partial z_{t, k}} = \pi_\theta(w)(\delta_{w, k} - \pi_\theta(k))$ است، داریم:
+\begin{equation}
+    \begin{aligned}
+        \frac{\partial \mathcal{L}_t}{\partial z_{t, k}} &= \pi_\theta(k) \left( \log \frac{\pi_\theta(k)}{\pi_T(k)} + 1 \right) - \pi_\theta(k) \sum_{w \in \mathcal{V}} \pi_\theta(w) \left( \log \frac{\pi_\theta(w)}{\pi_T(w)} + 1 \right) \\
+        &= \pi_\theta(k) \left[ \log \frac{\pi_\theta(k)}{\pi_T(k)} - D_{\mathrm{KL}}(\pi_\theta \parallel \pi_T) \right]
+    \end{aligned}
+\end{equation}
+این رابطه تحلیلی نشان می‌دهد که گرادیان بر روی کل فضای واژگان گسسته محاسبه شده و واریانس نمونه‌برداری به صفر تقلیل می‌یابد.
+
+\paragraph*{زیرساخت و مهندسی سیستم‌ها در تقطیر با واژگان کامل (\en{Full-Vocab OPD Systems})}
+محاسبه و ذخیره لاجیت‌های کامل برای دایره واژگان $|\mathcal{V}| > 100\text{K}$ بر روی کانتکست یک میلیون توکن برای بیش از ۱۰ معلم، نیازمند صدها ترابایت حافظه است. برای تحقق این ساختار، نوآوری‌های زیر پیاده‌سازی شدند:
+\begin{itemize}
+    \item \textbf{بافرینگ وضعیت‌های پنهان لایه آخر (\en{Last-Layer Hidden State Caching}):} به جای ذخیره ماتریس عظیم لاجیت‌ها، تنها بردار وضعیت‌های پنهان لایه آخر $h_L \in \mathbb{R}^d$ در یک بافر توزیع‌شده نگهداری می‌شود. در گام محاسبه تلفات، این بردارها از حافظه خوانده شده و با ضرب در لایه خروجی معلم (\en{Prediction Head})، لاجیت‌ها به صورت برخط (\en{On-the-fly}) تولید می‌گردند.
+    \item \textbf{زمان‌بندی دسته‌ای بر پایه شناسه معلم (\en{Teacher-Indexed Sample Batching}):} نمونه‌های آموزشی بر اساس شناسه معلم مرتب می‌شوند تا در هر میکرو‌بچ، حداکثر یک سر پیش‌بینی معلم در حافظه \en{VRAM} قرار گیرد و انتقال وزن‌ها به شکل ناهمگام در پس‌زمینه صورت گیرد.
+    \item \textbf{کرنل همجوش \en{TileLang}:} واگرایی \en{KL} کامل بدون تخصیص حافظه پویا، توسط کرنل‌های بهینه‌شده به زبان \en{TileLang} مستقیماً درون رجیسترهای شتاب‌دهنده پردازش می‌شود.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.5cm,
+    box/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners, minimum height=1cm, minimum width=3.2cm, align=center, font=\small},
+    tbox/.style={rectangle, draw=purple!70!black, fill=purple!5, rounded corners, minimum height=1cm, minimum width=3cm, align=center, font=\small},
+    op/.style={rectangle, draw=orange!80!black, fill=orange!10, rounded corners=8pt, inner sep=6pt, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick, color=gray!80!black}
+]
+    \node[box] (student) {\textbf{مدل دانش‌آموز} (\model{DeepSeek-V4})\\نمونه‌برداری برخط: $y \sim \pi_\theta(\cdot \mid x)$};
+    \node[tbox, right=2.0cm of student] (teachers) {\textbf{معلمان تخصصی} ($N > 10$)\\$\pi_{E_1}, \pi_{E_2}, \dots, \pi_{E_N}$};
+    \node[box, below=1.4cm of student] (hidden_cache) {\textbf{بافر وضعیت پنهان لایه آخر}\\ذخیره $h_L$ به‌جای لاجیت};
+    \node[tbox, below=1.4cm of teachers] (head) {\textbf{بازسازی برخط لاجیت}\\بارگذاری ترتیبی سر پیش‌بینی};
+
+    % تعریف نقطه میانی استاندارد بدون نیاز به نحو پیچیده
+    \path (hidden_cache) -- coordinate[midway] (mid_cache_head) (head);
+    \node[op, below=1.4cm of mid_cache_head] (kl) {\en{TileLang Fused Kernel}\\\small $\min_\theta D_{\mathrm{KL}}(\pi_\theta \parallel \pi_{E_i})$};
+    \node[box, below=1.2cm of kl] (update) {\textbf{به‌روزرسانی گرادیان دانش‌آموز}\\توزیع واژگان کامل ($|\mathcal{V}| > 100\text{K}$)};
+
+    \draw[arrow] (student) -- node[above, font=\footnotesize] {پرامپت و توالی $y$} (teachers);
+    \draw[arrow] (student) -- node[right, font=\footnotesize] {استخراج $h_L$} (hidden_cache);
+    \draw[arrow] (teachers) -- node[right, font=\footnotesize] {فراخوانی سر تخصصی} (head);
+    \draw[arrow] (hidden_cache) |- (kl);
+    \draw[arrow] (head) |- (kl);
+    \draw[arrow] (kl) -- (update);
+\end{tikzpicture}
+\caption{سازوکار تقطیر برخط چند‌معلمی با بازسازی بلادرنگ لاجیت در \model{DeepSeek-V4}}
+\label{fig:deepseek_v4_distillation}
+\end{figure}
