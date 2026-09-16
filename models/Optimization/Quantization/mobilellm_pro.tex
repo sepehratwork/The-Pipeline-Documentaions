@@ -1,1 +1,73 @@
-\item \textbf asd
+\item \model{MobileLLM-Pro}
+
+\paragraph*{مقدمه و الزامات پردازش درون‌دستگاهی}
+مدل \model{MobileLLM-Pro} \cite{huber2025mobilellmpro} به عنوان یک مدل زبانی ۱ میلیارد پارامتری با پشتیبانی از بافت ۱۲۸ هزار توکن، منحصراً جهت استقرار بر روی پردازنده‌های مرکزی (\en{CPU}) و شتاب‌دهنده‌های هوش مصنوعی موبایل (\en{NPU/HTP/ANE}) توسعه یافته است. هدف فشرده‌سازی، کاهش ردپای حافظه از ۲.۲ گیگابایت به کمتر از ۶۰۰ مگابایت با حفظ بیشینه قابلیت‌های استدلالی است.
+
+\paragraph*{ساختار کوانتیزیشن دوگانه: پردازنده مرکزی در برابر شتاب‌دهنده}
+برای تطابق با معماری‌های مختلف، دو سازوکار مجزا طراحی گردیده است:
+\begin{itemize}
+    \item \textbf{شاخه پردازنده مرکزی (\en{CPU - xnnpack}):} وزن‌ها به فرمت متقارن \en{INT4} با اندازه گروه ۳۲ (\en{Group-size 32})، و فعال‌سازها و کش \en{KV} به فرمت نامتقارن پویا \en{INT8} کوانتایز می‌شوند. حجم مدل نهایی به ۵۹۰ مگابایت می‌رسد.
+    \item \textbf{شاخه شتاب‌دهنده لبه (\en{Accelerator - ANE/HTP}):} وزن‌ها به صورت متقارن در سطح کانال (\en{Channel-wise INT4}) کوانتایز شده و فعال‌سازها و کش \en{KV} به دلیل محدودیت‌های شتاب‌دهنده در دقت \en{BF16} باقی می‌مانند. حجم مدل ۷۲۰ مگابایت است.
+\end{itemize}
+
+\paragraph*{فرمول‌بندی کوانتیزیشن پویا و یادگیری بازه}
+عملگر نگاشت فعال‌ساز هشت بیتی نامتقارن برای بردار ورودی $x_{\text{in}}$ به فرم زیر تعریف می‌شود:
+\begin{equation}
+    s_x = \frac{\max(x_{\text{in}}) - \min(x_{\text{in}})}{255}, \quad z = \min(x_{\text{in}})
+\end{equation}
+\begin{equation}
+    \mathcal{Q}(x_{\text{in}}) = s_x \cdot \text{clip}\left( \left\lfloor \frac{x_{\text{in}} - z}{s_x} \right\rceil, 0, 255 \right) + z
+\end{equation}
+
+برای کوانتیزاسیون وزن‌ها در گروه $W_g$:
+\begin{equation}
+    s_w = \frac{1}{7.5} \max(-w_{\min}, w_{\max})
+\end{equation}
+\begin{equation}
+    \mathcal{Q}(W_g) = s_w \cdot \text{clip}\left( \left\lfloor \frac{W_g}{s_w} \right\rceil, -8, 7 \right)
+\end{equation}
+
+در شتاب‌دهنده‌ها، به علت کوانتیزیشن کانالی درشت‌دانه، کران‌های $w_{\min}$ و $w_{\max}$ پارامترهای یادگیرنده هستند که در فاز \en{QAT} مستقیماً توسط مشتقات خطا تنظیم می‌شوند:
+\begin{equation}
+    \frac{\partial \mathcal{Q}(W)}{\partial w_{\max}} = \begin{cases} 
+        1, & \text{if } \frac{W}{s_w} > 7 \\
+        0, & \text{otherwise} 
+    \end{cases}
+\end{equation}
+این رویکرد دقت مدل را به میزان \textbf{۴.۷۹٪ به‌طور مطلق} ارتقا می‌بخشد.
+
+\paragraph*{خود-تقطیر دانشی (\en{Self-Knowledge Distillation})}
+در حین فرایند \en{QAT}، مدل فشرده از چک‌پوینت اعشاری کامل خود مدل به عنوان معلم بهره می‌برد:
+\begin{equation}
+    \mathcal{L}_{\text{QAT}} = \mathcal{L}_{\text{CE}}(y, \hat{y}) + \tau^2 \mathcal{D}_{\text{KL}}\left( \text{Softmax}\left(\frac{z_{\text{FP}}}{\tau}\right) \;\middle\|\; \text{Softmax}\left(\frac{z_{\text{quant}}}{\tau}\right) \right)
+\end{equation}
+این تکنیک افت کارایی ناشی از تبدیل گسسته را در مقایسه با کوانتیزاسیون پس‌آموزش کلاسیک (\en{PTQ}) که با سقوط ۱۷ درصدی مواجه می‌شود، به رقم ناچیز \textbf{۰.۴٪} محدود می‌سازد.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.6cm,
+    block/.style={rectangle, draw=teal!70!black, fill=teal!5, rounded corners, minimum width=3.2cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    algo/.style={rectangle, draw=cyan!70!black, fill=cyan!10, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small},
+    arr/.style={-Latex, thick, draw=teal!80!black}
+]
+    \node[block] (fp) {چک‌پوینت شناور\\ \en{Phase 3 FP Model}};
+    
+    % CPU path
+    \node[algo, right=1.6cm of fp, yshift=1.3cm] (cpu) {شاخه پردازنده مرکزی (\en{CPU})\\ \en{INT4 Group-wise (32)} + \en{INT8 Act}};
+    \node[block, right=of cpu] (cpumodel) {مدل ۵۹۰ مگابایتی\\ بهینه‌شده برای \en{xnnpack}};
+
+    % NPU path
+    \node[algo, right=1.6cm of fp, yshift=-1.3cm] (npu) {شاخه شتاب‌دهنده (\en{NPU/HTP})\\ \en{INT4 Channel-wise} + دامنه‌های یادگیرنده};
+    \node[block, right=of npu] (npumodel) {مدل ۷۲۰ مگابایتی\\ با خروجی پایا};
+
+    \draw[arr] (fp) |- (cpu);
+    \draw[arr] (cpu) -- (cpumodel);
+    \draw[arr] (fp) |- (npu);
+    \draw[arr] (npu) -- (npumodel);
+\end{tikzpicture}%
+}
+\caption{خط لوله دوگانه کوانتیزاسیون ۴ بیتی و خود-تقطیر دانشی در \model{MobileLLM-Pro}}
+\label{fig:mobilellm_quant}
+\end{figure}

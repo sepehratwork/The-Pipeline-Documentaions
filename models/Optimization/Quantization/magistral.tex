@@ -1,1 +1,42 @@
-\item \textbf asd
+\item \model{Magistral}
+
+\paragraph*{تحلیل پایداری دقت ممیز شناور در یادگیری تقویتی ناب (\en{Pure RLVR})}
+در مدل استدلالی \model{Magistral} \cite{mistral2025magistral}، برخلاف جریان‌های رایج فشرده‌سازی پس‌آموزش، از اعمال کوانتیزاسیون تهاجمی زیر ۸ بیت خودداری شده است. دلیل این تصمیم از تحلیل حساسیت خطای تقریب در بهینه‌ساز سیاست نسبی گروهی (\en{GRPO}) ناشی می‌شود.
+
+\paragraph*{تحلیل آماری تشدید خطای کوانتیزیشن در افق زمانی طولانی}
+در الگوریتم \en{GRPO}، نسبت پویایی سیاست (\en{Importance Sampling Ratio}) برای یک توالی خروجی به طول $T$ (که در استدلال‌های عمیق تا ۳۲ هزار توکن رشد می‌کند) نقش کلیدی دارد:
+\begin{equation}
+    \rho_{1:T} = \prod_{t=1}^{T} \frac{\pi_\theta(o_t \mid q, o_{<t})}{\pi_{\theta_{\text{old}}}(o_t \mid q, o_{<t})} = \exp\left( \sum_{t=1}^{T} \left[ \log \pi_\theta(o_t) - \log \pi_{\theta_{\text{old}}}(o_t) \right] \right)
+\end{equation}
+چنانچه پارامترهای مدل تحت نویز کوانتیزیشن متناوب $\delta W$ قرار گیرند، مقدار خطای تجمعی لگاریتم احتمال به فرم زیر درمی‌آید:
+\begin{equation}
+    \log \pi_{\tilde{\theta}}(o_t) = \log \pi_\theta(o_t) + \nabla_\theta \log \pi_\theta(o_t)^\top \delta W + \mathcal{O}(\|\delta W\|^2)
+\end{equation}
+واریانس نسبت بازتولید در افق توالی‌های طولانی رابطه نمایی با طول مسیر پیدا می‌کند:
+\begin{equation}
+    \operatorname{Var}(\rho_{1:T}) \propto \exp(T \cdot \sigma^2_{\text{quant}})
+\end{equation}
+در حضور خطای کوانتیزیشن ۴ بیتی، این واریانس مرزهای برش اعتماد (\en{Trust Region}) یعنی $[1-\varepsilon_{\text{low}}, 1+\varepsilon_{\text{high}}]$ را به سرعت شکسته و به فروپاشی انتروپی (\en{Entropy Collapse}) منجر می‌شود. از این رو، مدل \model{Magistral} محاسبات آموزش و تولید نمونه را به طور کامل در دقت نامتقلیل \en{Bfloat16} و \en{FP32} تثبیت کرده و بار حافظه را به جای کوانتیزاسیون، با الگوریتم زمان‌بندی پویا (\en{Greedy Collation}) و صف‌های مسدودکننده مهار نموده است.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.4cm and 1.8cm,
+    state/.style={rectangle, draw=red!70!black, fill=red!5, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    alert/.style={rectangle, draw=orange!80!black, fill=orange!10, rounded corners, minimum width=3.6cm, minimum height=1.1cm, align=center, font=\small},
+    arrow/.style={-Latex, thick, draw=red!80!black}
+]
+    \node[state] (quant_noise) {نویز کوانتیزاسیون کم‌بیت\\ $\delta W \sim \mathcal{N}(0, \sigma^2)$};
+    \node[alert, right=of quant_noise] (drift) {انحراف لگاریتم احتمال\\ در توالی‌های طویل ($T > 32\text{K}$)};
+    \node[state, below=1.5cm of drift] (ratio_var) {رشد نمایی واریانس نسبت\\ $\operatorname{Var}(\rho) \propto e^{T\sigma^2}$};
+    \node[alert, left=of ratio_var] (collapse) {نقض مرزهای \en{Clip}\\ و فروپاشی انتروپی};
+
+    \draw[arrow] (quant_noise) -- (drift);
+    \draw[arrow] (drift) -- (ratio_var);
+    \draw[arrow] (ratio_var) -- (collapse);
+\end{tikzpicture}%
+}
+\caption{مدل‌سازی انتشار خطای کوانتیزاسیون در توالی‌های بلند استدلالی در تحلیل مدل \model{Magistral}}
+\label{fig:magistral_quant_analysis}
+\end{figure}

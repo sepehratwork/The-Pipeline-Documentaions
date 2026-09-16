@@ -2989,6 +2989,234 @@ Jialun Zhong, Wei Shen, Yanzeng Li, Songyang Gao, Hua Lu, Yicheng Chen, Yang
 \newblock Olmo 3: Open language models with complete model flow.
 \newblock {\em Technical Report, Allen Institute for AI}, 2025.
 
+\bibitem{gong2024survey}
+Ruihao Gong, Yifu Ding, Zining Wang, Chengtao Lv, Xingyu Zheng, Jinyang Du,
+  Jinyang Guo, Xianglong Liu, Haotong Qin, Michele Magno, Yang Yong, Shiqiao
+  Gu, and Dahua Lin.
+\newblock A survey of low-bit large language models: Basics, systems, and
+  algorithms.
+\newblock {\em arXiv preprint arXiv:2409.16694}, 2024.
+
+\bibitem{jorgensen2025resource}
+Tollef~Emil J{\o}rgensen.
+\newblock Resource-efficient language models: Quantization for fast and
+  accessible inference.
+\newblock {\em arXiv preprint arXiv:2505.08620}, 2025.
+
+\bibitem{jokar2026transforms}
+Ehsan Jokar.
+\newblock Transforms for llm quantization: The great inversion and format
+  co-design.
+\newblock {\em arXiv preprint arXiv:2608.25188}, 2026.
+
+\bibitem{zhao2025benchmarking}
+Jiaqi Zhao, Ming Wang, Miao Zhang, Yuzhang Shang, Xuebo Liu, Yaowei Wang, Min
+  Zhang, and Liqiang Nie.
+\newblock Benchmarking post-training quantization in llms: Comprehensive
+  taxonomy, unified evaluation, and comparative analysis.
+\newblock {\em arXiv preprint arXiv:2502.13178}, 2025.
+
+\bibitem{frantar2023gptq}
+Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and Dan Alistarh.
+\newblock Gptq: Accurate post-training quantization for generative pre-trained
+  transformers.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2023.
+
+\bibitem{liu2025binary}
+Liangdong Liu, Zhitong Zheng, Cong Wang, Tianhuang Su, and Zhenyu Yang.
+\newblock Binary neural networks for large language model: A survey.
+\newblock {\em arXiv preprint arXiv:2502.19008}, 2025.
+
+\bibitem{dettmers2022llmint8}
+Tim Dettmers, Mike Lewis, Younes Belkada, and Luke Zettlemoyer.
+\newblock Llm.int8(): 8-bit matrix multiplication for transformers at scale.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  35:30318--30332, 2022.
+
+\bibitem{xiao2023smoothquant}
+Guangxuan Xiao, Ji~Lin, Mickael Seznec, Hao Wu, Julien Demouth, and Song Han.
+\newblock Smoothquant: Accurate and efficient post-training quantization for
+  large language models.
+\newblock {\em International Conference on Machine Learning (ICML)}, pages
+  38087--38099, 2023.
+
+\bibitem{lloyd1982least}
+Stuart~P. Lloyd.
+\newblock Least squares quantization in pcm.
+\newblock {\em IEEE Transactions on Information Theory}, 28(2):129--137, 1982.
+
+\bibitem{max1960quantizing}
+Joel Max.
+\newblock Quantizing for minimum distortion.
+\newblock {\em IRE Transactions on Information Theory}, 6(1):7--12, 1960.
+
+\bibitem{bennett1948spectra}
+William~Ralph Bennett.
+\newblock Spectra of quantized signals.
+\newblock {\em The Bell System Technical Journal}, 27(3):446--472, 1948.
+
+\bibitem{dettmers2023qlora}
+Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, and Luke Zettlemoyer.
+\newblock Qlora: Efficient finetuning of quantized llms.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  36, 2023.
+
+\bibitem{whalen2026kbbq}
+Lexington Whalen, Yuki Ito, and Ryo Sakamoto.
+\newblock Kbbq: A predictive noise law and the limits of spectrum flattening in
+  fp4 quantization.
+\newblock {\em arXiv preprint arXiv:2609.08135}, 2026.
+
+\bibitem{huang1963block}
+J.~Y. Huang and P.~M. Schultheiss.
+\newblock Block quantization of correlated gaussian random variables.
+\newblock {\em IEEE Transactions on Communications Systems}, 11(3):289--296,
+  1963.
+
+\bibitem{goyal2001theoretical}
+Vivek~K. Goyal.
+\newblock Theoretical foundations of transform coding.
+\newblock {\em IEEE Signal Processing Magazine}, 18(5):9--21, 2001.
+
+\bibitem{cover2006elements}
+Thomas~M. Cover and Joy~A. Thomas.
+\newblock {\em Elements of Information Theory}.
+\newblock Wiley-Interscience, 2nd edition, 2006.
+
+\bibitem{gish1968asymptotically}
+Herbert Gish and John~N. Pierce.
+\newblock Asymptotically efficient quantizing.
+\newblock {\em IEEE Transactions on Information Theory}, 14(5):676--683, 1968.
+
+\bibitem{marshall2011inequalities}
+Albert~W. Marshall, Ingram Olkin, and Barry~C. Arnold.
+\newblock {\em Inequalities: Theory of Majorization and Its Applications}.
+\newblock Springer, 2nd edition, 2011.
+
+\bibitem{malinovskii2024higgs}
+Vladimir Malinovskii, Andrei Panferov, Ivan Ilin, Han Guo, Peter Richt{\'a}rik,
+  and Dan Alistarh.
+\newblock Higgs: Pushing the limits of large language model quantization via
+  the linearity theorem.
+\newblock {\em Proceedings of NAACL}, pages 10857--10886, 2025.
+
+\bibitem{sun2025scaling}
+Xingwu Sun, Shuaipeng Li, Ruobing Xie, Weidong Han, Kan Wu, Zhen Yang, Yixing
+  Li, An~Wang, Shuai Li, Jinbao Xue, Yu~Cheng, Yangyu Tao, Zhanhui Kang,
+  Chengzhong Xu, Di~Wang, and Jie Jiang.
+\newblock Scaling laws for floating-point quantization training.
+\newblock {\em Proceedings of the 42nd International Conference on Machine
+  Learning (ICML)}, 2025.
+
+\bibitem{panferov2025unified}
+Andrei Panferov, Alexandra Volkova, Ionut-Vlad Modoranu, Vage Egiazarian, Mher
+  Safaryan, and Dan Alistarh.
+\newblock Unified scaling laws for compressed representations.
+\newblock {\em arXiv preprint arXiv:2506.01863}, 2025.
+
+\bibitem{chee2023quip}
+Jerry Chee, Yaohui Cai, Volodymyr Kuleshov, and Christopher~De Sa.
+\newblock Quip: 2-bit quantization of large language models with guarantees.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  36, 2023.
+
+\bibitem{tseng2024quipsharp}
+Albert Tseng, Jerry Chee, Qingyao Sun, Volodymyr Kuleshov, and Christopher~De
+  Sa.
+\newblock Quip\#: Even better llm quantization with hadamard incoherence and
+  lattice codebooks.
+\newblock {\em International Conference on Machine Learning (ICML)}, 2024.
+
+\bibitem{liu2025spinquant}
+Zechun Liu, Changsheng Zhao, Igor Fedorov, Bilge Soran, Dhruv Choudhary,
+  Raghuraman Krishnamoorthi, Vikas Chandra, Yuandong Tian, and Tijmen
+  Blankevoort.
+\newblock Spinquant: Llm quantization with learned rotations.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{lin2024awq}
+Ji~Lin, Jiaming Tang, Haotian Tang, Shang Yang, Wei-Ming Chen, Wei-Chen Wang,
+  Guangxuan Xiao, Xingyu Dang, Chuang Gan, and Song Han.
+\newblock Awq: Activation-aware weight quantization for llm compression and
+  acceleration.
+\newblock {\em Proceedings of Machine Learning and Systems (MLSys)}, 6:87--100,
+  2024.
+
+\bibitem{zhang2025baq}
+Chao Zhang, Li~Wang, Samson Lasaulce, and Merouane Debbah.
+\newblock Baq: Efficient bit allocation quantization for large language models.
+\newblock {\em arXiv preprint arXiv:2506.05664}, 2025.
+
+\bibitem{wang2023bitnet}
+Hongyu Wang, Shuming Ma, Li~Dong, Shaohan Huang, Huaijie Wang, Lingxiao Ma, Fan
+  Yang, Ruiping Wang, Yi~Wu, and Furu Wei.
+\newblock Bitnet: Scaling 1-bit transformers for large language models.
+\newblock {\em arXiv preprint arXiv:2310.11453}, 2023.
+
+\bibitem{ma2024era}
+Shuming Ma, Hongyu Wang, Lingxiao Ma, Lei Wang, Wenhui Wang, Shaohan Huang,
+  Li~Dong, Ruiping Wang, Jilong Xue, and Furu Wei.
+\newblock The era of 1-bit llms: All large language models are in 1.58 bits.
+\newblock {\em arXiv preprint arXiv:2402.17764}, 2024.
+
+\bibitem{vaidhya2025spectra}
+Tejas Vaidhya, Ayush Kaushal, Vineet Jain, Francis Couture-Harpin, Prashant
+  Shishodia, Majid Behbahani, Yuriy Nevmyvaka, and Irina Rish.
+\newblock Spectra 1.1: Scaling laws and efficient inference for ternary
+  language models.
+\newblock {\em arXiv preprint arXiv:2506.23025}, 2025.
+
+\bibitem{chowdhury2026efficient}
+Mohammed Nowaz~Rabbani Chowdhury, Kaoutar~El Maghraoui, Hsinyu Tsai, Naigang
+  Wang, Geoffrey~W. Burr, Liu Liu, and Meng Wang.
+\newblock Efficient quantization of mixture-of-experts with theoretical
+  generalization guarantees.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2026.
+
+\bibitem{hooper2024kvquant}
+Coleman Hooper, Sehoon Kim, Hiva Mohammadzadeh, Michael~W. Mahoney,
+  Yakun~Sophia Shao, Kurt Keutzer, and Amir Gholami.
+\newblock Kvquant: Towards 10 million context length llm inference with kv
+  cache quantization.
+\newblock {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  37, 2024.
+
+\bibitem{zhang2025sageattention}
+Jintao Zhang, Jia Wei, Pengle Zhang, Jun Zhu, and Jianfei Chen.
+\newblock Sageattention: Accurate 8-bit attention for plug-and-play inference
+  acceleration.
+\newblock {\em International Conference on Learning Representations (ICLR)},
+  2025.
+
+\bibitem{rababah2026illusion}
+Baha Rababah, Shahzeb Qamar, Lorenz Sparrenberg, Rafet Sifa, Murat
+  Kantarcioglu, Cuneyt~Gurcan Akcora, and Carson~K. Leung.
+\newblock The illusion of equivalency: Statistical characterization of
+  quantization effects in llms.
+\newblock {\em arXiv preprint arXiv:2607.08734}, 2026.
+
+\bibitem{helcig2026statistically}
+Michael Helcig, Eldar Kurti{\'c}, and Dan Alistarh.
+\newblock Statistically-lossless quantization of large language models.
+\newblock {\em Conference on Language Modeling (COLM)}, 2026.
+
+\bibitem{guo2024flute}
+Han Guo, William Brandon, Radostin Cholakov, Jonathan Ragan-Kelley, Eric~P.
+  Xing, and Yoon Kim.
+\newblock Flute: Fast matrix multiplications for lookup table-quantized llms.
+\newblock {\em Findings of the Association for Computational Linguistics:
+  EMNLP}, 2024.
+
+\bibitem{frantar2025marlin}
+Elias Frantar, Roberto~L. Castro, Jiale Chen, Torsten Hoefler, and Dan
+  Alistarh.
+\newblock Marlin: Mixed-precision auto-regressive parallel inference on large
+  language models.
+\newblock {\em Proceedings of PPoPP}, pages 239--251, 2025.
+
 \bibitem{chen2025revisiting}
 Zhengyu Chen, Siqi Wang, Teng Xiao, Yudong Wang, Shiqi Chen, Xunliang Cai,
   Junxian He, and Jingang Wang.

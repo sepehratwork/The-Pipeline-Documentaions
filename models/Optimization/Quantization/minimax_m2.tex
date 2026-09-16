@@ -1,1 +1,39 @@
-\item \textbf asd
+\item \model{MiniMax-M2}
+
+\paragraph*{رویکرد فعال‌سازی مینیاتوری در تقابل با فشرده‌سازی کوانتیزه}
+راهبرد بنیادی حاکم بر سری مدل‌های \model{MiniMax-M2} \cite{minimax2026m2} مبتنی بر این اصل است که به‌جای تکیه بر روش‌های تهاجمی کوانتیزاسیون زیر ۸ بیت (که منجر به افت عملکرد در وظایف چندمرحله‌ای عامل‌ها می‌شود)، باید از تقلیل پارامترهای فعال (\en{Mini Activations}) بهره گرفت. مدل پرچمدار \model{M2} با دارا بودن ۲۲۹.۹ میلیارد پارامتر کل، تنها ۹.۸ میلیارد پارامتر فعال را در هر گام پردازش می‌کند.
+
+\paragraph*{محدودیت‌های کوانتیزیشن در لایه‌های توجه خطی}
+گزارش فنی \model{M2} نشان می‌دهد که تلاش‌های پیشین برای اعمال فرمت‌های کم‌دقت بر لایه‌های توجه خطی (نظیر \en{Lightning Attention}) با چالش‌های اساسی زیر مواجه شده است:
+\begin{itemize}
+    \item \textbf{انباشت پویای خطا در حالت بازگشتی:} حالت بازگشتی توجه خطی $S_t = S_{t-1} + K_t^\top V_t$ در مواجهه با تقریب کوانتیزه به شکل زیر عمل می‌کند:
+    \begin{equation}
+        \tilde{S}_t = S_t + \sum_{\tau=1}^{t} \mathcal{E}_\tau^{\text{quant}}
+    \end{equation}
+    این خطای تجمعی به سرعت سیگنال بازیابی اطلاعات در متون طولانی را مخدوش می‌سازد.
+    \item \textbf{ناسازگاری با حافظه پنهان پیشوندی:} فقدان ساختار پیشرفته کوانتیزاسیون برای کش‌های هیبریدی، استقرار این مدل‌ها را دشوار می‌کرد.
+\end{itemize}
+در نتیجه این تحلیل‌ها، مدل \model{M2} معماری توجه را به توجه کامل چندسر با اشتراک سر کلید-مقدار (\en{GQA}) در دقت اعشاری کامل بازگرداند و هزینه حافظه را از طریق الگوریتم دقیق ادغام درخت پیشوند (\en{Prefix Tree Merging}) با \textbf{صفر درصد خطای تقریب} تا سقف $40\times$ کاهش داد.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.6cm,
+    ptree/.style={rectangle, draw=violet!70!black, fill=violet!5, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    seq/.style={rectangle, draw=teal!70!black, fill=teal!10, rounded corners, minimum width=2.6cm, minimum height=1.0cm, align=center, font=\small},
+    arr/.style={-Latex, thick, draw=violet!80!black}
+]
+    \node[ptree] (prefix) {پیشوند مشترک طولانی\\ \en{Common Context Prefix}};
+    \node[seq, above right=0.3cm and 1.5cm of prefix] (seq1) {شاخه پاسخ ۱};
+    \node[seq, right=1.5cm of prefix] (seq2) {شاخه پاسخ ۲};
+    \node[seq, below right=0.3cm and 1.5cm of prefix] (seq3) {شاخه پاسخ ۳};
+
+    \draw[arr] (prefix) -- (seq1);
+    \draw[arr] (prefix) -- (seq2);
+    \draw[arr] (prefix) -- (seq3);
+\end{tikzpicture}%
+}
+\caption{الگوی ادغام درخت پیشوند (\en{Prefix Tree Merging}) به عنوان جایگزین بدون تلفات کوانتیزاسیون کش در \model{MiniMax-M2}}
+\label{fig:minimax_m2_tree}
+\end{figure}

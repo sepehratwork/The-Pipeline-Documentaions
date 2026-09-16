@@ -1,1 +1,41 @@
-\item \textbf asd
+\item \model{Qwen3}
+
+\paragraph*{مقدمه و پایداری دقت محاسباتی در سری \model{Qwen3}}
+مدل‌های خانواده \model{Qwen3} \cite{qwen2025qwen3} در بازه ۰.۶ میلیارد تا ۲۳۵ میلیارد پارامتر با معماری‌های متراکم و تنک عرضه شده‌اند. گرچه مدل‌های پایه به صورت بومی با دقت استاندارد ممیز شناور آموزش می‌بینند، اما ساختار معماری آن به منظور تسهیل کوانتیزاسیون پس‌آموزش و جلوگیری از سرریز عددی در بافت‌های گسترده ($128\text{K}$) بازطراحی شده است.
+
+\paragraph*{نرمال‌سازی پرسش-کلید (\en{QK-Norm}) جهت جلوگیری از انفجار لاجیت‌ها}
+یکی از موانع اصلی در کوانتیزاسیون با دقت پایین تانسورهای توجه، پدیده انفجار دامنه‌ای لاجیت‌ها (\en{Logit Explosion}) است. در \model{Qwen3}، با حذف انحراف‌های خطی (\en{QKV-bias}) و اعمال لایه نرمال‌سازی برداری \en{RMSNorm} بر روی بردارهای پرسش و کلید پیش از محاسبه ضرب داخلی، پایداری عددی تضمین می‌شود:
+\begin{equation}
+    \text{Attn}(Q, K, V) = \text{Softmax}\left( \frac{\text{RMSNorm}(Q) \cdot \text{RMSNorm}(K)^\top}{\sqrt{d_k}} \right) V
+\end{equation}
+این ساختار، مقادیر پیش‌فعال‌ساز را در یک دامنه عددی مقید و متقارن تثبیت نموده و مانع از سرریز مقادیر ممیز شناور (\en{Overflow}) در محاسبات کم‌بیت می‌گردد.
+
+\paragraph*{تقطیر دانشی قوی-به-ضعیف به مثابه جایگزین فشرده‌سازی لایه‌ای}
+در مدل‌های سبک‌وزن (۰.۶ تا ۱۴ میلیارد پارامتر)، به‌جای استفاده از کوانتیزاسیون پسا-آموزش کلاسیک که کارایی استدلالی را دچار افت می‌کند، از روش تقطیر دانشی قوی-به-ضعیف (\en{Strong-to-Weak Distillation}) استفاده شده است:
+\begin{equation}
+    \mathcal{L}_{\text{distill}} = \mathcal{D}_{\text{KL}}\left( \pi_{\text{Teacher}}(y \mid x) \;\middle\|\; \pi_{\text{Student}}(y \mid x) \right)
+\end{equation}
+این رویکرد لاجیت‌های مدل‌های بزرگ (نظیر نسخه ۲۳۵ میلیارد پارامتری) را مستقیماً به مدل‌های سبک‌تر منتقل نموده و بدون نیاز به افت تفکیک‌پذیری بیت‌ها، کارایی محاسباتی معادل با فشرده‌سازی مستقیم را به ارمغان می‌آورد.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.6cm,
+    box/.style={rectangle, draw=orange!80!black, fill=orange!5, rounded corners, minimum width=3.2cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    process/.style={rectangle, draw=blue!70!black, fill=blue!10, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small},
+    arr/.style={-Latex, thick, draw=orange!80!black}
+]
+    \node[box] (input) {پرسش $Q$ و کلید $K$};
+    \node[process, right=of input] (norm) {نرمال‌سازی برداری\\ \en{RMSNorm (QK-Norm)}};
+    \node[box, right=of norm] (bound) {دامنه مقید لاجیت‌ها\\ بدون سرریز \en{No Overflow}};
+    \node[process, below=1.4cm of norm] (distill) {تقطیر دانشی لاجیت‌ها\\ از مدل ۲۳۵B به مدل‌های سبک};
+
+    \draw[arr] (input) -- (norm);
+    \draw[arr] (norm) -- (bound);
+    \draw[arr] (bound) |- (distill);
+\end{tikzpicture}%
+}
+\caption{پایدارسازی دامنه لاجیت با \en{QK-Norm} و انتقال تقطیری در \model{Qwen3}}
+\label{fig:qwen3_quant}
+\end{figure}

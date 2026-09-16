@@ -1,1 +1,60 @@
-\item \textbf asd
+\item \model{NVIDIA Nemotron 3}
+
+\paragraph*{مقدمه و چارچوب پیش‌آموزش با قالب \en{NVFP4}}
+خانواده مدل‌های \model{Nemotron 3} \cite{nvidia2025nemotron3} با ابداع رویکردی انقلابی، فرایند پیش‌آموزش مستقیم از صفر (\en{Pre-training from scratch}) را تا سقف \textbf{۲۵ تریلیون توکن} بر روی قالب نوین \textbf{\en{NVFP4}} به اجرا درآورده‌اند. در ریزمعماری‌های جدید نظیر پردازنده‌های \en{NVIDIA Blackwell GB300}، گذردهی پردازشی \en{NVFP4} تا ۳ برابر سریع‌تر از قالب \en{FP8} است.
+
+\paragraph*{کالبدشکافی تانسورهای \en{NVFP4} و مقیاس‌بندی دو سطحی}
+فرمت عددی \en{NVFP4} با بهره‌گیری از هسته‌های بومی ضرب ماتریسی در گذر رو به جلو (\en{fprop}) و گرادیان‌ها (\en{dgrad, wgrad}) عمل می‌کند و شامل ویژگی‌های هندسی زیر است:
+\begin{itemize}
+    \item \textbf{عناصر برداری میکروبلوک:} ۱۶ عنصر مجاور با قالب \en{E2M1}.
+    \item \textbf{ضریب مقیاس سطح اول (\en{Micro-block Scale}):} برای هر ۱۶ عنصر، یک ضریب مقیاس در قالب \en{FP8 (E4M3)} اختصاص داده می‌شود.
+    \item \textbf{ضریب مقیاس سطح دوم (\en{Global Scale}):} یک اسکالر کلی با دقت ممیز شناور استاندارد \en{FP32} کل بلوک را مقیاس‌بندی مجدد می‌کند.
+    \item \textbf{مقیاس‌بندی دوبُعدی وزن‌ها (\en{2D Block Scaling}):} تانسور وزن‌ها در دو راستای افقی و عمودی به صورت ماتریسی بلوک‌بندی می‌شود.
+\end{itemize}
+
+\paragraph*{سرکوب داده‌های پرت با \en{RHT} و گردکردن تصادفی گرادیان}
+برای غلبه بر چالش داده‌های پرت در فعال‌سازهای ورودی به گذر محاسبه گرادیان وزن (\en{wgrad})، تبدیل تصادفی هادامارد (\en{Random Hadamard Transforms - RHT}) اعمال می‌گردد:
+\begin{equation}
+    \tilde{X} = X \cdot H_{\text{rand}}
+\end{equation}
+این چرخش متعامد مقادیر فرین را در طول کانال‌ها همگن می‌سازد. همچنین، گرادیان‌ها با استفاده از روش بدون تورش گردکردن تصادفی (\en{Stochastic Rounding}) کوانتایز می‌شوند:
+\begin{equation}
+    \mathbb{E}[\mathcal{S}\mathcal{R}(g)] = g
+\end{equation}
+که تعصب آماری در به‌روزرسانی وزن‌ها را خنثی می‌سازد.
+
+\paragraph*{ایزولاسیون لایه‌های حساس و پیشگیری از پدیده \en{Flush-to-Zero}}
+برای مهار ناپایداری‌های عددی:
+\begin{itemize}
+    \item \textbf{لایه‌های خروجی \en{Mamba}:} به دلیل پدیده رانش به سمت صفر (\en{Flush-to-Zero}) تا مرز ۴۰٪ در صورت اعمال \en{NVFP4}، این لایه‌ها در دقت \en{MXFP8} نگهداری می‌شوند.
+    \item \textbf{لایه‌های توجه و انتهای شبکه:} پروجکشن‌های \en{QKV} و توجه به همراه ۱۵٪ از لایه‌های انتهایی کل مدل در دقت بالا (\en{BF16}) تثبیت می‌گردند.
+\end{itemize}
+این تدابیر شکاف خطای اعتبارسنجی را نسبت به آموزش با دقت \en{BF16} به کمتر از \textbf{۰.۶٪} محدود ساخته است.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.6cm,
+    tile/.style={rectangle, draw=green!60!black, fill=green!5, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    oper/.style={rectangle, draw=blue!70!black, fill=blue!10, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small},
+    arr/.style={-Latex, thick, draw=green!70!black}
+]
+    \node[tile] (micro) {میکروبلوک ۱۶ عنصری\\ قالب \en{E2M1}};
+    \node[tile, right=of micro] (sf1) {مقیاس سطح اول\\ قالب \en{FP8 (E4M3)}};
+    \node[tile, right=of sf1] (sf2) {مقیاس جهانی سطح دوم\\ دقت کامل \en{FP32}};
+    
+    \node[oper, below=1.5cm of micro] (rht) {تبدیل تصادفی هادامارد\\ (\en{RHT}) بر روی ورودی‌ها};
+    \node[oper, below=1.5cm of sf1] (sr) {گردکردن تصادفی\\ (\en{Stochastic Rounding})};
+    \node[oper, below=1.5cm of sf2] (gemm) {هسته سخت‌افزاری بومی\\ \en{NVFP4 GEMM (GB300)}};
+
+    \draw[arr] (micro) -- (sf1);
+    \draw[arr] (sf1) -- (sf2);
+    \draw[arr] (rht) -- (sr);
+    \draw[arr] (sr) -- (gemm);
+    \draw[arr] (sf2) -- (gemm);
+\end{tikzpicture}%
+}
+\caption{کالبدشکافی تانسور مقیاس‌بندی‌شده دو سطحی و تبدیل هادامارد در \en{NVFP4} مدل \model{Nemotron 3}}
+\label{fig:nemotron_quant}
+\end{figure}

@@ -1,1 +1,54 @@
-\item \textbf asd
+\item \model{Kimi K3}
+
+\paragraph*{راهبرد جامع کوانتیزیشن در مدل ۲.۸ تریلیون پارامتری}
+مدل \model{Kimi K3} \cite{kimi2026k3} متشکل از ۲.۸ تریلیون پارامتر کل (۱۰۴ میلیارد پارامتر فعال) مبتنی بر لایه‌های توجه خطی دلتا (\en{KDA}) و لایه‌های متخصصان پنهان پایدار (\en{Stable LatentMoE}) است. حجم محاسبات در طول چرخه استنتاج و فازهای پس‌آموزش بافت میلیونی، با استفاده از استراتژی کوانتیزاسیون \en{MXFP4} برای وزن‌ها و \en{MXFP8} برای فعال‌سازها مقیاس‌پذیر شده است.
+
+\paragraph*{کوانتیزیشن پس‌آموزش مبتنی بر استقرار (\en{Deployment-Aware Post-Training QAT})}
+در طول مراحل \en{SFT} و یادگیری تقویتی (\en{RL})، بهینه‌سازی تانسوری به صورت زیر تفکیک می‌شود:
+\begin{itemize}
+    \item \textbf{وزن متخصصان روت‌شده (\en{Routed Experts}):} بیش از ۸۵٪ کل پارامترها را شامل شده و به استاندارد میکرواسکِیلینگ \en{MXFP4} کوانتایز می‌شوند.
+    \item \textbf{فعال‌سازهای محاسباتی متخصصان:} در فضای \en{MXFP8} پردازش می‌گردند.
+    \item \textbf{بخش‌های غیرمتخصصین (\en{Non-Expert Modules}):} پروجکشن‌های توجه، متخصصان اشتراکی سراسری، لایه‌های تصویرساز پنهان ($W^\downarrow, W^\uparrow$) و شبکه‌های مسیریاب در دقت بالا (\en{BF16 / FP32}) پایدار می‌مانند تا از واگرایی گرادیان جلوگیری شود.
+\end{itemize}
+
+علاوه بر مدل اصلی، مدل پیش‌نویس (\en{Draft Model}) بر پایه معماری \en{EAGLE-3} نیز با همین پیکربندی \en{MXFP4/MXFP8} آموزش دیده و با تابع زیان درست‌نمایی مستقیم بهینه‌سازی می‌شود:
+\begin{equation}
+    \mathcal{L}_{\text{LK}} = -\log \sum_{x \in \mathcal{V}} \min(p(x), q(x))
+\end{equation}
+که در آن $p$ و $q$ توزیع احتمالاتی مدل هدف و مدل پیش‌نویس در دمای ۱ هستند.
+
+\paragraph*{بهینه‌سازی حافظه رمزگشایی با هسته‌های \en{WarpDecode}}
+در استنتاج با دسته‌های کوچک، خواندن وزن‌های متخصصان در گلوگاه پهنای باند حافظه قرار می‌گیرد. در \model{Kimi K3}، تغییر چیدمان آفلاین وزن‌ها (\en{Offline Weight Layout Permutation}) پیاده‌سازی شده است که وزن‌های ۴ بیتی را متناسب با توزیع رجیسترهای هر \en{Warp} مرتب می‌سازد. به این ترتیب، دکوانتیزاسیون درجا درون ثبات‌ها (\en{In-Register Dequantization}) و بدون اشغال حافظه اشتراکی اجرا می‌شود.
+
+همچنین در پیش‌آموزش، فعال‌سازهای ذخیره‌شده برای گذر برگشتی به فرمت بلوکی \en{FP8} کوانتایز شده و میان گره‌های موازی لوله‌ای (\en{PP Ranks}) از طریق موتور انتقال داده \en{Mooncake} جابه‌جا می‌شوند.
+
+\begin{figure}[htbp]
+\centering
+% تعریف محلی رنگ‌های مورد نیاز برای جلوگیری از خطای xcolor
+\providecolor{indigo}{RGB}{67, 56, 202}
+\providecolor{emerald}{RGB}{5, 150, 105}
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.8cm,
+    box/.style={rectangle, draw=indigo!70!black, fill=indigo!5, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    spec/.style={rectangle, draw=emerald!70!black, fill=emerald!10, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small},
+    arr/.style={-Latex, thick, draw=indigo!80!black}
+]
+    \node[box] (moe_in) {فعال‌ساز ورودی لایه\\ پنهان \en{LatentMoE}};
+    \node[spec, right=of moe_in] (mxfp8) {کوانتیزاسیون فعال‌ساز\\ قالب \en{MXFP8}};
+    \node[spec, right=of mxfp8] (warp) {هسته محاسباتی \en{WarpDecode}\\ استریم وزن \en{MXFP4}};
+
+    \node[box, below=1.5cm of moe_in] (non_moe) {لایه‌های حساس\\ (روتر، \en{KDA} و \en{Shared})};
+    \node[spec, right=of non_moe] (fp16) {حفظ دقت بالا\\ قالب \en{BF16/FP32}};
+    \node[spec, right=of fp16] (fusion) {ادغام خروجی و نرمال‌سازی\\ \en{RMSNorm}};
+
+    \draw[arr] (moe_in) -- (mxfp8);
+    \draw[arr] (mxfp8) -- (warp);
+    \draw[arr] (non_moe) -- (fp16);
+    \draw[arr] (fp16) -- (fusion);
+    \draw[arr] (warp) |- (fusion);
+\end{tikzpicture}%
+}
+\caption{جریان تفکیک دقت و بهینه‌سازی سخت‌افزاری در \model{Kimi K3}}
+\label{fig:kimi_k3_quant}
+\end{figure}

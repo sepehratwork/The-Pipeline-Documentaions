@@ -1,1 +1,326 @@
-\item \textbf asd
+\item \model{ادبیات فنی و سیر تکاملی کوانتیزاسیون مدل‌های زبانی بزرگ}
+
+\paragraph*{مقدمه، خاستگاه تاریخی و تنگنای حافظه در مدل‌های زبانی}
+پیشرفت مدل‌های زبانی بزرگ (\en{LLMs}) بر پایه معماری ترنسفورمر \cite{vaswani2017attention}، نیازمندی‌های پردازشی و حافظه‌ای عظیمی را در فازهای پیش‌آموزش و استنتاج پدید آورده است \cite{gong2024survey, jorgensen2025resource}. در پردازش خودهمبسته (\en{Autoregressive Generation})، فرآیند تولید به دو فاز متمایز تجزیه می‌شود:
+\begin{itemize}
+    \item \textbf{فاز پیش‌تکمیل (\en{Prefill Phase}):} که در آن پرامپت ورودی به صورت موازی پردازش شده و محاسبات شدیداً در تنگنای توان پردازش خام (\en{Compute-Bound}) قرار دارند.
+    \item \textbf{فاز رمزگشایی (\en{Decode Phase}):} که در آن توکن‌ها به صورت متوالی و یکی پس از دیگری تولید می‌شوند. در این فاز، برای تولید هر توکن منفرد باید تمامی ماتریس‌های وزن از حافظه فرعی (\en{HBM/DRAM}) به ثبات‌های محاسباتی پردازنده (\en{Registers}) منتقل شوند؛ بنابراین سیستم در دسته‌های پردازشی (\en{Batch Sizes}) متداول، به شدت در تنگنای پهنای باند حافظه (\en{Memory-Bound}) قرار می‌گیرد \cite{gong2024survey, jokar2026transforms}.
+\end{itemize}
+
+برای مهار این گلوگاه، کوانتیزاسیون (\en{Quantization}) به عنوان راهکار بنیادین مطرح شده است که وظیفه نگاشت وزن‌ها، فعال‌سازها و حافظه موقت کلید-مقدار (\en{KV-Cache}) را از دقت‌های بالا (نظیر \en{FP32} و \en{BF16}) به فرمت‌های کم‌بیت (نظیر \en{INT8}، \en{INT4}، \en{FP4} و ساختارهای ترنری و باینری) بر عهده دارد \cite{gong2024survey, zhao2025benchmarking}. این حوزه به دو شاخه کلی کوانتیزاسیون پس از آموزش (\en{Post-Training Quantization - PTQ}) بدون نیاز به آموزش مجدد \cite{frantar2023gptq, zhao2025benchmarking} و آموزش آگاه از کوانتیزاسیون (\en{Quantization-Aware Training - QAT}) با ادغام عملگرهای گسسته‌ساز در مسیر انتشار گرادیان \cite{chen2025scaling, liu2025binary} تقسیم می‌شود. با این حال، کاهش بیت‌ریت به سطوح ۴ بیتی و پایین‌تر، خطاهای اعوجاجی چشمگیری را به همراه دارد که ناشی از حضور ابعاد با قدرمطلق بسیار بزرگ موسوم به داده‌های پرت (\en{Outliers}) در تانسورهای فعال‌سازی است \cite{dettmers2022llmint8, xiao2023smoothquant}.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    box/.style={rectangle, rounded corners=5pt, draw=blue!70!black, fill=blue!5, thick, minimum width=2.6cm, minimum height=1.1cm, align=center, font=\small},
+    tbox/.style={rectangle, rounded corners=5pt, draw=orange!80!black, fill=orange!10, thick, minimum width=2.8cm, minimum height=1.1cm, align=center, font=\small},
+    sbox/.style={rectangle, rounded corners=5pt, draw=teal!80!black, fill=teal!10, thick, minimum width=2.8cm, minimum height=1.1cm, align=center, font=\small},
+    arrow/.style={-{Stealth[scale=1.1]}, thick, draw=blue!70!black}
+]
+    \node[box] (input) at (0, 0) {ورودی لایه $X$\\(فعال‌سازها)};
+    \node[tbox] (trans) at (4.2, 0) {تبدیل خطی $T$\\(مسطح‌سازی/تراز)};
+    \node[box] (quant) at (8.4, 0) {کوانتیزاسیون\\(گرید و مقیاس)};
+    \node[sbox] (gemm) at (12.6, 0) {هسته ضرب ماتریسی\\(\en{Tensor Cores})};
+    
+    \node[box] (weight) at (4.2, -2.2) {ماتریس وزن $W$};
+    \node[tbox] (wtrans) at (8.4, -2.2) {تبدیل معکوس\\$W T^{-1}$ (آفلاین)};
+    \node[sbox] (wquant) at (12.6, -2.2) {وزن‌های فشرده\\(ذخیره در حافظه)};
+
+    \draw[arrow] (input) -- (trans);
+    \draw[arrow] (trans) -- (quant);
+    \draw[arrow] (quant) -- (gemm);
+    \draw[arrow] (weight) -- (wtrans);
+    \draw[arrow] (wtrans) -- (wquant);
+    \draw[arrow] (wquant) -- (gemm);
+    \draw[dashed, thick, draw=gray] (6.3, 1) -- (6.3, -3.2);
+    \node[above, font=\footnotesize\bfseries, text=gray] at (6.3, 1) {مرز استقرار: فاز آفلاین / فاز بلادرنگ (\en{Online})};
+\end{tikzpicture}%
+}
+\caption{جریان پردازش داده در خط لوله کوانتیزاسیون مدرن مدل‌های زبانی بزرگ.}
+\label{fig:quant_pipeline_overview}
+\end{figure}
+
+\paragraph*{فرمولاسیون ریاضی بنیادین، نظریه نرخ بالا و گرید‌های کوانتیزاسیون}
+کوانتیزاسیون به صورت نگاشت $Q: \mathbb{R} \to \mathcal{C}$ تعریف می‌شود که در آن $\mathcal{C} = \{c_1, c_2, \dots, c_L\}$ کتاب‌کد گسسته با کاردینالیتی $L = 2^b$ برای بیت‌ریت $b$ است \cite{jokar2026transforms}. اگر محور اعداد با مرزهای تصمیم‌گیری $-\infty = b_0 < b_1 < \dots < b_L = +\infty$ افراز گردد، خطای اعوجاج میانگین مربعات (\en{MSE}) بر روی چگالی احتمال ورودی $p(x)$ به صورت زیر تعریف می‌شود:
+\begin{equation}
+    D = \mathbb{E}[(X - Q(X))^2] = \sum_{i=1}^L \int_{b_{i-1}}^{b_i} (x - c_i)^2 p(x) \, dx
+\end{equation}
+
+بر اساس شرایط بهینگی لوید-مکس (\en{Lloyd-Max Conditions}) \cite{lloyd1982least, max1960quantizing}، برای کمینه‌سازی خطای اعوجاج، مشتقات جزئی نسبت به مرزها و نقاط بازتولید باید صفر شوند:
+\begin{itemize}
+    \item \textbf{شرط نزدیک‌ترین همسایه (\en{Nearest-Neighbor}):}
+    \begin{equation}
+        \frac{\partial D}{\partial b_i} = (b_i - c_i)^2 p(b_i) - (b_i - c_{i+1})^2 p(b_i) = 0 \implies b_i^* = \frac{c_i + c_{i+1}}{2}
+    \end{equation}
+    \item \textbf{شرط مرکز ثقل (\en{Centroid}):}
+    \begin{equation}
+        \frac{\partial D}{\partial c_i} = -2 \int_{b_{i-1}}^{b_i} (x - c_i) p(x) \, dx = 0 \implies c_i^* = \frac{\int_{b_{i-1}}^{b_i} x p(x) \, dx}{\int_{b_{i-1}}^{b_i} p(x) \, dx} = \mathbb{E}[X \mid X \in (b_{i-1}, b_i]]
+    \end{equation}
+\end{itemize}
+
+در رژیم نرخ بالا ($b \gg 1$)، نظریه تقریب بنت (\en{Bennett's Integral}) \cite{bennett1948spectra} فرض می‌کند که تابع چگالی احتمال $p(x)$ در طول هر سلول با پهنای $\Delta$ تقریباً ثابت است؛ بنابراین خطای کوانتیزاسیون $e = Q(X) - X$ متغیری با توزیع یکنواخت بر بازه $[-\Delta/2, \Delta/2]$ خواهد بود:
+\begin{equation}
+    \mathbb{E}[e] = \int_{-\Delta/2}^{\Delta/2} \frac{u}{\Delta} \, du = 0, \quad \sigma^2 = \operatorname{Var}(e) = \int_{-\Delta/2}^{\Delta/2} \frac{u^2}{\Delta} \, du = \left[ \frac{u^3}{3\Delta} \right]_{-\Delta/2}^{\Delta/2} = \frac{\Delta^2}{12}
+\end{equation}
+
+در پیاده‌سازی‌های سخت‌افزاری، کوانتیزاسیون یکنواخت افاین در دو حالت متقارن و نامتقارن پیاده‌سازی می‌شود \cite{jorgensen2025resource}:
+\begin{itemize}
+    \item \textbf{کوانتیزاسیون نامتقارن (\en{Asymmetric}):} برای دامنه $[\beta, \alpha]$، مقیاس کوانتیزاسیون $s$ و نقطه صفر $z$ برابرند با:
+    \begin{equation}
+        s = \frac{\alpha - \beta}{2^b - 1}, \quad z = \operatorname{round}\left(-\frac{\beta}{s}\right), \quad X_{\text{INT}} = \operatorname{clamp}\left(\left\lfloor \frac{X}{s} \right\rceil + z, \, 0, \, 2^b - 1\right)
+    \end{equation}
+    \item \textbf{کوانتیزاسیون متقارن (\en{Symmetric}):} نقطه صفر به مبدأ منتقل شده ($z = 0$) و با تعریف $M = \max(|\alpha|, |\beta|)$ داریم:
+    \begin{equation}
+        s = \frac{M}{2^{b-1} - 1}, \quad X_{\text{INT}} = \operatorname{clamp}\left(\left\lfloor \frac{X}{s} \right\rceil, \, -(2^{b-1} - 1), \, 2^{b-1} - 1\right)
+    \end{equation}
+\end{itemize}
+
+دانه‌بندی کوانتیزاسیون (\en{Granularity}) مشخص می‌کند چه تعداد درایه یک مقیاس را به اشتراک می‌گذارند \cite{gong2024survey}. در دانه‌بندی گروهی (\en{Group-wise})، تانسور به بلوک‌های با اندازه $G$ افراز می‌شود. اگر مقیاس با دقت \en{FP16} و نقطه صفر با \en{INT8} ذخیره گردد، سربار بیت اضافی به‌ازای هر وزن برابر است با:
+\begin{equation}
+    \text{Overhead}_{\text{weight}} = \frac{16 + 8}{G} \quad (\text{bpp})
+\end{equation}
+
+فرمت‌های عددی نوین در مدل‌های زبانی بزرگ از قالب‌های استاندارد فراتر رفته‌اند. ساختار \en{NormalFloat} (\en{NF4}) \cite{dettmers2023qlora} فاصله‌گذاری گرید را بر پایه چندک‌های توزیع نرمال $\mathcal{N}(0, 1)$ تنظیم می‌کند تا آنتروپی اطلاعات بیشینه شود:
+\begin{equation}
+    c_i = \frac{1}{2} \left( Q_X\left(\frac{i}{2^b + 1}\right) + Q_X\left(\frac{i+1}{2^b + 1}\right) \right)
+\end{equation}
+که در آن $Q_X$ تابع معکوس توزیع تجمعی نرمال است. فرمت‌های میکرواسکِیلینگ (\en{Microscaling}) نظیر \en{MXFP4} \cite{rouhani2023microscaling} از درایه‌های ۴ بیتی \en{E2M1} همراه با یک توان مشترک \en{E8M0} (توانی از دو) به‌ازای بلوک‌های ۳۲ عنصری بهره می‌برند، در حالی که ساختار \en{NVFP4} شرکت انویدیا \cite{nvidia2025nvfp4} از بلوک‌های ۱۶ عنصری با مقیاس ۸ بیتی \en{E4M3} پشتیبانی می‌کند \cite{jokar2026transforms, whalen2026kbbq}.
+
+\paragraph*{نظریه اطلاعات و اصل «وارونگی بزرگ» (\en{The Great Inversion})}
+در نظریه کلاسیک کدگذاری تبدیل (\en{Transform Coding}) که ریشه در پژوهش‌های سال ۱۹۶۳ دارد \cite{huang1963block, goyal2001theoretical}، فرضیه بنیادین بر آزادی سیستم در تخصیص بیت ناهمگن بین مولفه‌ها استوار است \cite{jokar2026transforms}. فرض کنید بردار تصادفی $\mathbf{x} \sim \mathcal{N}(0, \boldsymbol{\Sigma})$ با ماتریس کوواریانس $\boldsymbol{\Sigma} \succ 0$ توسط ماتریس متعامد $\mathbf{U}$ تبدیل شود: $\mathbf{y} = \mathbf{U}^\top \mathbf{x}$. کوواریانس جدید دارای واریانس‌های قطری $\sigma_k^2 = (\mathbf{U}^\top \boldsymbol{\Sigma} \mathbf{U})_{kk}$ خواهد بود. تحت قید نرخ کل $\sum_{k=1}^d R_k = dR$، کمینه‌سازی خطای اعوجاج $D = \frac{1}{d}\sum_{k=1}^d \sigma_k^2 \cdot \frac{1}{12} 2^{-2R_k}$ با استفاده از بهینه‌سازی لاگرانژ منجر به قانون آب‌گیری معکوس (\en{Reverse Water-filling}) می‌شود \cite{cover2006elements}:
+\begin{equation}
+    \mathcal{L} = \frac{1}{d}\sum_{k=1}^d \sigma_k^2 2^{-2R_k} + \lambda \left(\sum_{k=1}^d R_k - dR\right) \implies R_k^* = \max\left(0, \, \frac{1}{2} \log_2 \frac{\sigma_k^2}{\theta}\right)
+\end{equation}
+که اعوجاج بهینه متناظر با آن تابعی از میانگین هندسی واریانس‌ها است:
+\begin{equation}
+    D^* = \left(\prod_{k=1}^d \sigma_k^2\right)^{1/d} 2^{-2R} = \operatorname{GM}(\{\sigma_k^2\}) \cdot 2^{-2R}
+\end{equation}
+بهره کدگذاری تبدیل (\en{Transform Coding Gain}) به‌صورت نسبت میانگین حسابی به میانگین هندسی واریانس‌ها فرموله می‌شود \cite{goyal2001theoretical}:
+\begin{equation}
+    G_{\text{TC}}(\mathbf{U}) = \frac{\frac{1}{d}\sum_{k=1}^d \sigma_k^2}{\left(\prod_{k=1}^d \sigma_k^2\right)^{1/d}} = \frac{\operatorname{AM}(\{\sigma_k^2\})}{\operatorname{GM}(\{\sigma_k^2\})}
+\end{equation}
+بر اساس نامساوی هادامارد، $\prod_{k=1}^d (\mathbf{U}^\top \boldsymbol{\Sigma} \mathbf{U})_{kk} \ge \det(\boldsymbol{\Sigma})$، مقدار کمینه اعوجاج زمانی حاصل می‌شود که ماتریس تبدیل $\mathbf{U}$ کوواریانس را قطری کند. بنابراین، تبدیل کارونن-لوئف (\en{KLT}) که ماتریس کوواریانس را کاملاً قطری می‌سازد، بیشترین نامساوی ممکن را پدید آورده، میانگین هندسی را کمینه و \textbf{تمرکز انرژی (\en{Energy Concentration})} را به حداکثر می‌رساند \cite{jokar2026transforms}. همچنین طبق قضیه گیش-پیرس (\en{Gish-Pierce Theorem}) \cite{gish1968asymptotically}، در رژیم نرخ بالا، کوانتیزاسیون یکنواخت اسکالر توأم با کدگذاری آنتروپی همواره دارای یک شکاف هندسی ذاتی به اندازه $\frac{1}{2}\log_2(\frac{2\pi e}{12}) \approx 0.255\text{ bits/sample}$ نسبت به کران پایین نرخ-اعوجاج شنون است.
+
+اما همان‌طور که جوکار \cite{jokar2026transforms} اثبات کرده است، در هسته‌های محاسباتی استنتاج مدل‌های زبانی، فرضیات کدگذاری کلاسیک معکوس می‌شوند. هسته‌های سخت‌افزاری نیازمند آن هستند که تمامی درایه‌های یک بلوک، بیت‌ریت یکسان داشته و تحت یک مقیاس مشترک که با حداکثر دامنه بلوک تنظیم می‌شود (\en{AbsMax}) کوانتیزه شوند \cite{jokar2026transforms}:
+\begin{equation}
+    D_{\text{fr}} \propto \sum_{g} M_g^2 = \sum_{g} \max_{k \in g} v_k
+\end{equation}
+که در آن $v_k$ انرژی مولفه $k$ام است. بر اساس نظریه ماژوریزاسیون (\en{Majorization Theory}) \cite{marshall2011inequalities}، تابع میانگین هندسی $\operatorname{GM}(\mathbf{v})$ یک تابع مقعر شور (\en{Schur-Concave}) است، در حالی که تابع بیشینه درون‌گروهی $\max_{k \in g} v_k$ محدب شور (\en{Schur-Convex}) است \cite{jokar2026transforms}. با توجه به اینکه:
+\begin{equation}
+    \max_{k \in g} v_k \ge \frac{1}{G} \sum_{k \in g} v_k
+\end{equation}
+تساوی منحصراً زمانی برقرار است که تمامی مقادیر درون گروه با یکدیگر برابر باشند. بنابراین دو رژیم در دو قطب کاملاً متضاد قرار می‌گیرند:
+\begin{equation}
+    \text{رژیم تخصیص متغیر (کلاسیک): تمرکز انرژی (KLT)} \iff \text{رژیم مقیاس مشترک (مدرن): مسطح‌سازی انرژی (هادامارد)}
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=2.5cm,
+    axis/.style={thick, ->, draw=black},
+    pole/.style={circle, draw=blue!80!black, fill=blue!15, thick, minimum size=1.8cm, align=center, font=\footnotesize\bfseries},
+    kbox/.style={rectangle, rounded corners=4pt, draw=orange!80!black, fill=orange!10, thick, minimum width=3.8cm, minimum height=1.3cm, align=center, font=\footnotesize}
+]
+    \draw[axis] (-4.5, 0) -- (4.5, 0) node[right, font=\small] {جهت ماژوریزاسیون درون‌گروهی};
+    
+    \node[pole] (left) at (-4, 0) {قطب تمرکز\\(Concentration)};
+    \node[pole] (right) at (4, 0) {قطب مسطح‌سازی\\(Flattening)};
+    
+    \node[kbox, above=0.8cm of left] (klt) {هدف: $\min \operatorname{GM}(\{v_k\})$\\تبدیل بهینه: \en{KLT}\\ویژگی: تقعر شور (\en{Schur-Concave})};
+    \node[kbox, above=0.8cm of right] (had) {هدف: $\min \sum_g \max_{k \in g} v_k$\\تبدیل بهینه: \en{Hadamard / WUSH}\\ویژگی: تحدب شور (\en{Schur-Convex})};
+    
+    \draw[->, thick, draw=orange!80!black] (klt) -- (left);
+    \draw[->, thick, draw=orange!80!black] (had) -- (right);
+    
+    \node[below=0.6cm of left, font=\scriptsize, align=center, text=blue!70!black] {رژیم کدگذاری با نرخ متغیر\\(تخصیص دلخواه بیت به هر کانال)};
+    \node[below=0.6cm of right, font=\scriptsize, align=center, text=blue!70!black] {رژیم استقرار سخت‌افزاری مدل‌های زبانی\\(مقیاس مشترک بلوکی و بیت ثابت)};
+\end{tikzpicture}%
+}
+\caption{تصویرسازی هندسی تقابل ماژوریزاسیون در «وارونگی بزرگ» \cite{jokar2026transforms}.}
+\label{fig:great_inversion}
+\end{figure}
+
+در رژیم مقیاس مشترک، فاکتور کرست (\en{Crest Factor}) که نسبت مقدار حداکثر به مقدار \en{RMS} بلوک است، نرخ جریمه را تعیین می‌کند:
+\begin{equation}
+    \mathrm{CF} = \frac{M}{\sigma} = \frac{\max_{k \in g} |x_k|}{\sqrt{\frac{1}{G} \sum_{k \in g} x_k^2}}
+\end{equation}
+با جایگذاری گام کوانتیزاسیون $\Delta = \frac{M}{2^{b-1}-1}$ در نسبت سیگنال به نویز اعوجاج:
+\begin{equation}
+    \text{SQNR} = \frac{\sigma^2}{\Delta^2/12} = 12 (2^{b-1}-1)^2 \left(\frac{\sigma}{M}\right)^2 = 12 (2^{b-1}-1)^2 \mathrm{CF}^{-2}
+\end{equation}
+با تبدیل به مقیاس دسی‌بل با تقریب $2^{b-1}-1 \approx 2^{b-1}$:
+\begin{equation}
+    \text{SQNR}_{\text{dB}} \approx 10 \log_{10} 12 + 20(b-1)\log_{10} 2 - 20 \log_{10} \mathrm{CF} \approx 6.02 \, b + 4.77 - 20 \log_{10} \mathrm{CF}
+\end{equation}
+این معادله بیانگر \textbf{قانون $6\,\mathrm{dB}/\text{bit}$} است: هر دو برابر شدن ضریب کرست، اتلافی معادل ۱ بیت از دقت کوانتیزاسیون را تحمیل می‌کند \cite{jokar2026transforms}.
+
+برای مهار این ضریب، ضرب در ماتریس تصادفی هادامارد $R = \frac{1}{\sqrt{d}} H D$ بر اساس لم هوفدینگ درایه‌ها را به متغیرهای تحت-گوسی با واریانس $\tau^2 = \frac{\|w\|_2^2}{d}$ تبدیل می‌کند:
+\begin{equation}
+    \mathbb{P}\left(\max_{1 \le k \le G} |z_k| \ge t\right) \le 2G \exp\left(-\frac{t^2}{2\tau^2}\right) \implies \mathbb{E}[\max_{k \in g} |z_k|] \le \tau \sqrt{2 \ln(2G)}
+\end{equation}
+در نتیجه ضریب کرست بدترین حالت از $\mathcal{O}(\sqrt{d})$ به طور انتظاری به $\mathcal{O}(\sqrt{\log G})$ کاهش می‌یابد \cite{jokar2026transforms}.
+
+اما در گرید‌های ممیز شناور (\en{FP})، واریانس نویز ضربی است ($e \propto x^2$) و خطای ضرب داخلی به ضریب تمرکز مشترک انرژی وابسته است \cite{ordentlich2026high1, whalen2026kbbq}:
+\begin{equation}
+    \Delta_{\text{FP}} = d \sum_{i=1}^d \left(\frac{x_i^2}{\|\mathbf{x}\|_2^2}\right)\left(\frac{w_i^2}{\|\mathbf{w}\|_2^2}\right)
+\end{equation}
+از آنجا که تانسورهای مدل‌های زبانی به صورت طبیعی در وضعیت «ضد تراز» ($\Delta_{\text{FP}} < 1$) قرار دارند، اعمال چرخش تصادفی مقدار $\Delta_{\text{FP}}$ را به سمت ۱ افزایش داده و می‌تواند موجب افزایش خطا در گرید‌های ممیز شناور شود (\en{The Integer-Floating Point Flip}) \cite{jokar2026transforms, whalen2026kbbq}.
+
+\paragraph*{مدل‌سازی مرتبه دوم نویز و قوانین مقیاس‌پذیری تحلیلی}
+پژوهش‌های نوین به سمت استخراج قوانین مقیاس‌پذیری و پایه‌های تحلیلی نویز همگرا شده‌اند:
+
+\textbf{۱. نظریه نویز عمومی KBBQ و فاکتور مشارکت ($\kappa$):}
+ولن و همکاران \cite{whalen2026kbbq} برای ضرب داخلی $S = \sum_{k=1}^D w_k x_k$ با خطاهای کوانتیزاسیون، معادله نویز مرتبه دوم زیر را اثبات کردند:
+\begin{equation}
+    \mathbb{E}[\delta S^2] = \sum_{k=1}^D \left( \mathbb{E}[x_k^2] \varphi_w(w_k) + \mathbb{E}[w_k^2] \mathbb{E}[\varphi_x(x_k)] \right)
+\end{equation}
+در فرمت‌های ممیز شناور با پروفایل واریانس ضربی $\varphi(a) = \sigma_{\text{fmt}}^2 a^2$، نویز به فاکتور مشارکت $\kappa$ تقلیل می‌یابد:
+\begin{equation}
+    \kappa = \frac{\mathbb{E}[S^2]}{\sum_{k=1}^D \mathbb{E}[(w_k x_k)^2]} \in [0, D], \quad \text{SNR}_{\text{dB}} = 10 \log_{10} \kappa - 10 \log_{10}(\sigma_w^2 + \sigma_x^2)
+\end{equation}
+تحت توزیع منطبق $\mathbb{E}[\mathbf{w}\mathbf{w}^\top] = c \boldsymbol{\Sigma}$، سقف تحلیلی فاکتور مشارکت با استفاده از نامساوی کوشی-شوارتز به صورت زیر حاصل می‌شود \cite{whalen2026kbbq}:
+\begin{equation}
+    \kappa \le \kappa^* = \frac{D \operatorname{Tr}(\boldsymbol{\Sigma}^2)}{(\operatorname{Tr} \boldsymbol{\Sigma})^2}
+\end{equation}
+روش \en{KBBQ} با معرفی ضریب ترمز $\lambda \in [0, 1]$ در تبدیل $T(\lambda) = H \Lambda^{-\lambda/4} U^\top W'^\top$، به تعادل بهینه‌ای میان سقف تئوریک و خطاهای ناشی از فرضیات ایده‌آل دست می‌یابد \cite{whalen2026kbbq}.
+
+\textbf{۲. قضیه خطی‌بودن HIGGS:}
+مالینوفسکی و همکاران \cite{malinovskii2024higgs} با بسط تیلور پرپلکسیتی حول کمینه موضعی $\mathbf{w}^*$ و اثبات انتظام ساختار هسین $\mathbf{D}^* \nabla^2 \phi(\mathbf{w}^*) \mathbf{D}^* \approx \operatorname{Diag}(z_1 \mathbf{I}, \dots, z_L \mathbf{I})$، نشان دادند که تغییرات پرپلکسیتی تابعی خطی از خطای نسبی فروبنیوس لایه‌ها است:
+\begin{equation}
+    \mathbb{E}[\operatorname{PPL}(\widehat{\mathbf{W}})] \approx \operatorname{PPL}(\mathbf{W}^*) + \sum_{l=1}^L \alpha_l t_l^2, \quad t_l^2 = \frac{\mathbb{E}[\|\widehat{\mathbf{W}}_l - \mathbf{W}_l^*\|_F^2]}{\|\mathbf{W}_l^*\|_F^2}
+\end{equation}
+این قضیه اجازه می‌دهد مسئله انتخاب بیت ناهمگن لایه‌ها به یک مسئله کوله‌پشتی برنامه‌ریزی پویا تبدیل شود \cite{malinovskii2024higgs}.
+
+\textbf{۳. قانون مقیاس‌پذیری کاپیبارا (\en{Capybara Scaling Law}):}
+سان و همکاران \cite{sun2025scaling} قانون مقیاس‌پذیری آموزش ممیز شناور را به صورت زیر تدوین نمودند:
+\begin{equation}
+    L(N, D, E, M, B) = \frac{n}{N^\alpha} + \frac{d}{D^\beta} + \epsilon + \frac{D^\beta}{N^\alpha} \frac{\log_2 B}{\gamma (E+0.5)^\delta (M+0.5)^\nu}
+\end{equation}
+با حل $\frac{\partial L}{\partial M} = 0$ تحت قید $P = E + M + 1$، تخصیص بهینه مانتیس استخراج می‌شود:
+\begin{equation}
+    M_{\text{opt}} = \frac{\nu P}{\delta + \nu} - 0.5, \quad E_{\text{opt}} = \frac{\delta P}{\delta + \nu} - 0.5
+\end{equation}
+با توجه به اینکه $\delta = 3.1926 > \nu = 2.9543$، بیت توان نقش مهم‌تری در حفظ دقت ایفا می‌کند. همچنین با مشتق‌گیری نسبت به $D$، حجم بحرانی داده استخراج می‌گردد که فراتر از آن، آموزش کم‌دقت دچار فروپاشی می‌شود \cite{sun2025scaling}:
+\begin{equation}
+    D_{\text{crit}} = \left[ \frac{d \gamma N^\alpha (E+0.5)^\delta (M+0.5)^\nu}{\log_2 B} \right]^{\frac{1}{2\beta}}
+\end{equation}
+
+\textbf{۴. قانون مقیاس‌پذیری یکپارچه QAT و گلوگاه SwiGLU:}
+چن و همکاران \cite{chen2025scaling} خطای QAT را به صورت $\delta_p(N, D, G) = \frac{k D^{\gamma_D} (\log_2 G)^{\gamma_G}}{N^{\gamma_N}}$ مدل‌سازی کرده و نشان دادند که خطای وزن به حجم داده حساس‌تر است ($\gamma_D = 0.1610$ در برابر $0.0331$)، در حالی که خطای اکتیویشن به دانه‌بندی $G$ وابسته است ($\gamma_G = 0.9812$). این وابستگی ناشی از کورتوزیس شدید لایه ورودی \en{FC2} در ساختار \en{SwiGLU} است که حفظ دقت ۸ بیتی برای این لایه منفرد، حساسیت کل شبکه را تا ۴۲.۹٪ مهار می‌سازد \cite{chen2025scaling}.
+
+\textbf{۵. ظرفیت بازنمایی (\en{Representation Capacity}):}
+پانفروو و همکاران \cite{panferov2025unified} مفهوم ظرفیت بازنمایی $\rho(R)$ را معرفی کردند که در آن پارامتر موثر مدل به صورت $N' = N \cdot \rho(R)$ تعریف شده و همگرایی الگوریتم \en{Adam} تحت \en{STE} مستقیماً به حاصل‌ضرب $N$ در میانگین خطای بازسازی $\ell_2$ محدود می‌گردد \cite{panferov2025unified}.
+
+\paragraph*{رویکردهای کوانتیزاسیون پس از آموزش (PTQ) و نظریه تخصیص بهینه بیت}
+رویکردهای \en{PTQ} در چهار دسته ساختاریافته‌اند \cite{zhao2025benchmarking}:
+\begin{enumerate}
+    \item \textbf{روش‌های مبتنی بر جبران خطا (\en{Compensation-based}):} روش \en{GPTQ} \cite{frantar2023gptq} با فرمولاسیون جراح مغز بهینه (\en{OBS})، خطای ستون‌های کوانتیزه‌شده را با حل ماتریس معکوس هسین بر روی ستون‌های باقیمانده جبران می‌کند:
+    \begin{equation}
+        \delta_q = -\frac{w_q - \operatorname{quant}(w_q)}{[\mathbf{H}^{-1}]_{qq}} \cdot (\mathbf{H}^{-1})_{:, q}
+    \end{equation}
+    این فرآیند از نظر جبری معادل الگوریتم نزدیک‌ترین صفحه بابای (\en{Babai's Nearest Plane}) برای مسئله یافتن نزدیک‌ترین بردار بر روی توری فاکتور چولسکی هسین است \cite{chen2026geometry, birnick2026lattice}.
+    \item \textbf{روش‌های مبتنی بر چرخش (\en{Rotation-based}):} روش‌هایی چون \en{QuIP} \cite{chee2023quip} و \en{QuIP\#} \cite{tseng2024quipsharp} (با بهره‌گیری از شبکه توری $E_8$) و \en{QuaRot} \cite{ashkboos2024quarot} با استفاده از ناوردایی محاسباتی \en{RMSNorm} چرخش‌ها را در وزن‌ها ادغام می‌کنند. روش \en{SpinQuant} \cite{liu2025spinquant} این چرخش‌ها را روی منیفلد استیفیل بهینه‌سازی می‌نماید.
+    \item \textbf{روش‌های مبتنی بر برجستگی (\en{Salience-based}):} روش \en{AWQ} \cite{lin2024awq} با محافظت از کانال‌های حساس به اندازه فعال‌ساز و \en{SmoothQuant} \cite{xiao2023smoothquant} با مهاجرت مقیاس سختی از فعال‌ساز به وزن از طریق فاکتور قطری:
+    \begin{equation}
+        s_j = \frac{\max_n |X_{nj}|^\alpha}{\max_i |W_{ij}|^{1-\alpha}}
+    \end{equation}
+    دامنه دینامیکی را تعدیل می‌کنند.
+    \item \textbf{روش‌های تخصیص محدب بیت (\en{BAQ}):} ژانگ و همکاران \cite{zhang2025baq} مسئله تخصیص بهینه بیت لایه‌ها را با قید بودجه کل به فرم زیر حل نمودند:
+    \begin{equation}
+        \min_{\{R_{ij} \ge 0\}} \sum_{i,j} c_{ij} 2^{-2R_{ij}} \quad \text{s.t.} \quad \sum_{i,j} R_{ij} \le R_{\text{sum}}
+    \end{equation}
+    تشکیل تابع لاگرانژ و مشتق‌گیری اثبات می‌کند که در نقطه بهینه، سهم تمامی درایه‌ها از خطای نهایی برابر است (\textbf{اصل خطای برابر - \en{Equal-Loss Principle}}):
+    \begin{equation}
+        c_{ij} 2^{-2R_{ij}^*} = c_{kl} 2^{-2R_{kl}^*} = \lambda' \implies R_{ij}^* = \frac{1}{2} \log_2\left(\frac{c_{ij}}{\operatorname{GM}(\{c_{uv}\})}\right) + \frac{R_{\text{sum}}}{MN}
+    \end{equation}
+    کاهش اعوجاج حاصل از تخصیص بهینه نسبت به تخصیص یکنواخت دقیقاً برابر با نسبت میانگین هندسی به میانگین حسابی ضرایب حساسیت است:
+    \begin{equation}
+        \frac{\text{Loss}_{\text{optimal}}}{\text{Loss}_{\text{uniform}}} = \frac{\operatorname{GM}(\{c_{ij}\})}{\operatorname{AM}(\{c_{ij}\})} \le 1
+    \end{equation}
+\end{enumerate}
+
+\paragraph*{کوانتیزاسیون فوق‌فشرده، شبکه‌های باینری و مدل‌های ترنری (\en{BNN \& TriLMs})}
+کوانتیزاسیون در سطوح ۱ و ۱.۵۸ بیت از فاز \en{PTQ} فراتر رفته و نیازمند آموزش از ابتدا است \cite{liu2025binary}. ساختار \en{BitNet} \cite{wang2023bitnet} با لایه \en{BitLinear} و نرمال‌سازی \en{SubLN} وزن‌ها را باینری می‌سازد:
+\begin{equation}
+    \widetilde{\mathbf{W}} = \operatorname{Sign}\left(\mathbf{W} - \frac{1}{nm}\sum_{i,j} W_{ij}\right), \quad y = \widetilde{\mathbf{W}} \widetilde{x} \times \frac{\beta \gamma}{Q_b}
+\end{equation}
+نسخه تکاملی \en{BitNet b1.58} \cite{ma2024era} با وزن‌های ترنری $\{-1, 0, 1\}$ فیلتر کردن ویژگی‌ها را ممکن ساخته و در مدل‌های سری \model{Spectra-1.1} \cite{vaidhya2025spectra} بر روی ۱.۲ تریلیون توکن آموزش دیده است. قانون مقیاس‌پذیری ترنری اثبات می‌کند که توان توکن‌ها به مراتب تعیین‌کننده‌تر از تعداد پارامترها است ($\beta = 0.81$ در برابر $\alpha = 0.32$) \cite{vaidhya2025spectra}.
+
+برای بسته‌بندی بیت‌ها، وایدیا و همکاران \cite{vaidhya2025spectra} دو مکانیزم را توسعه دادند:
+\begin{itemize}
+    \item \textbf{طرح ۲ بیتی (\en{TQ2}):} چهار رقم ترنری با شیفت بیتی درون یک بایت ذخیره و با ماسک \en{0x03} بازیابی می‌شوند.
+    \item \textbf{طرح بهینه ۱.۶ بیتی (\en{TQ1}):} برای ارقام ترنری $d_i \in \{-1, 0, 1\}$، شرط کدگذاری بدون اتلاف $2^p > 3^k$ است. برای $p=8$ و $k=5$ داریم $3^5 = 243 < 2^8 = 256$ که نرخ موثر $1.6\text{ bpp}$ را به همراه دارد. استخراج بدون تقسیم در معماری \en{SIMD} با رابطه زیر انجام می‌شود:
+    \begin{equation}
+        d'_i = \left\lfloor \frac{b_i \cdot 3}{256} \right\rfloor = (b_i \cdot 3) \gg 8, \quad b_{i+1} = (b_i \cdot 3) \ \& \ 0\text{xFF}, \quad d_i = d'_i - 1
+    \end{equation}
+\end{itemize}
+
+\paragraph*{کوانتیزاسیون ساختارهای ناهمگن: MoE، KV-Cache و ماتریس‌های توجه}
+در مدل‌های تنک مخلوطی از متخصصان (\en{MoE})، چودری و همکاران \cite{chowdhury2026efficient} اثبات کردند که اهمیت متخصصان یکسان نیست. متخصصانی که ویژگی‌های کم‌بسامد را یاد می‌گیرند، دچار تغییرات کمتری در نُرم بردار مسیریاب ($\Lambda_s^{(T)} = \|\mathbf{w}_s^{(T)}\|_2 - \|\mathbf{w}_s^{(0)}\|_2$) و سطوح فعال‌سازی ضعیف‌تر می‌شوند:
+\begin{equation}
+    \frac{\sigma_{-o_i}^{(s', T)}}{\sigma_{o_i}^{(s, T)}} \ge \frac{1 - 2\alpha}{2\alpha}
+\end{equation}
+لذا این متخصصان در برابر نویز کوانتیزاسیون آسیب‌پذیرترند و باید بیت بالاتری دریافت کنند. قضیه تضمین تعمیم‌پذیری اثبات می‌کند که اختلاف بیت مجاز میان متخصصان کم‌بسامد و پربسامد برابر است با \cite{chowdhury2026efficient}:
+\begin{equation}
+    b_h - b_l = \log_2\left(\frac{1 - \alpha}{\alpha}\right)
+\end{equation}
+همچنین متخصصان دارای بیشینه واریانس درون‌نرونی (\en{MaxVar}) بالا جهت جلوگیری از تزریق نویز به بیت‌های بالاتر منتقل می‌شوند \cite{chowdhury2026efficient}.
+
+در کوانتیزاسیون \en{KV-Cache}، به دلیل تداخل با عملگر \en{RoPE}، تکنیک‌های تفکیک کانال در روش‌های \en{KIVI} و \en{KVQuant} \cite{hooper2024kvquant} به صورت \en{Pre-RoPE} اعمال می‌گردند. در ماتریس‌های ضرب توجه، روش \en{SageAttention} \cite{zhang2025sageattention} با استفاده از ناوردایی انتقال عملگر سافت‌مکس، میانگین کلیدها را تفریق کرده و بازه دینامیکی را فشرده می‌سازد \cite{zhang2025sageattention}.
+
+\paragraph*{اعتبارسنجی آماری رفتاری، توهم هم‌ارزی و کوانتیزاسیون بدون اتلاف}
+ربابه و همکاران \cite{rababah2026illusion} نشان دادند که ارزیابی با دقت کلان دچار خطای پنهان است. تحت قضیه کوری ناوردایی دقت (\en{Accuracy Invariance Blindness Theorem})، شاخص توافق درستی (\en{Correctness Agreement - CA}) برای مدلی با دقت $\alpha$ در بازه زیر نوسان می‌کند:
+\begin{equation}
+    \mathrm{CA}(M_0, M_q) = p_{11} \in [\max(0, \, 2\alpha - 1), \, \alpha]
+\end{equation}
+این بدان معناست که یک مدل کوانتیزه‌شده می‌تواند تا ۳۱.۸٪ از تصمیمات درست اولیه را تغییر داده اما دقت اسمی آن ثابت بماند \cite{rababah2026illusion}. همچنین تحلیل‌های واگرایی نشان داد که ماتریس‌های \en{Query} و \en{Key} به دلیل فروپاشی کورتوزیس بیشترین آسیب‌پذیری ساختاری را دارند.
+
+هلسیگ و همکاران \cite{helcig2026statistically} در چارچوب کوانتیزاسیون آماری بدون اتلاف (\en{SLQ})، شاخص نرخ پذیرش مورد انتظار (\en{EAR}) را تعریف کردند:
+\begin{equation}
+    \mathrm{EAR} = 1 - d_{\mathrm{TV}}(p, q) = \frac{1}{N} \sum_{i=1}^N \sum_{k=1}^K \min(p_i(k), q_i(k))
+\end{equation}
+آن‌ها قانون واریانس گاما-مربع (\en{$\gamma^2$ Variance Law}) را اثبات کردند: اگر ناکارآمدی مرکزیت توزیع به صورت $\gamma = \frac{2M}{R}$ تعریف شود، واریانس نویز متقارن نسبت به نامتقارن با ضریب $\gamma^2$ متورم می‌شود:
+\begin{equation}
+    \Delta_{\text{sym}} = \gamma \Delta_{\text{asym}} \implies \sigma_{\text{sym}}^2 = \frac{\Delta_{\text{sym}}^2}{12} = \gamma^2 \sigma_{\text{asym}}^2 \implies \frac{\mathbb{E}[\|\delta_{\text{sym}}\|_2^2]}{\mathbb{E}[\|\delta_{\text{asym}}\|_2^2]} = \gamma^2
+\end{equation}
+لذا کوانتیزاسیون نامتقارن برای رسیدن به فیدلیتی در سطح توزیع ($\mathrm{EAR} \ge 0.99$) پیش‌نیاز قطعی است \cite{helcig2026statistically}.
+
+\paragraph*{طراحی همزمان الگوریتم و سخت‌افزار، معماری تراشه‌ها و سیستم‌های استنتاج}
+در اجرای کوانتیزاسیون \en{W4A4} بر روی پردازنده‌های گرافیکی، تغییر مقیاس در طول بعد انقباض ماتریسی ($K$) نیازمند بازتنظیم مقیاس جمع‌کننده‌های \en{INT32} روی هسته‌های \en{CUDA} است که ۲۰ تا ۹۰ درصد زمان اجرای کرنل را مصرف می‌کند \cite{jokar2026transforms}. ظهور معماری بلک‌ول (\en{Blackwell B200}) و دستورات \en{tcgen05.mma} با ادغام مستقیم مقیاس‌های میکرواسکِیلینگ در سطح سیم‌کشی سیلیکون، این گلوگاه را رفع نموده است \cite{jokar2026transforms}. هسته‌های مدرن نظیر \en{FLUTE} \cite{guo2024flute} (مبتنی بر جداول جستجوی اشتراکی)، \en{MARLIN} \cite{frantar2025marlin} و \en{TriRun} \cite{vaidhya2025spectra} با بهره‌گیری از خط لوله انتقال حافظه ناهمگام (`cp.async`) سرعت استنتاج را تا ۴.۹ برابر افزایش می‌دهند.
+
+جدول \ref{tab:quant_methods_taxonomy_synthesis} مقایسه تحلیلی روش‌های شاخص را نشان می‌دهد.
+
+\begin{table}[htbp]
+\centering
+\caption{مقایسه تحلیلی و دسته‌بندی روش‌های شاخص کوانتیزاسیون مدل‌های زبانی بزرگ}
+\label{tab:quant_methods_taxonomy_synthesis}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccp{7cm}}
+\toprule
+\textbf{روش} & \textbf{فرمت هدف} & \textbf{استراتژی} & \textbf{نوع تبدیل} & \textbf{دانه‌بندی} & \textbf{مبنای نظری و دستاورد کلیدی} \\
+\midrule
+\en{HIGGS} \cite{malinovskii2024higgs} & \en{W3-W8} & \en{PTQ} & هادامارد + گرید بهینه & \en{Group 1024} & قضیه خطی‌بودن پرپلکسیتی؛ تقلیل تخصیص بیت به برنامه‌ریزی پویا \\
+\en{KBBQ} \cite{whalen2026kbbq} & \en{W4A4 (FP)} & \en{PTQ} & تبدیل بلوکی با ترمز $\lambda$ & \en{Block 16/32} & استخراج فاکتور مشارکت $\kappa$ و سقف تحلیلی $\kappa^*$ بر مبنای نویز ضربی \\
+\en{BAQ} \cite{zhang2025baq} & \en{W2-W4 (INT)} & \en{PTQ} & تخصیص بهینه محدب & \en{Column-wise} & اثبات اصل خطای برابر؛ کاهش ۵۶ برابری پرپلکسیتی نسبت به \en{GPTQ} \\
+\en{SLQ} \cite{helcig2026statistically} & \en{W3-W8 (INT)} & \en{PTQ} & شاپلی چندبیتی نامتقارن & \en{Group 128} & اثبات قانون واریانس $\gamma^2$ و معرفی شاخص \en{EAR} برای کوانتیزاسیون بدون اتلاف \\
+\en{Capybara} \cite{sun2025scaling} & \en{FP4-FP16} & آموزش & - & \en{Block-wise} & قانون مقیاس FP؛ محاسبه مانتیس بهینه و اندازه بحرانی داده $D_{\text{crit}}$ \\
+\en{Unified QAT} \cite{chen2025scaling} & \en{W4A4} & \en{QAT} & - & \en{Group 32-256} & تفکیک خطای وزن و اکتیویشن؛ مهار کورتوزیس ورودی \en{FC2} در \en{SwiGLU} \\
+\en{Rep. Capacity} \cite{panferov2025unified} & تنک و کم‌بیت & مقیاس & - & لایه‌ای & معرفی ظرفیت بازنمایی $\rho(R)$ بر پایه \en{GMSE} و اثبات همگرایی \en{Adam} \\
+\en{Spectra-1.1} \cite{vaidhya2025spectra} & ترنری ($1.58\text{b}$) & آموزش & بسته‌بندی \en{TQ1/TQ2} & بلوکی & آموزش ۱.۲ تریلیون توکن؛ اثبات برتری مقیاس داده بر پارامتر ($\beta > \alpha$) \\
+\en{MoE Quant} \cite{chowdhury2026efficient} & \en{MoE} کم‌بیت & \en{PTQ} & نُرم روتور + \en{MaxVar} & متخصصی & تضمین تعمیم‌پذیری با تخصیص بیت بالا به متخصصان ویژگی‌های نادر \\
+\en{Great Inversion} \cite{jokar2026transforms} & جامع & تحلیلی & طبقه‌بندی ۶ گانه & - & اثبات تضاد ماژوریزاسیون تمرکز (\en{KLT}) در برابر مسطح‌سازی (هادامارد) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\paragraph*{جمع‌بندی و چالش‌های گشوده}
+سیر تکاملی کوانتیزاسیون نشان می‌دهد که این حوزه از برازش‌های سرانگشتی اولیه به ساختاری با مبانی نظری استوار بدل شده است. چالش‌های بنیادین زیر همچنان افق پژوهش‌های آینده را تعریف می‌کنند:
+\begin{enumerate}
+    \item \textbf{بهینه‌سازی همزمان تبدیل و الگوریتم گردکردن $(T, Q)$:} ایجاد یک چارچوب تحلیلی واحد که در آن ماتریس تبدیل پایه شبکه و عملگر گردکردن توری چولسکی همزمان بهینه‌سازی شوند \cite{jokar2026transforms}.
+    \item \textbf{تطابق با فرمت‌های نوین ممیز شناور ۴ بیتی:} مدیریت اثر معکوس شدن چرخش در گرید‌های ممیز شناور و بهره‌گیری از تکنیک‌های ترمز اسپکتروم (\en{KBBQ}) جهت هماهنگی با واحدهای محاسباتی \en{NVFP4} و \en{MXFP4} \cite{jokar2026transforms, whalen2026kbbq}.
+    \item \textbf{پایش فیدلیتی رفتاری فراتر از پرپلکسیتی:} نهادینه‌سازی معیارهایی نظیر توافق درستی (\en{CA}) و نرخ پذیرش مورد انتظار (\en{EAR}) در پایپ‌لاین‌های صنعتی جهت پیشگیری از خطای جابجایی تصمیمات مدل \cite{rababah2026illusion, helcig2026statistically}.
+\end{enumerate}

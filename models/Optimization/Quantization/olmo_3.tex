@@ -1,1 +1,32 @@
-\item \textbf asd
+\item \model{Olmo 3}
+
+\paragraph*{فلسفه شفافیت کامل و پایداری محاسبات با دقت دست‌نخورده}
+مدل \model{Olmo 3} \cite{olmo2025olmo3} بر پایه تعهد به شفافیت کامل در چرخه آموزش زبانی (\en{Open Model Flow}) طراحی شده است. به منظور تضمین بازتولیدپذیری بدون ابهام و پیشگیری از هرگونه اعوجاج در سیگنال‌های گرادیان در فازهای پیش‌آموزش و تعمیم بافت بلند تا سقف ۶۵ هزار توکن، این مدل از دقت نامتقلیل \textbf{\en{Bfloat16}} در سراسر خط لوله نرم‌افزاری \en{OLMo-Core} بهره می‌برد.
+
+\paragraph*{پایدارسازی پویایی گرادیان بدون کاهش عرض بیت}
+به جای اتکا بر کوانتیزاسیون وزن‌ها در مراحل اولیه که ممکن است به پدیده پاداش‌های کاذب (\en{Spurious Rewards}) در یادگیری تقویتی دامن بزند، مدل \model{Olmo 3} از فرمول‌بندی جریمه لاجیت (\en{Z-Loss}) به همراه \en{QK-Norm} استفاده می‌کند:
+\begin{equation}
+    \mathcal{L}_{\text{Z-Loss}} = 10^{-5} \cdot \log^2 \left( \sum_{i} \exp(z_i) \right)
+\end{equation}
+این تابع هزینه با جریمه کردن مقدار کل لگاریتم مخرج سافت‌مکس، پویایی بردار لاجیت‌ها را در بازه خطی مقید ساخته و بستر محاسباتی را برای اعمال روش‌های کوانتیزاسیون پایین‌دستی در آینده هموار می‌سازد.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.3cm and 1.6cm,
+    block/.style={rectangle, draw=gray!70!black, fill=gray!5, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    core/.style={rectangle, draw=blue!70!black, fill=blue!10, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small},
+    arr/.style={-Latex, thick, draw=blue!80!black}
+]
+    \node[block] (raw_logits) {بردار لاجیت خام $z_i$};
+    \node[core, right=of raw_logits] (zloss) {جریمه \en{Z-Loss}\\ $10^{-5} \log^2(\sum e^{z_i})$};
+    \node[block, right=of zloss] (stable_bf16) {محاسبات کاملاً پایدار\\ در دقت \en{Bfloat16}};
+
+    \draw[arr] (raw_logits) -- (zloss);
+    \draw[arr] (zloss) -- (stable_bf16);
+\end{tikzpicture}%
+}
+\caption{سازوکار مهار تحلیلی نوسانات لاجیت در بستر نرم‌افزاری \model{Olmo 3}}
+\label{fig:olmo3_quant}
+\end{figure}

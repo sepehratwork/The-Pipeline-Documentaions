@@ -1,1 +1,104 @@
-\item \textbf asd
+\item \model{DeepSeek-V4}
+
+\paragraph*{مقدمه و پارادایم فشرده‌سازی در بافت میلیونی}
+در مدل \model{DeepSeek-V4} \cite{deepseek2026v4}، دستیابی به پشتیبانی بومی از پنجره بافت یک میلیون توکن (\en{1M-token context})، مستلزم بازنگری اساسی در ساختار ممیز شناور و فشرده‌سازی حافظه است. این مدل با تکیه بر آموزش آگاه از کوانتیزیشن ۴ بیتی (\en{FP4 Quantization-Aware Training - QAT}) در فاز پس‌آموزش (\en{Post-Training})، حجم پردازش محاسباتی و اشغال حافظه پنهان کلید-مقدار (\en{KV Cache}) را نسبت به \en{DeepSeek-V3.2} به ترتیب تا \textbf{۲۷٪} و \textbf{۱۰٪} تقلیل داده است. نوآوری‌های اصلی این مدل شامل کوانتیزیشن میکرواسکِیلینگ \en{MXFP4} برای وزن متخصصان و مسیر نمایه، دکوانتیزیشن کاملاً بدون تلفات از \en{FP4} به \en{FP8}، و ساختار ذخیره‌سازی مختلط کش توجه است.
+
+\paragraph*{فرمول‌بندی ریاضی کوانتیزیشن ریزمقیاس (\en{MXFP4}) و ساختار \en{E2M1}}
+در کوانتیزیشن استاندارد میکرواسکِیلینگ (\en{Microscaling}) \cite{rouhani2023microscaling}، یک ضریب مقیاس مشترک با دقت بالاتر برای بلوکی از عناصر با طول بیت اندک تخصیص می‌یابد. در \model{DeepSeek-V4}، وزن‌های لایه متخصصان \en{MoE} و فعال‌سازهای ضرب داخلی پرسش-کلید (\en{QK}) در بخش نمایه‌ساز توجه تنک فشرده (\en{CSA Lightning Indexer}) به قالب \en{FP4} بر پایه فرمت \en{E2M1} کوانتایز می‌شوند.
+
+تانسور اعداد در قالب \en{E2M1} شامل ۱ بیت علامت $s \in \{0, 1\}$، ۲ بیت توان $e \in \{0, 1, 2, 3\}$ با انحراف توان (\en{Bias}) برابر با $b = 1$، و ۱ بیت مانتیس $m \in \{0, 1\}$ است. رابطه نگاشت مقدار حقیقی از روی بیت‌ها به صورت زیر تدوین می‌شود:
+\begin{equation}
+    x = \begin{cases}
+        (-1)^s \cdot 2^{e - 1} \cdot \left(1 + \frac{m}{2}\right), & \text{if } e > 0 \quad (\text{\lr{Normal}}) \\
+        (-1)^s \cdot 2^{0} \cdot \left(0 + \frac{m}{2}\right), & \text{if } e = 0 \quad (\text{\lr{Subnormal}})
+    \end{cases}
+\end{equation}
+مجموعه گسسته مقادیر قابل بازنمایی در این ساختار متقارن به صورت زیر است:
+\begin{equation}
+    \mathcal{S}_{\text{E2M1}} = \{0, \pm 0.5, \pm 1.0, \pm 1.5, \pm 2.0, \pm 3.0, \pm 4.0, \pm 6.0\}
+\end{equation}
+
+تانسور وزن $W \in \mathbb{R}^{N \times M}$ به بلوک‌های کوانتیزاسیون ماکرو با ابعاد $128 \times 128$ و زیربلوک‌های خرد برداری $1 \times 32$ تقسیم می‌شود. برای هر بردار زیربلوک $\mathbf{v} \in \mathbb{R}^{32}$، ضریب مقیاس محلی $S_{\text{sub}}$ با بیشینه دامنه استخراج می‌گردد:
+\begin{equation}
+    S_{\text{sub}} = 2^{\left\lceil \log_2 \left( \frac{\max_{i} |v_i|}{6.0} \right) \right\rceil}
+\end{equation}
+و هر درایه به نزدیک‌ترین نقطه در شبکه مقادیر \en{E2M1} نگاشت می‌شود:
+\begin{equation}
+    q_i = \arg\min_{q \in \mathcal{S}_{\text{E2M1}}} \left| \frac{v_i}{S_{\text{sub}}} - q \right|, \quad \tilde{v}_i = S_{\text{sub}} \cdot q_i
+\end{equation}
+
+\paragraph*{قضیه دکوانتیزیشن بدون تلفات (\en{Lossless FP4-to-FP8 Dequantization})}
+در فاز آموزش آگاه از کوانتیزیشن، به منظور سازگاری با زیرساخت‌های ضرب ماتریسی تانسوری (\en{FP8 GEMM})، وزن‌های اصلی با دقت \en{FP32} توسط بهینه‌ساز نگهداری شده، در گذر پیشرو به \en{FP4} فشرده شده و سپس برای محاسبه بلافاصله به \en{FP8 (E4M3)} دکوانتایز می‌گردند.
+
+\noindent\textbf{اثبات تحلیلی بدون تلفات بودن نگاشت:} فرمت \en{E4M3} دارای ۴ بیت توان و ۳ بیت مانتیس است، در حالی که \en{E2M1} دارای ۲ بیت توان و ۱ بیت مانتیس است. تفاضل تعداد بیت‌های توان برابر است با:
+\begin{equation}
+    \Delta e = e_{\text{bits}}^{\text{FP8}} - e_{\text{bits}}^{\text{FP4}} = 4 - 2 = 2
+\end{equation}
+این اختلاف، دامنه دینامیکی توان در \en{FP8} را به میزان $2^2 = 4$ برابر گسترش می‌دهد. مادامی که نسبت بیشینه و کمینه ضرایب مقیاس زیربلوک‌های $1 \times 32$ در درون یک ماکروبلوک کوانتیزاسیون $128 \times 128$ از حد آستانه پویا تجاوز نکند:
+\begin{equation}
+    \frac{\max_{b} S_{\text{sub}}^{(b)}}{\min_{b} S_{\text{sub}}^{(b)}} \le 2^{\Delta e} = 4
+\end{equation}
+تغییرات مقیاس در بیت‌های افزوده توان \en{FP8} جذب شده و با توجه به اینکه مانتیس ۳ بیتی \en{FP8} وضوح کافی برای نمایش مانتیس ۱ بیتی \en{FP4} را دارد، تبدیل از \en{FP4} به \en{FP8} بدون هیچ‌گونه افت دقت (\en{Zero Rounding Error}) محقق می‌گردد:
+\begin{equation}
+    \mathcal{D}_{\text{FP8}}(\mathcal{Q}_{\text{FP4}}(W)) \equiv \mathcal{Q}_{\text{FP4}}(W)
+\end{equation}
+
+در گذر بازگشتی (\en{Backward Pass})، مشتقات نسبت به همان مقادیر فعال‌ساز و وزن \en{FP8} محاسبه شده و با برآوردگر مستقیم (\en{Straight-Through Estimator - STE}) مستقیماً بر روی وزن‌های اصلی \en{FP32} اعمال می‌شوند:
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial W_{\text{FP32}}} \approx \frac{\partial \mathcal{L}}{\partial W_{\text{FP8}}}
+\end{equation}
+این ساختار از نیاز به کوانتیزاسیون مجدد تانسورهای ترانهاده ممانعت به عمل می‌آورد.
+
+\paragraph*{کوانتیزیشن بردار نمایه و ذخیره‌سازی مختلط کش کلید-مقدار}
+در ماژول توجه تنک فشرده (\en{CSA})، امتیازات تطابق پرسش و کلید $I_{t,s}$ ابتدا در فضای پیوسته \en{FP32} برآورد شده و سپس در طول فرایند \en{QAT} به \en{BF16} کوانتایز می‌گردند:
+\begin{equation}
+    I_{t,s}^{\text{BF16}} = \text{Quantize}_{\text{BF16}}\left( \sum_{h=1}^{n_h^I} w_{t,h}^I \cdot \text{ReLU}\left( \mathcal{Q}_{\text{FP4}}(q_{t,h}^I) \cdot \mathcal{Q}_{\text{FP4}}(K_s^{\text{IComp}})^\top \right) \right)
+\end{equation}
+این فشرده‌سازی سرعت عملگر گزینش \en{Top-$k$} را دو برابر کرده و نرخ بازیابی (\en{Recall}) را در سطح مطلوب \textbf{۹۹.۷٪} نگاه می‌دارد.
+
+علاوه بر این، در ذخیره‌سازی \en{KV Cache}، رویکرد ترکیبی به کار گرفته شده است:
+\begin{itemize}
+    \item \textbf{ابعاد دورانی (\en{RoPE Dimensions}):} ۶۴ بُعد انتهایی به علت حساسیت فاز هندسی در دقت \en{BF16} ذخیره می‌شوند.
+    \item \textbf{ابعاد محتوایی (\en{Content Dimensions}):} سایر ابعاد تانسور در دقت \en{FP8} کدگذاری می‌شوند که اندازه کش را به نصف تقلیل می‌دهد.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.5cm and 1.8cm,
+    block/.style={rectangle, draw=blue!70!black, fill=blue!5, rounded corners, minimum width=2.8cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    process/.style={rectangle, draw=teal!70!black, fill=teal!10, rounded corners, minimum width=3.2cm, minimum height=1.1cm, align=center, font=\small},
+    storage/.style={cylinder, draw=orange!80!black, fill=orange!10, shape border rotate=90, aspect=0.25, minimum width=2.2cm, minimum height=1.3cm, align=center, font=\small\bfseries},
+    arrow/.style={-Latex, thick, draw=blue!80!black},
+    dashed_arrow/.style={-Latex, dashed, thick, draw=red!70!black}
+]
+    % Forward Path
+    \node[storage] (fp32) {وزن اصلی\\ \en{FP32 Master}};
+    \node[block, right=of fp32] (quant4) {کوانتیزاسیون\\ \en{MXFP4 (E2M1)}\\ زیربلوک $1\times 32$};
+    \node[block, right=of quant4] (dequant8) {دکوانتیزاسیون بدون تلفات\\ به \en{FP8 (E4M3)}};
+    \node[process, right=of dequant8] (gemm) {محاسبات هسته\\ \en{FP4 $\times$ FP8 GEMM}};
+
+    % Backward Path
+    \node[process, below=1.8cm of gemm] (grad) {محاسبه گرادیان\\ با دقت \en{FP8}};
+    \node[block, below=1.8cm of quant4] (ste) {برآوردگر مستقیم\\ \en{STE Pass-Through}};
+
+    % KV Cache Branch
+    \node[storage, below=1.8cm of fp32] (kv) {ذخیره کش \en{KV}\\ ترکیبی};
+    \node[process, right=0.8cm of kv] (rope) {ابعاد \en{RoPE}: \en{BF16}};
+    \node[process, right=0.8cm of rope] (content) {ابعاد محتوا: \en{FP8}};
+
+    % Connections
+    \draw[arrow] (fp32) -- (quant4);
+    \draw[arrow] (quant4) -- (dequant8);
+    \draw[arrow] (dequant8) -- (gemm);
+    \draw[arrow] (gemm) -- (grad);
+    \draw[dashed_arrow] (grad) -| (ste);
+    \draw[dashed_arrow] (ste) -| node[pos=0.25, above, font=\scriptsize, color=red!70!black] {به‌روزرسانی پیوسته} (fp32);
+    \draw[arrow] (kv) -- (rope);
+    \draw[arrow] (rope) -- (content);
+\end{tikzpicture}%
+}
+\caption{سازوکار آموزش آگاه از کوانتیزاسیون (\en{QAT}) و تفکیک کش کلید-مقدار در \model{DeepSeek-V4}}
+\label{fig:deepseek_v4_quant}
+\end{figure}

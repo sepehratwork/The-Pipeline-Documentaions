@@ -1,1 +1,69 @@
-\item \textbf asd
+\item \model{GLM-5}
+
+\paragraph*{مقدمه و راهبرد کوانتیزیشن مدل}
+مدل \model{GLM-5} \cite{zeng2026glm5} با اتکا به معماری بر پایه ۷۴۴ میلیارد پارامتر کل (۴۰ میلیارد پارامتر فعال در هر گام)، بر پایداری محاسبات فوق‌سریع در فاز بازتولید یادگیری تقویتی (\en{RL Rollout}) و استقرار بر روی پردازنده‌های محاسباتی بومی چینی (\en{Domestic NPUs}) متمرکز است. برای تحقق این اهداف، فرآیند کوانتیزاسیون شامل دو مؤلفه اصلی است:
+\begin{itemize}
+    \item اعمال آموزش آگاه از کوانتیزیشن ۴ بیتی صحیح (\en{INT4 QAT}) در مرحله تنظیم دقیق نظارت‌شده (\en{SFT}).
+    \item تدوین استراتژی دقت مختلط \en{W4A8} منطبق بر معماری پردازنده \en{Huawei Ascend (Atlas 800T A3)}.
+\end{itemize}
+
+\paragraph*{آموزش آگاه از کوانتیزیشن صحیح (\en{INT4 QAT}) با رفتار همگن بیتی}
+در \model{GLM-5}، الگوریتم \en{INT4 QAT} مستقیماً درون فاز \en{SFT} ادغام شده است. هسته‌های کوانتیزاسیون توسعه داده شده دارای پایستگی بیتی (\en{Bitwise Identical Behavior}) بین محیط آموزش توزیع‌شده و استنتاج برون‌خط هستند. فرمول‌بندی عملگر کوانتیزاسیون متقارن برای بردار وزن‌ها به صورت زیر است:
+\begin{equation}
+    s_w = \frac{\max(|W|)}{2^{b-1} - 1} = \frac{\max(|W|)}{7}
+\end{equation}
+\begin{equation}
+    \hat{W} = s_w \cdot \text{clip}\left( \left\lfloor \frac{W}{s_w} \right\rceil, -8, 7 \right)
+\end{equation}
+که در آن عملگر $\lfloor \cdot \rceil$ نماد گردکردن به نزدیک‌ترین عدد صحیح زوج است.
+
+\paragraph*{کوانتیزیشن ناهمگن \en{W4A8} و سرکوب داده‌های پرت با \en{QuaRot}}
+جهت استقرار مدل ۷۴۴ میلیارد پارامتری روی یک گره واحد شتاب‌دهنده \en{Atlas 800T A3}، تفکیک تانسوری صورت گرفته است:
+\begin{itemize}
+    \item \textbf{لایه‌های توجه متراکم (\en{Dense Attention}) و \en{MLP}:} با فرمت \en{W8A8} (وزن و فعال‌ساز ۸ بیتی) کوانتایز می‌شوند تا دقت استنتاج زبانی حفظ شود.
+    \item \textbf{لایه‌های متخصصان تنک (\en{MoE Experts}):} که بدنه اصلی پارامترها هستند، با فرمت \en{W4A8} (وزن ۴ بیتی صحیح و فعال‌ساز ۸ بیتی) فشرده می‌گردند.
+\end{itemize}
+
+به منظور مهار نقاط پرت فعال‌ساز (\en{Activation Outliers})، روش \en{QuaRot} \cite{ashkboos2024quarot} از طریق چرخش‌های متعامد هادامارد اعمال می‌شود. ضرب ماتریسی پایه $Y = XW$ با درج ماتریس متعامد هادامارد $H \in \mathbb{R}^{d \times d}$ (به‌گونه‌ای که $H^\top H = I$ و $H = H^\top$) بازآرایی می‌گردد:
+\begin{equation}
+    Y = (X H) (H^\top W) = \tilde{X} \tilde{W}
+\end{equation}
+این دوران تعاملی، انرژی سیگنال را در ابعاد تانسور بازپخش کرده و طبق نامساوی‌های کورتوزیس، نُرم بیشینه را تعدیل می‌کند:
+\begin{equation}
+    \|\tilde{X}\|_\infty \le \frac{1}{\sqrt{d}} \|X\|_2 \ll \|X\|_\infty
+\end{equation}
+همچنین کالیبراسیون مقیاس با الگوریتم \en{Flex\_AWQ\_SSZ} بر اساس کمینه‌سازی خطای تانسوری پیاده‌سازی شده است:
+\begin{equation}
+    \mathbf{s}^* = \arg\min_{\mathbf{s}} \left\| WX - \mathcal{Q}(W \cdot \text{diag}(\mathbf{s})^{-1}) \cdot \text{diag}(\mathbf{s}) X \right\|_F^2
+\end{equation}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.9\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.4cm and 1.6cm,
+    comp/.style={rectangle, draw=cyan!70!black, fill=cyan!5, rounded corners, minimum width=3.2cm, minimum height=1.1cm, align=center, font=\small\bfseries},
+    core/.style={rectangle, draw=purple!70!black, fill=purple!10, rounded corners, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small},
+    arrow/.style={-Latex, thick, draw=cyan!80!black}
+]
+    \node[comp] (input) {ورودی فعال‌ساز\\ تانسور $X$};
+    \node[core, right=of input] (quarot) {تبدیل هادامارد \en{QuaRot}\\ $\tilde{X} = X \cdot H$};
+    \node[comp, right=of quarot] (act_quant) {کوانتیزاسیون به \en{INT8}\\ $\mathcal{Q}(\tilde{X})$};
+    
+    \node[comp, below=1.5cm of input] (weights) {وزن‌های متخصصان\\ تانسور $W$};
+    \node[core, right=of weights] (awq) {کالیبراسیون مقیاس\\ \en{Flex\_AWQ\_SSZ}};
+    \node[comp, right=of awq] (w_quant) {کوانتیزاسیون به \en{INT4}\\ $\mathcal{Q}(\tilde{W})$};
+
+    \node[core, right=1.6cm of act_quant, yshift=-1.3cm] (gemm) {هسته همجوش محاسباتی\\ \en{W4A8 GEMM (Ascend)}};
+
+    \draw[arrow] (input) -- (quarot);
+    \draw[arrow] (quarot) -- (act_quant);
+    \draw[arrow] (weights) -- (awq);
+    \draw[arrow] (awq) -- (w_quant);
+    \draw[arrow] (act_quant) -| (gemm);
+    \draw[arrow] (w_quant) -| (gemm);
+\end{tikzpicture}%
+}
+\caption{سامانه کوانتیزاسیون مختلط \en{W4A8} با تبدیل هادامارد در \model{GLM-5}}
+\label{fig:glm5_quant}
+\end{figure}
